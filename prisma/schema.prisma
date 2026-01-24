@@ -1,0 +1,587 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../generated/prisma"
+}
+
+datasource db {
+    provider = "sqlite"
+    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
+    // Further reading:
+    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
+    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+    url      = env("DATABASE_URL")
+}
+
+model Post {
+    id        Int      @id @default(autoincrement())
+    name      String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    createdBy   User   @relation(fields: [createdById], references: [id])
+    createdById String
+
+    @@index([name])
+}
+
+// Necessary for Next auth
+model Account {
+    id                       String  @id @default(cuid())
+    userId                   String
+    type                     String
+    provider                 String
+    providerAccountId        String
+    refresh_token            String? // @db.Text
+    access_token             String? // @db.Text
+    expires_at               Int?
+    token_type               String?
+    scope                    String?
+    id_token                 String? // @db.Text
+    session_state            String?
+    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    refresh_token_expires_in Int?
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+    id            String    @id @default(cuid())
+    name          String?
+    email         String?   @unique
+    emailVerified DateTime?
+    image         String?
+    accounts      Account[]
+    sessions      Session[]
+    posts         Post[]
+    player        Player?
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
+// ===== 游戏核心模型 =====
+
+// 玩家游戏存档
+model Player {
+    id           String   @id @default(cuid())
+    userId       String   @unique
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    name         String   // 角色名
+    title        String   @default("领主") // 头衔（非职业）
+    level        Int      @default(1)
+    exp          Int      @default(0)
+    currentWorld String   @default("主位面")
+
+    // 职阶系统
+    tier         Int      @default(1) // 职阶：1阶、2阶、3阶...
+
+    // 体力系统（替代AP）
+    stamina           Int      @default(100)
+    maxStamina        Int      @default(100)
+    staminaPerMin     Float    @default(0.2) // 每分钟回复量（可升级）
+    lastStaminaUpdate DateTime @default(now()) // 上次体力更新时间
+
+    // 资源
+    gold     Int @default(100)
+    wood     Int @default(50)
+    stone    Int @default(30)
+    food     Int @default(100)
+    crystals Int @default(0)
+
+    // 基础属性
+    strength  Int @default(10)
+    agility   Int @default(10)
+    intellect Int @default(10)
+    charisma  Int @default(10)
+
+    // 结算相关
+    lastSettlementDay Int      @default(0)  // 上次结算的游戏日
+    currentDayScore   Int      @default(0)  // 当日累计分数
+    streakDays        Int      @default(0)  // 连续达标天数
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // 关联
+    characters       PlayerCharacter[]
+    equipment        PlayerEquipment[]
+    cards            PlayerCard[]
+    buildings        PlayerBuilding[]
+    storyProgress    StoryProgress[]
+    unlockFlags      UnlockFlag[]
+    economyLogs      EconomyLog[]
+    militaryStatus   MilitaryStatus?
+    profession       PlayerProfession?
+    equippedItems    EquippedItem[]
+    learnedSkills    PlayerSkill[]      // 已学习技能
+    actionLogs       ActionLog[]        // 行动记录（用于结算）
+    settlementLogs   SettlementLog[]    // 结算记录
+}
+
+// 职业模板
+model Profession {
+    id          String @id @default(cuid())
+    name        String @unique // 剑客、术士、商人等
+    description String
+    bonuses     String // JSON: 职业加成
+
+    // 解锁条件（JSON格式）
+    unlockConditions String // 如: {"skillLevel": {"剑术": 3}}
+
+    playerProfessions    PlayerProfession[]
+    characterProfessions CharacterProfession[]
+}
+
+// 玩家职业（可为空，通过突破卡获得）
+model PlayerProfession {
+    id           String     @id @default(cuid())
+    playerId     String     @unique
+    player       Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    professionId String
+    profession   Profession @relation(fields: [professionId], references: [id])
+    obtainedAt   DateTime   @default(now())
+}
+
+// 角色模板
+model Character {
+    id          String  @id @default(cuid())
+    name        String
+    baseClass   String  // 初始职业类型：战士、农夫、工匠、学者
+    rarity      String  // 普通、精英、稀有、传说
+    portrait    String  // 头像emoji或图片路径
+    description String
+    story       String? // 背景故事
+
+    // 基础属性
+    baseAttack  Int
+    baseDefense Int
+    baseSpeed   Int
+    baseLuck    Int
+    baseHp      Int
+    baseMp      Int
+
+    // 初始特性
+    traits String // JSON数组
+
+    playerCharacters PlayerCharacter[]
+}
+
+// 玩家拥有的角色实例（可操作）
+model PlayerCharacter {
+    id          String    @id @default(cuid())
+    playerId    String
+    player      Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    characterId String
+    character   Character @relation(fields: [characterId], references: [id])
+
+    // 职阶系统
+    tier      Int    @default(1) // 职阶：决定技能槽数量（tier × 6）
+
+    // 实例属性
+    level     Int    @default(1)
+    maxLevel  Int    @default(20)
+    exp       Int    @default(0)
+    hp        Int
+    maxHp     Int
+    mp        Int
+    maxMp     Int
+    status    String @default("idle") // idle/working/exploring/injured
+    workingAt String? // 工作地点
+
+    // 成长后的属性
+    attack  Int
+    defense Int
+    speed   Int
+    luck    Int
+
+    // 好感度
+    affection Int @default(0)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // 关联
+    profession    CharacterProfession?
+    equippedItems EquippedItem[]
+    learnedSkills CharacterSkill[]  // 已学习技能
+}
+
+// 角色职业（可为空，通过突破卡获得）
+model CharacterProfession {
+    id                String          @id @default(cuid())
+    playerCharacterId String          @unique
+    playerCharacter   PlayerCharacter @relation(fields: [playerCharacterId], references: [id], onDelete: Cascade)
+    professionId      String
+    profession        Profession      @relation(fields: [professionId], references: [id])
+    obtainedAt        DateTime        @default(now())
+}
+
+// 装备模板
+model Equipment {
+    id          String @id @default(cuid())
+    name        String
+    slot        String // mainHand/offHand/helmet/chest/belt/gloves/pants/boots/necklace/ring1/ring2
+    rarity      String // 普通/精良/稀有/史诗/传说
+    description String
+    icon        String // emoji或图片
+
+    // 基础属性加成
+    attackBonus  Int @default(0)
+    defenseBonus Int @default(0)
+    speedBonus   Int @default(0)
+    luckBonus    Int @default(0)
+    hpBonus      Int @default(0)
+    mpBonus      Int @default(0)
+
+    // 特殊效果（JSON）
+    specialEffects String?
+
+    // 装备要求
+    requiredLevel Int @default(1)
+
+    playerEquipment PlayerEquipment[]
+}
+
+// 玩家拥有的装备实例
+model PlayerEquipment {
+    id          String    @id @default(cuid())
+    playerId    String
+    player      Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    equipmentId String
+    equipment   Equipment @relation(fields: [equipmentId], references: [id])
+
+    // 强化等级
+    enhanceLevel Int @default(0)
+
+    createdAt DateTime @default(now())
+
+    equippedOn EquippedItem?
+}
+
+// 装备穿戴关联（11槽位）
+model EquippedItem {
+    id                String           @id @default(cuid())
+    playerEquipmentId String           @unique
+    playerEquipment   PlayerEquipment  @relation(fields: [playerEquipmentId], references: [id], onDelete: Cascade)
+    slot              String // mainHand/offHand/helmet/chest/belt/gloves/pants/boots/necklace/ring1/ring2
+
+    // 装备到玩家或角色（二选一）
+    playerId          String?
+    player            Player?          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    playerCharacterId String?
+    playerCharacter   PlayerCharacter? @relation(fields: [playerCharacterId], references: [id], onDelete: Cascade)
+
+    @@unique([playerId, slot])
+    @@unique([playerCharacterId, slot])
+}
+
+// 卡牌模板
+model Card {
+    id          String @id @default(cuid())
+    name        String @unique
+    type        String // building/recruit/skill/enhance/item
+    rarity      String // 普通/精良/稀有/史诗/传说
+    description String
+    icon        String @default("🃏")
+
+    // 卡牌效果（JSON）
+    // building: {buildingId, ...}
+    // recruit: {characterId, ...}
+    // skill: {skillId, ...}
+    // enhance: {targetType, bonus, ...}
+    // item: {itemType, effect, ...}
+    effects     String
+
+    playerCards PlayerCard[]
+}
+
+// 玩家拥有的卡牌
+model PlayerCard {
+    id       String @id @default(cuid())
+    playerId String
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    cardId   String
+    card     Card   @relation(fields: [cardId], references: [id])
+    quantity Int    @default(1)
+
+    @@unique([playerId, cardId])
+}
+
+// 建筑模板
+model Building {
+    id          String @id @default(cuid())
+    name        String
+    slot        String // core/production/military/commerce/special
+    icon        String
+    description String
+    maxLevel    Int
+
+    // 基础效果（JSON）
+    baseEffects String
+
+    playerBuildings PlayerBuilding[]
+}
+
+// 玩家已建造建筑
+model PlayerBuilding {
+    id         String   @id @default(cuid())
+    playerId   String
+    player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    buildingId String
+    building   Building @relation(fields: [buildingId], references: [id])
+
+    level         Int     @default(1)
+    status        String  @default("idle") // idle/working/upgrading
+    assignedCharId String? // 分配的角色ID
+
+    positionX Int // 地图位置
+    positionY Int
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([playerId, positionX, positionY])
+}
+
+// 剧情进度
+model StoryProgress {
+    id        String   @id @default(cuid())
+    playerId  String
+    player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    storyId   String   // 剧情节点ID
+    completed Boolean  @default(false)
+    choices   String?  // JSON: 玩家选择记录
+    completedAt DateTime?
+
+    @@unique([playerId, storyId])
+}
+
+// 解锁标记
+model UnlockFlag {
+    id       String   @id @default(cuid())
+    playerId String
+    player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    flagName String
+    value    String   @default("true")
+    unlockedAt DateTime @default(now())
+
+    @@unique([playerId, flagName])
+}
+
+// 经济数据记录
+model EconomyLog {
+    id       String   @id @default(cuid())
+    playerId String
+    player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    day      Int      // 游戏日
+    date     DateTime @default(now())
+
+    // 收入
+    goldIncome     Int @default(0)
+    woodIncome     Int @default(0)
+    stoneIncome    Int @default(0)
+    foodIncome     Int @default(0)
+    crystalsIncome Int @default(0)
+
+    // 支出
+    goldExpense     Int @default(0)
+    woodExpense     Int @default(0)
+    stoneExpense    Int @default(0)
+    foodExpense     Int @default(0)
+    crystalsExpense Int @default(0)
+
+    @@unique([playerId, day])
+}
+
+// 军事状态
+model MilitaryStatus {
+    id       String @id @default(cuid())
+    playerId String @unique
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    totalPower    Int @default(0) // 总战力
+    defensePower  Int @default(0) // 防御力
+    morale        Int @default(100) // 士气 (0-100)
+    soldiers      Int @default(0) // 士兵数
+    maxSoldiers   Int @default(10) // 士兵上限
+    reserveSoldiers Int @default(0) // 预备兵
+
+    // 威胁等级
+    threatLevel String @default("low") // low/medium/high/critical
+
+    // 周边威胁（JSON）
+    nearbyThreats String @default("[]")
+
+    updatedAt DateTime @updatedAt
+}
+
+// ===== 技能系统 =====
+
+// 技能模板
+model Skill {
+    id          String @id @default(cuid())
+    name        String @unique
+    description String
+    icon        String
+    type        String // combat/production/utility
+    category    String // sword/magic/crafting/etc
+
+    // 技能效果（JSON）
+    effects     String
+    cooldown    Int    @default(0) // 冷却回合数
+
+    // 升级数据（JSON：每级效果）
+    levelData   String
+
+    playerSkills    PlayerSkill[]
+    characterSkills CharacterSkill[]
+}
+
+// 玩家已学习技能
+model PlayerSkill {
+    id        String @id @default(cuid())
+    playerId  String
+    player    Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    skillId   String
+    skill     Skill  @relation(fields: [skillId], references: [id])
+
+    level     Int    @default(1)
+    exp       Int    @default(0) // 技能熟练度
+
+    createdAt DateTime @default(now())
+
+    @@unique([playerId, skillId])
+}
+
+// 角色已学习技能
+model CharacterSkill {
+    id                String          @id @default(cuid())
+    playerCharacterId String
+    playerCharacter   PlayerCharacter @relation(fields: [playerCharacterId], references: [id], onDelete: Cascade)
+    skillId           String
+    skill             Skill           @relation(fields: [skillId], references: [id])
+
+    level     Int    @default(1)
+    exp       Int    @default(0)
+
+    createdAt DateTime @default(now())
+
+    @@unique([playerCharacterId, skillId])
+}
+
+// ===== 结算系统 =====
+
+// 行动记录（用于计算当日分数）
+model ActionLog {
+    id       String   @id @default(cuid())
+    playerId String
+    player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    day         Int      // 游戏日
+    type        String   // build/explore/combat/upgrade/production/recruit
+    description String
+    baseScore   Int
+    bonus       Int      @default(0)
+    bonusReason String?
+    timestamp   DateTime @default(now())
+
+    @@index([playerId, day])
+}
+
+// 结算记录
+model SettlementLog {
+    id       String   @id @default(cuid())
+    playerId String
+    player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    day        Int
+    totalScore Int
+    grade      String // S/A/B/C/D
+
+    // 奖励（JSON）
+    rewards    String
+
+    // 分数明细（JSON）
+    breakdown  String
+
+    settledAt  DateTime @default(now())
+
+    @@unique([playerId, day])
+}
+
+// ===== 城外系统 =====
+
+// 野外设施实例
+model WildernessFacility {
+    id       String @id @default(cuid())
+    playerId String
+    worldId  String @default("main") // 所属世界
+
+    type        String  // resource/monster/merchant/boss/ruin/portal
+    name        String
+    icon        String
+    description String
+
+    positionX   Int
+    positionY   Int
+
+    // 设施数据（JSON：奖励、商品、难度等）
+    data        String
+
+    // 状态
+    remainingUses Int?     // 剩余使用次数（null=无限）
+    expiresAt     DateTime? // 过期时间（null=永久）
+    isDiscovered  Boolean  @default(false) // 是否已被发现
+
+    createdAt DateTime @default(now())
+
+    @@index([playerId, worldId])
+    @@unique([playerId, worldId, positionX, positionY])
+}
+
+// 已探索区域
+model ExploredArea {
+    id       String @id @default(cuid())
+    playerId String
+    worldId  String @default("main")
+
+    positionX  Int
+    positionY  Int
+    name       String
+    discoveredAt DateTime @default(now())
+
+    @@unique([playerId, worldId, positionX, positionY])
+}
+
+// Boss状态
+model BossStatus {
+    id       String @id @default(cuid())
+    playerId String
+    bossId   String // Boss标识
+
+    // 本周挑战次数
+    weeklyAttempts Int      @default(0)
+    lastAttempt    DateTime?
+    lastDefeat     DateTime? // 上次击杀时间
+
+    // 每周一重置
+    weekStartDate  DateTime
+
+    @@unique([playerId, bossId])
+}
