@@ -8,7 +8,6 @@
  */
 
 import { initTRPC, TRPCError } from "@trpc/server";
-import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
@@ -60,11 +59,18 @@ const DEV_SESSION_COOKIE = "dev-session";
  *
  * @see https://trpc.io/docs/context
  */
-export const createTRPCContext = async (opts: CreateNextContextOptions) => {
-  const { req } = opts;
+export const createTRPCContext = async (opts: { headers: Headers }) => {
+  const { headers } = opts;
 
-  // Dev session: read from cookie
-  const sessionId = req.cookies[DEV_SESSION_COOKIE];
+  // Dev session: read from cookie header
+  const cookieHeader = headers.get("cookie") ?? "";
+  const cookies = Object.fromEntries(
+    cookieHeader.split("; ").filter(Boolean).map(c => {
+      const [key, ...rest] = c.split("=");
+      return [key, rest.join("=")];
+    })
+  );
+  const sessionId = cookies[DEV_SESSION_COOKIE];
 
   let session: DevSession | null = null;
 

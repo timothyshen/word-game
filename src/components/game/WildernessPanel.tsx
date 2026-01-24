@@ -1,5 +1,5 @@
 // 野外面板 - 冒险和探索
-import { api } from "~/utils/api";
+import { api } from "~/trpc/react";
 
 export default function WildernessPanel() {
   const { data: player } = api.player.getStatus.useQuery();

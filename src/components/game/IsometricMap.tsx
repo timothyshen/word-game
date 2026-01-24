@@ -1,7 +1,7 @@
 // Isometric Pixel Map Component
 // 等距像素地图组件 - 显示领地建筑的成长 + 战争迷雾
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 // 建筑数据类型
 interface Building {
@@ -21,12 +21,6 @@ type TileType = "grass" | "dirt" | "water" | "road" | "empty";
 
 // 迷雾状态
 type FogState = "hidden" | "revealed" | "visible";
-
-interface MapTile {
-  type: TileType;
-  building?: Building;
-  fog: FogState;
-}
 
 // 建筑像素艺术定义（按等级）
 const BUILDING_PIXELS: Record<string, Record<number, string[][]>> = {

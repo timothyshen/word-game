@@ -1,5 +1,5 @@
 // 技能面板 - 展示已学习技能
-import { api } from "~/utils/api";
+import { api } from "~/trpc/react";
 
 const skillTypeLabels: Record<string, { label: string; color: string }> = {
   combat: { label: "战斗", color: "#ff6b6b" },

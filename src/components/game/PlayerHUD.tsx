@@ -1,5 +1,5 @@
 // 玩家状态HUD - 显示体力、资源、当日分数
-import { api } from "~/utils/api";
+import { api } from "~/trpc/react";
 
 interface PlayerHUDProps {
   onSettlement?: () => void;

@@ -1,6 +1,6 @@
 // 卡牌背包界面
 import { useState } from "react";
-import { api } from "~/utils/api";
+import { api } from "~/trpc/react";
 
 type CardType = "all" | "building" | "recruit" | "skill" | "enhance" | "item";
 

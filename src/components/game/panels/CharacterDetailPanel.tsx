@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { charactersData } from "../data/fixtures";
+import { charactersData } from "~/data/fixtures";
 
 type Character = typeof charactersData[0];
 
@@ -34,7 +34,7 @@ export default function CharacterDetailPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-lg h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 固定头部 */}
@@ -69,8 +69,9 @@ export default function CharacterDetailPanel({
         </DialogHeader>
 
         {/* 可滚动内容 */}
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="text-[#e0dcd0]">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:hidden">
+            <div className="text-[#e0dcd0]">
             {/* 状态栏 */}
             <div className="p-4 border-b border-[#2a2a30]">
               <div className="grid grid-cols-3 gap-4">
@@ -173,29 +174,31 @@ export default function CharacterDetailPanel({
               <p className="text-sm text-[#888] mt-2 leading-relaxed">{character.story}</p>
             </div>
 
-            {/* 操作按钮 */}
-            <div className="p-4 flex gap-2">
-              {character.status === "working" ? (
-                <button
-                  onClick={onUnassign}
-                  className="flex-1 py-2 border border-[#666] text-[#888] hover:border-[#c9a227] hover:text-[#c9a227]"
-                >
-                  取消工作
-                </button>
-              ) : (
-                <button
-                  onClick={onAssign}
-                  className="flex-1 py-2 border border-[#4a9] text-[#4a9] hover:bg-[#4a9] hover:text-[#08080a]"
-                >
-                  分配工作
-                </button>
-              )}
-              <button className="flex-1 py-2 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a]">
-                带去探索
-              </button>
-            </div>
           </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
+
+        {/* 固定底部按钮 */}
+        <div className="flex-shrink-0 bg-[#151518] border-t border-[#2a2a30] p-4 flex gap-2">
+          {character.status === "working" ? (
+            <button
+              onClick={onUnassign}
+              className="flex-1 py-2 border border-[#666] text-[#888] hover:border-[#c9a227] hover:text-[#c9a227]"
+            >
+              取消工作
+            </button>
+          ) : (
+            <button
+              onClick={onAssign}
+              className="flex-1 py-2 border border-[#4a9] text-[#4a9] hover:bg-[#4a9] hover:text-[#08080a]"
+            >
+              分配工作
+            </button>
+          )}
+          <button className="flex-1 py-2 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a]">
+            带去探索
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   );

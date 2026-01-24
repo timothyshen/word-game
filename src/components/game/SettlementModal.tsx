@@ -1,6 +1,6 @@
 // 每日结算弹窗 - 连接后端
 import { useState } from "react";
-import { api } from "~/utils/api";
+import { api } from "~/trpc/react";
 
 interface SettlementModalProps {
   onClose: () => void;

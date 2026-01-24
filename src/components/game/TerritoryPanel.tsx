@@ -1,5 +1,5 @@
 // 领地面板 - 建筑和资源管理
-import { api } from "~/utils/api";
+import { api } from "~/trpc/react";
 
 export default function TerritoryPanel() {
   const { data: player, isLoading } = api.player.getStatus.useQuery();

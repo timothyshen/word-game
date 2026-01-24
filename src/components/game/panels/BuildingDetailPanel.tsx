@@ -7,8 +7,8 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { buildingsData, charactersData } from "../data/fixtures";
-import type { TileAttributes } from "../data/fixtures";
+import { buildingsData, charactersData } from "~/data/fixtures";
+import type { TileAttributes } from "~/data/fixtures";
 
 type Building = typeof buildingsData[0];
 

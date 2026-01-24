@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { settlementData, dailyInfo } from "../data/fixtures";
+import { settlementData, dailyInfo } from "~/data/fixtures";
 
 interface SettlementPanelProps {
   onClose: () => void;

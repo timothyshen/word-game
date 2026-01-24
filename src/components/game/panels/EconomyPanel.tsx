@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { economyData, resourcesData } from "../data/fixtures";
+import { economyData, resourcesData } from "~/data/fixtures";
 
 interface EconomyPanelProps {
   onClose: () => void;

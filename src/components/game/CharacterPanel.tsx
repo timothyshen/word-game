@@ -1,6 +1,6 @@
 // 角色列表面板
 import { useState } from "react";
-import { api } from "~/utils/api";
+import { api } from "~/trpc/react";
 
 const rarityColors: Record<string, string> = {
   普通: "#888888",

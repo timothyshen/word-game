@@ -1,16 +1,19 @@
+"use client";
+
 // 游戏主页面 - 基于 VariantG 设计
 import { useState } from "react";
-import Head from "next/head";
 import Link from "next/link";
-import { api } from "~/utils/api";
+import { api } from "~/trpc/react";
 
-// 导入设计Lab组件
-import IsometricMap from "../../.claude-design/lab/components/IsometricMap";
-import CharacterDetailPanel from "../../.claude-design/lab/components/CharacterDetailPanel";
-import BuildingDetailPanel from "../../.claude-design/lab/components/BuildingDetailPanel";
-import EconomyPanel from "../../.claude-design/lab/components/EconomyPanel";
-import MilitaryPanel from "../../.claude-design/lab/components/MilitaryPanel";
-import SettlementPanel from "../../.claude-design/lab/components/SettlementPanel";
+// 导入游戏组件
+import IsometricMap from "~/components/game/IsometricMap";
+import {
+  CharacterDetailPanel,
+  BuildingDetailPanel,
+  EconomyPanel,
+  MilitaryPanel,
+  SettlementPanel,
+} from "~/components/game/panels";
 
 // 建筑位置映射
 const BUILDING_POSITIONS: Record<string, { x: number; y: number }> = {
@@ -112,227 +115,219 @@ export default function GamePage() {
   };
 
   return (
-    <>
-      <Head>
-        <title>诸天领域</title>
-      </Head>
-
-      <div className="min-h-screen bg-[#08080a] text-[#e0dcd0] font-mono flex flex-col">
-        {/* 顶部导航 */}
-        <header className="bg-[#101014] border-b-4 border-[#c9a227]">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            {/* 玩家信息 */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-[#c9a227] text-[#08080a] flex items-center justify-center font-bold text-lg">
-                  {player.tier}
-                </div>
-                <div>
-                  <div className="text-[#c9a227] font-bold">{player.name}</div>
-                  <div className="text-xs text-[#666]">
-                    {player.tier}阶领主
-                    {player.profession?.profession && ` · ${player.profession.profession.name}`}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 体力条 */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[#4a9eff]">⚡</span>
-                <div className="w-32 h-3 bg-[#1a1a20] relative">
-                  <div
-                    className="h-full bg-[#4a9eff] transition-all"
-                    style={{ width: `${staminaPercent}%` }}
-                  />
-                </div>
-                <span className="text-sm">
-                  <span className="text-[#4a9eff] font-bold">{player.stamina}</span>
-                  <span className="text-[#666]">/{player.maxStamina}</span>
-                </span>
-              </div>
-            </div>
-
-            {/* 当日分数 */}
+    <div className="min-h-screen bg-[#08080a] text-[#e0dcd0] font-mono flex flex-col">
+      {/* 顶部导航 */}
+      <header className="bg-[#101014] border-b-4 border-[#c9a227]">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          {/* 玩家信息 */}
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#666]">今日分数</span>
-              <span className="px-2 py-1 bg-[#1a1a20] text-[#c9a227] text-sm font-bold">
-                {player.currentDayScore}
+              <div className="w-10 h-10 bg-[#c9a227] text-[#08080a] flex items-center justify-center font-bold text-lg">
+                {player.tier}
+              </div>
+              <div>
+                <div className="text-[#c9a227] font-bold">{player.name}</div>
+                <div className="text-xs text-[#666]">
+                  {player.tier}阶领主
+                  {player.profession?.profession && ` · ${player.profession.profession.name}`}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 体力条 */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[#4a9eff]">⚡</span>
+              <div className="w-32 h-3 bg-[#1a1a20] relative">
+                <div
+                  className="h-full bg-[#4a9eff] transition-all"
+                  style={{ width: `${staminaPercent}%` }}
+                />
+              </div>
+              <span className="text-sm">
+                <span className="text-[#4a9eff] font-bold">{player.stamina}</span>
+                <span className="text-[#666]">/{player.maxStamina}</span>
               </span>
             </div>
           </div>
-        </header>
 
-        {/* 资源条 */}
-        <div className="bg-[#0c0c10] border-b border-[#2a2a30]">
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              <ResourceBar icon="🪙" name="金币" value={player.gold} max={5000} color="#c9a227" />
-              <ResourceBar icon="🪵" name="木材" value={player.wood} max={1000} color="#8b6914" />
-              <ResourceBar icon="🪨" name="石材" value={player.stone} max={500} color="#888" />
-              <ResourceBar icon="🍞" name="粮食" value={player.food} max={1000} color="#a67c52" />
-              <ResourceBar icon="💎" name="水晶" value={player.crystals} max={100} color="#9b59b6" />
+          {/* 当日分数 */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[#666]">今日分数</span>
+            <span className="px-2 py-1 bg-[#1a1a20] text-[#c9a227] text-sm font-bold">
+              {player.currentDayScore}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* 资源条 */}
+      <div className="bg-[#0c0c10] border-b border-[#2a2a30]">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            <ResourceBar icon="🪙" name="金币" value={player.gold} max={5000} color="#c9a227" />
+            <ResourceBar icon="🪵" name="木材" value={player.wood} max={1000} color="#8b6914" />
+            <ResourceBar icon="🪨" name="石材" value={player.stone} max={500} color="#888" />
+            <ResourceBar icon="🍞" name="粮食" value={player.food} max={1000} color="#a67c52" />
+            <ResourceBar icon="💎" name="水晶" value={player.crystals} max={100} color="#9b59b6" />
+          </div>
+        </div>
+      </div>
+
+      {/* 主内容 */}
+      <main className="flex-1 overflow-y-auto pb-16">
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* 左侧 - 等距像素地图 */}
+            <div className="lg:col-span-7">
+              <DashboardCard title="领地地图" badge={`${buildingsData.length} 建筑`}>
+                {exploreMessage && (
+                  <div className="px-4 py-2 bg-[#1a1a20] border-b border-[#2a2a30] text-sm animate-pulse">
+                    <span className="text-[#4a9]">✨</span> {exploreMessage}
+                  </div>
+                )}
+                <IsometricMap
+                  buildings={buildingsData}
+                  onBuildingClick={handleBuildingClick}
+                  onExplore={handleExplore}
+                />
+              </DashboardCard>
+            </div>
+
+            {/* 右侧 - 信息栏 */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* 快速行动 */}
+              <DashboardCard title="快速行动" compact>
+                <div className="grid grid-cols-2 gap-2 p-3">
+                  <ActionButton icon="📊" label="经济" sublabel="资源总览" onClick={() => setShowEconomyPanel(true)} />
+                  <ActionButton icon="⚔️" label="军事" sublabel="战力部署" onClick={() => setShowMilitaryPanel(true)} />
+                  <ActionButton icon="🎴" label="结算" sublabel="今日分数" onClick={() => setShowSettlementPanel(true)} highlight />
+                  <ActionButton icon="📦" label="背包" sublabel={`${player.cards.length} 种卡牌`} />
+                </div>
+              </DashboardCard>
+
+              {/* 角色列表 */}
+              <DashboardCard
+                title="我的角色"
+                badge={`${charactersData.length} 人`}
+              >
+                {charactersData.length === 0 ? (
+                  <div className="p-6 text-center text-[#666]">
+                    <div className="text-3xl mb-2">👤</div>
+                    <div>暂无角色</div>
+                    <div className="text-xs mt-1">使用招募卡获得角色</div>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#1a1a20]">
+                    {charactersData.map((c) => (
+                      <CharacterRow
+                        key={c.id}
+                        character={c}
+                        onClick={() => handleCharacterClick(c)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </DashboardCard>
+
+              {/* 技能列表 */}
+              <DashboardCard
+                title="已学技能"
+                badge={`${player.learnedSkills.length}/${player.tier * 6}`}
+              >
+                {player.learnedSkills.length === 0 ? (
+                  <div className="p-6 text-center text-[#666]">
+                    <div className="text-3xl mb-2">📖</div>
+                    <div>暂无技能</div>
+                    <div className="text-xs mt-1">使用技能卡学习技能</div>
+                  </div>
+                ) : (
+                  <div className="p-3 flex flex-wrap gap-2">
+                    {player.learnedSkills.map((ps) => (
+                      <span
+                        key={ps.id}
+                        className="px-2 py-1 bg-[#1a1a20] border border-[#2a2a30] text-sm"
+                        title={ps.skill.description}
+                      >
+                        {ps.skill.icon} {ps.skill.name} Lv.{ps.level}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </DashboardCard>
             </div>
           </div>
         </div>
+      </main>
 
-        {/* 主内容 */}
-        <main className="flex-1 overflow-y-auto pb-16">
-          <div className="max-w-7xl mx-auto p-4">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              {/* 左侧 - 等距像素地图 */}
-              <div className="lg:col-span-7">
-                <DashboardCard title="领地地图" badge={`${buildingsData.length} 建筑`}>
-                  {exploreMessage && (
-                    <div className="px-4 py-2 bg-[#1a1a20] border-b border-[#2a2a30] text-sm animate-pulse">
-                      <span className="text-[#4a9]">✨</span> {exploreMessage}
-                    </div>
-                  )}
-                  <IsometricMap
-                    buildings={buildingsData}
-                    onBuildingClick={handleBuildingClick}
-                    onExplore={handleExplore}
-                  />
-                </DashboardCard>
-              </div>
-
-              {/* 右侧 - 信息栏 */}
-              <div className="lg:col-span-5 space-y-4">
-                {/* 快速行动 */}
-                <DashboardCard title="快速行动" compact>
-                  <div className="grid grid-cols-2 gap-2 p-3">
-                    <ActionButton icon="📊" label="经济" sublabel="资源总览" onClick={() => setShowEconomyPanel(true)} />
-                    <ActionButton icon="⚔️" label="军事" sublabel="战力部署" onClick={() => setShowMilitaryPanel(true)} />
-                    <ActionButton icon="🎴" label="结算" sublabel="今日分数" onClick={() => setShowSettlementPanel(true)} highlight />
-                    <ActionButton icon="📦" label="背包" sublabel={`${player.cards.length} 种卡牌`} />
-                  </div>
-                </DashboardCard>
-
-                {/* 角色列表 */}
-                <DashboardCard
-                  title="我的角色"
-                  badge={`${charactersData.length} 人`}
-                >
-                  {charactersData.length === 0 ? (
-                    <div className="p-6 text-center text-[#666]">
-                      <div className="text-3xl mb-2">👤</div>
-                      <div>暂无角色</div>
-                      <div className="text-xs mt-1">使用招募卡获得角色</div>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-[#1a1a20]">
-                      {charactersData.map((c) => (
-                        <CharacterRow
-                          key={c.id}
-                          character={c}
-                          onClick={() => handleCharacterClick(c)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </DashboardCard>
-
-                {/* 技能列表 */}
-                <DashboardCard
-                  title="已学技能"
-                  badge={`${player.learnedSkills.length}/${player.tier * 6}`}
-                >
-                  {player.learnedSkills.length === 0 ? (
-                    <div className="p-6 text-center text-[#666]">
-                      <div className="text-3xl mb-2">📖</div>
-                      <div>暂无技能</div>
-                      <div className="text-xs mt-1">使用技能卡学习技能</div>
-                    </div>
-                  ) : (
-                    <div className="p-3 flex flex-wrap gap-2">
-                      {player.learnedSkills.map((ps) => (
-                        <span
-                          key={ps.id}
-                          className="px-2 py-1 bg-[#1a1a20] border border-[#2a2a30] text-sm"
-                          title={ps.skill.description}
-                        >
-                          {ps.skill.icon} {ps.skill.name} Lv.{ps.level}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </DashboardCard>
-              </div>
-            </div>
+      {/* 底部状态栏 */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-[#101014] border-t-2 border-[#2a2a30] px-4 py-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
+          <div className="flex items-center gap-4">
+            <span className="text-[#c9a227]">DAY {player.currentGameDay}</span>
+            <span className="text-[#3a3a40]">|</span>
+            <span className="text-[#666]">连续达标 {player.streakDays} 天</span>
           </div>
-        </main>
-
-        {/* 底部状态栏 */}
-        <footer className="fixed bottom-0 left-0 right-0 bg-[#101014] border-t-2 border-[#2a2a30] px-4 py-2">
-          <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
-            <div className="flex items-center gap-4">
-              <span className="text-[#c9a227]">DAY {player.currentGameDay}</span>
-              <span className="text-[#3a3a40]">|</span>
-              <span className="text-[#666]">连续达标 {player.streakDays} 天</span>
-            </div>
-            <div className="flex items-center gap-4 text-[#666]">
-              <Link href="/login" className="hover:text-[#c9a227]">切换账号</Link>
-              <span>|</span>
-              <Link href="/__design_lab" className="hover:text-[#c9a227]">设计Lab</Link>
-            </div>
+          <div className="flex items-center gap-4 text-[#666]">
+            <Link href="/login" className="hover:text-[#c9a227]">切换账号</Link>
           </div>
-        </footer>
+        </div>
+      </footer>
 
-        {/* 建筑详情面板 */}
-        {showBuildingPanel && selectedBuilding && (
-          <BuildingDetailPanel
-            building={selectedBuilding}
-            onClose={() => setShowBuildingPanel(false)}
-            onUpgrade={() => {
-              alert("升级功能开发中");
-              setShowBuildingPanel(false);
-            }}
-          />
-        )}
+      {/* 建筑详情面板 */}
+      {showBuildingPanel && selectedBuilding && (
+        <BuildingDetailPanel
+          building={selectedBuilding}
+          onClose={() => setShowBuildingPanel(false)}
+          onUpgrade={() => {
+            alert("升级功能开发中");
+            setShowBuildingPanel(false);
+          }}
+        />
+      )}
 
-        {/* 角色详情面板 */}
-        {showCharacterPanel && selectedCharacter && (
-          <CharacterDetailPanel
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            character={selectedCharacter as any}
-            onClose={() => setShowCharacterPanel(false)}
-          />
-        )}
+      {/* 角色详情面板 */}
+      {showCharacterPanel && selectedCharacter && (
+        <CharacterDetailPanel
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          character={selectedCharacter as any}
+          onClose={() => setShowCharacterPanel(false)}
+        />
+      )}
 
-        {/* 经济面板 */}
-        {showEconomyPanel && (
-          <EconomyPanel
-            onClose={() => setShowEconomyPanel(false)}
-            onBuildFacility={() => alert("建造设施功能开发中")}
-            onAssignWorker={() => alert("分配工人功能开发中")}
-            onViewHistory={() => alert("交易记录功能开发中")}
-          />
-        )}
+      {/* 经济面板 */}
+      {showEconomyPanel && (
+        <EconomyPanel
+          onClose={() => setShowEconomyPanel(false)}
+          onBuildFacility={() => alert("建造设施功能开发中")}
+          onAssignWorker={() => alert("分配工人功能开发中")}
+          onViewHistory={() => alert("交易记录功能开发中")}
+        />
+      )}
 
-        {/* 军事面板 */}
-        {showMilitaryPanel && (
-          <MilitaryPanel
-            onClose={() => setShowMilitaryPanel(false)}
-            onFormation={() => alert("编队功能开发中")}
-            onTrainSoldiers={() => alert("训练士兵功能开发中")}
-            onExpedition={() => alert("出征功能开发中")}
-            onDefense={() => alert("防御部署功能开发中")}
-          />
-        )}
+      {/* 军事面板 */}
+      {showMilitaryPanel && (
+        <MilitaryPanel
+          onClose={() => setShowMilitaryPanel(false)}
+          onFormation={() => alert("编队功能开发中")}
+          onTrainSoldiers={() => alert("训练士兵功能开发中")}
+          onExpedition={() => alert("出征功能开发中")}
+          onDefense={() => alert("防御部署功能开发中")}
+        />
+      )}
 
-        {/* 结算面板 */}
-        {showSettlementPanel && (
-          <SettlementPanel
-            onClose={() => setShowSettlementPanel(false)}
-            onCollectRewards={() => {
-              alert("奖励已领取！");
-              setShowSettlementPanel(false);
-            }}
-          />
-        )}
-      </div>
-    </>
+      {/* 结算面板 */}
+      {showSettlementPanel && (
+        <SettlementPanel
+          onClose={() => setShowSettlementPanel(false)}
+          onCollectRewards={() => {
+            alert("奖励已领取！");
+            setShowSettlementPanel(false);
+          }}
+        />
+      )}
+    </div>
   );
 }
 

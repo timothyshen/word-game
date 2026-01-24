@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { militaryData } from "../data/fixtures";
+import { militaryData } from "~/data/fixtures";
 
 interface MilitaryPanelProps {
   onClose: () => void;

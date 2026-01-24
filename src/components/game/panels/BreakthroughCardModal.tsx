@@ -1,7 +1,7 @@
 // 突破卡模态框组件
 
 import { useState } from "react";
-import { breakthroughCardData, professionTemplates, charactersData } from "../data/fixtures";
+import { breakthroughCardData, professionTemplates, charactersData } from "~/data/fixtures";
 
 type BreakthroughCard = typeof breakthroughCardData.availableCards[0];
 type ProfessionTemplate = typeof professionTemplates[0];
@@ -290,7 +290,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export function BreakthroughCardList({
   onSelectCard,
 }: {
-  onSelectCard: (card: BreakthroughCard) => void;
+  onSelectCard: (card: typeof breakthroughCardData.availableCards[0]) => void;
 }) {
   const { availableCards, usedCards, breakthroughInfo } = breakthroughCardData;
 
