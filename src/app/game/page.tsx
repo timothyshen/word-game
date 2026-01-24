@@ -13,6 +13,9 @@ import {
   EconomyPanel,
   MilitaryPanel,
   SettlementPanel,
+  ExplorationPanel,
+  CombatPanel,
+  AltarPanel,
 } from "~/components/game/panels";
 
 // 建筑位置映射
@@ -36,6 +39,10 @@ export default function GamePage() {
   const [showEconomyPanel, setShowEconomyPanel] = useState(false);
   const [showMilitaryPanel, setShowMilitaryPanel] = useState(false);
   const [showSettlementPanel, setShowSettlementPanel] = useState(false);
+  const [showExplorationPanel, setShowExplorationPanel] = useState(false);
+  const [showCombatPanel, setShowCombatPanel] = useState(false);
+  const [combatLevel, setCombatLevel] = useState(1);
+  const [showAltarPanel, setShowAltarPanel] = useState(false);
   const [exploreMessage, setExploreMessage] = useState<string | null>(null);
 
   // 获取玩家数据
@@ -83,7 +90,8 @@ export default function GamePage() {
 
   // 打开建筑详情
   const handleBuildingClick = (building: { id: number; name: string }) => {
-    const fullBuilding = buildingsData.find(b => b.id === building.id);
+    // IsometricMap 传递的是数字ID，需要匹配 numericId
+    const fullBuilding = buildingsData.find(b => b.numericId === building.id);
     if (fullBuilding) {
       setSelectedBuilding(fullBuilding);
       setShowBuildingPanel(true);
@@ -96,22 +104,9 @@ export default function GamePage() {
     setShowCharacterPanel(true);
   };
 
-  // 探索
-  const handleExplore = (x: number, y: number) => {
-    if (player.stamina < 10) {
-      setExploreMessage("体力不足！");
-      setTimeout(() => setExploreMessage(null), 2000);
-      return;
-    }
-    const results = [
-      "发现了一块空地，可以建造建筑！",
-      "发现了一些资源：木材 +20",
-      "发现了一个神秘宝箱！",
-      "这里什么都没有...",
-    ];
-    const result = results[Math.floor(Math.random() * results.length)];
-    setExploreMessage(`探索 (${x},${y}): ${result}`);
-    setTimeout(() => setExploreMessage(null), 3000);
+  // 探索 - 点击地图边缘时打开探索面板
+  const handleExplore = (_x: number, _y: number) => {
+    setShowExplorationPanel(true);
   };
 
   return (
@@ -188,7 +183,10 @@ export default function GamePage() {
                   </div>
                 )}
                 <IsometricMap
-                  buildings={buildingsData}
+                  buildings={buildingsData.map(b => ({
+                    ...b,
+                    id: b.numericId, // IsometricMap expects numeric ID
+                  }))}
                   onBuildingClick={handleBuildingClick}
                   onExplore={handleExplore}
                 />
@@ -199,11 +197,13 @@ export default function GamePage() {
             <div className="lg:col-span-5 space-y-4">
               {/* 快速行动 */}
               <DashboardCard title="快速行动" compact>
-                <div className="grid grid-cols-2 gap-2 p-3">
+                <div className="grid grid-cols-3 gap-2 p-3">
                   <ActionButton icon="📊" label="经济" sublabel="资源总览" onClick={() => setShowEconomyPanel(true)} />
                   <ActionButton icon="⚔️" label="军事" sublabel="战力部署" onClick={() => setShowMilitaryPanel(true)} />
+                  <ActionButton icon="🗺️" label="探索" sublabel="城外冒险" onClick={() => setShowExplorationPanel(true)} />
+                  <ActionButton icon="👹" label="战斗" sublabel="挑战怪物" onClick={() => { setCombatLevel(1); setShowCombatPanel(true); }} />
+                  <ActionButton icon="🔮" label="祭坛" sublabel="抽卡合成" onClick={() => setShowAltarPanel(true)} />
                   <ActionButton icon="🎴" label="结算" sublabel="今日分数" onClick={() => setShowSettlementPanel(true)} highlight />
-                  <ActionButton icon="📦" label="背包" sublabel={`${player.cards.length} 种卡牌`} />
                 </div>
               </DashboardCard>
 
@@ -278,12 +278,39 @@ export default function GamePage() {
       {/* 建筑详情面板 */}
       {showBuildingPanel && selectedBuilding && (
         <BuildingDetailPanel
-          building={selectedBuilding}
-          onClose={() => setShowBuildingPanel(false)}
-          onUpgrade={() => {
-            alert("升级功能开发中");
-            setShowBuildingPanel(false);
+          building={{
+            ...selectedBuilding,
+            assignedCharacter: selectedBuilding.assignedCharId
+              ? (() => {
+                  const char = player.characters.find((c) => c.id === selectedBuilding.assignedCharId);
+                  return char
+                    ? {
+                        id: char.id,
+                        name: char.character.name,
+                        portrait: char.character.portrait,
+                        class: char.character.baseClass,
+                        level: char.level,
+                      }
+                    : null;
+                })()
+              : null,
           }}
+          playerResources={{
+            gold: player.gold,
+            wood: player.wood,
+            stone: player.stone,
+          }}
+          availableCharacters={player.characters.map((c) => ({
+            id: c.id,
+            name: c.character.name,
+            portrait: c.character.portrait,
+            class: c.character.baseClass,
+            level: c.level,
+            status: c.status,
+          }))}
+          onClose={() => setShowBuildingPanel(false)}
+          onUpgradeSuccess={() => setShowBuildingPanel(false)}
+          onAssignSuccess={() => {}}
         />
       )}
 
@@ -298,37 +325,61 @@ export default function GamePage() {
 
       {/* 经济面板 */}
       {showEconomyPanel && (
-        <EconomyPanel
-          onClose={() => setShowEconomyPanel(false)}
-          onBuildFacility={() => alert("建造设施功能开发中")}
-          onAssignWorker={() => alert("分配工人功能开发中")}
-          onViewHistory={() => alert("交易记录功能开发中")}
-        />
+        <EconomyPanel onClose={() => setShowEconomyPanel(false)} />
       )}
 
       {/* 军事面板 */}
       {showMilitaryPanel && (
-        <MilitaryPanel
-          onClose={() => setShowMilitaryPanel(false)}
-          onFormation={() => alert("编队功能开发中")}
-          onTrainSoldiers={() => alert("训练士兵功能开发中")}
-          onExpedition={() => alert("出征功能开发中")}
-          onDefense={() => alert("防御部署功能开发中")}
-        />
+        <MilitaryPanel onClose={() => setShowMilitaryPanel(false)} />
       )}
 
       {/* 结算面板 */}
       {showSettlementPanel && (
         <SettlementPanel
           onClose={() => setShowSettlementPanel(false)}
-          onCollectRewards={() => {
-            alert("奖励已领取！");
-            setShowSettlementPanel(false);
-          }}
         />
+      )}
+
+      {/* 探索面板 */}
+      {showExplorationPanel && (
+        <ExplorationPanel
+          playerStamina={player.stamina}
+          onClose={() => setShowExplorationPanel(false)}
+        />
+      )}
+
+      {/* 战斗面板 */}
+      {showCombatPanel && (
+        <CombatPanel
+          monsterLevel={combatLevel}
+          onClose={() => setShowCombatPanel(false)}
+        />
+      )}
+
+      {/* 祭坛面板 */}
+      {showAltarPanel && (
+        <AltarPanel onClose={() => setShowAltarPanel(false)} />
       )}
     </div>
   );
+}
+
+// 计算升级费用（与后端逻辑一致）
+function getUpgradeCost(slot: string, currentLevel: number) {
+  const baseCosts: Record<string, { gold: number; wood: number; stone: number }> = {
+    core: { gold: 500, wood: 200, stone: 200 },
+    production: { gold: 100, wood: 50, stone: 30 },
+    military: { gold: 200, wood: 80, stone: 100 },
+    commerce: { gold: 300, wood: 40, stone: 20 },
+    special: { gold: 400, wood: 100, stone: 100 },
+  };
+  const base = baseCosts[slot] ?? baseCosts.production!;
+  const multiplier = currentLevel;
+  return {
+    gold: base.gold * multiplier,
+    wood: base.wood * multiplier,
+    stone: base.stone * multiplier,
+  };
 }
 
 // 转换后端建筑数据为设计Lab格式
@@ -350,9 +401,11 @@ function transformBuilding(pb: {
   };
 }) {
   const effects = JSON.parse(pb.building.baseEffects) as Record<string, unknown>;
+  const upgradeCost = getUpgradeCost(pb.building.slot, pb.level);
 
   return {
-    id: parseInt(pb.id.slice(-4), 16) || 1, // 转换为数字ID
+    id: pb.id, // 保留真实的数据库ID
+    numericId: parseInt(pb.id.slice(-4), 16) || 1, // 用于地图显示的数字ID
     name: pb.building.name,
     level: pb.level,
     maxLevel: pb.building.maxLevel,
@@ -360,13 +413,13 @@ function transformBuilding(pb: {
     status: pb.status,
     slot: pb.building.slot,
     description: pb.building.description,
+    assignedCharId: pb.assignedCharId,
     effects: Object.entries(effects).map(([type, value]) => ({
       type,
       value: String(value),
     })),
-    upgradeCost: { gold: pb.level * 100, wood: pb.level * 50 },
-    upgradeTime: `${pb.level}小时`,
-    dailyOutput: null,
+    upgradeCost,
+    dailyOutput: null as Record<string, number> | null,
     positionX: pb.positionX,
     positionY: pb.positionY,
   };

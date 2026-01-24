@@ -3,4 +3,8 @@ export { default as BuildingDetailPanel } from "./BuildingDetailPanel";
 export { default as EconomyPanel } from "./EconomyPanel";
 export { default as MilitaryPanel } from "./MilitaryPanel";
 export { default as SettlementPanel } from "./SettlementPanel";
+export { default as ExplorationPanel } from "./ExplorationPanel";
+export { default as CombatPanel } from "./CombatPanel";
+export { default as AltarPanel } from "./AltarPanel";
+export { default as EquipmentPanel } from "./EquipmentPanel";
 export { default as BreakthroughCardModal, BreakthroughCardList } from "./BreakthroughCardModal";

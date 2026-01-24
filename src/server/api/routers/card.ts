@@ -2,6 +2,14 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
+// 获取当前游戏日
+function getCurrentGameDay(): number {
+  const now = new Date();
+  const gameStart = new Date("2024-01-01T00:00:00Z");
+  const daysPassed = Math.floor((now.getTime() - gameStart.getTime()) / (1000 * 60 * 60 * 24));
+  return daysPassed + 1;
+}
+
 export const cardRouter = createTRPCRouter({
   // 获取玩家所有卡牌
   getAll: protectedProcedure.query(async ({ ctx }) => {
@@ -154,6 +162,327 @@ export const cardRouter = createTRPCRouter({
         added: true,
         cardName: card.name,
         quantity: input.quantity,
+      };
+    }),
+
+  // 使用建筑卡建造建筑
+  useBuildingCard: protectedProcedure
+    .input(
+      z.object({
+        cardId: z.string(),
+        positionX: z.number(),
+        positionY: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const player = await ctx.db.player.findUnique({
+        where: { userId },
+        include: { buildings: true },
+      });
+      if (!player) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+      }
+
+      // 获取卡牌
+      const playerCard = await ctx.db.playerCard.findFirst({
+        where: { playerId: player.id, cardId: input.cardId },
+        include: { card: true },
+      });
+
+      if (!playerCard || playerCard.quantity < 1) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "没有该建筑卡" });
+      }
+
+      if (playerCard.card.type !== "building") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "该卡牌不是建筑卡" });
+      }
+
+      const effects = JSON.parse(playerCard.card.effects) as { buildingId: string };
+      const buildingId = effects.buildingId;
+
+      // 检查建筑模板
+      const building = await ctx.db.building.findUnique({ where: { id: buildingId } });
+      if (!building) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "建筑模板不存在" });
+      }
+
+      // 检查位置是否已有建筑
+      const existingBuilding = await ctx.db.playerBuilding.findUnique({
+        where: {
+          playerId_positionX_positionY: {
+            playerId: player.id,
+            positionX: input.positionX,
+            positionY: input.positionY,
+          },
+        },
+      });
+
+      if (existingBuilding) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "该位置已有建筑" });
+      }
+
+      // 检查是否已有同类型建筑（特殊建筑只能建一个）
+      if (building.slot === "special" || building.slot === "core") {
+        const sameBuilding = player.buildings.find(b => b.buildingId === buildingId);
+        if (sameBuilding) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "已有该建筑，无法重复建造" });
+        }
+      }
+
+      // 创建建筑
+      const newBuilding = await ctx.db.playerBuilding.create({
+        data: {
+          playerId: player.id,
+          buildingId,
+          level: 1,
+          positionX: input.positionX,
+          positionY: input.positionY,
+        },
+        include: { building: true },
+      });
+
+      // 消耗卡牌
+      if (playerCard.quantity === 1) {
+        await ctx.db.playerCard.delete({ where: { id: playerCard.id } });
+      } else {
+        await ctx.db.playerCard.update({
+          where: { id: playerCard.id },
+          data: { quantity: playerCard.quantity - 1 },
+        });
+      }
+
+      // 记录行动分数
+      await ctx.db.actionLog.create({
+        data: {
+          playerId: player.id,
+          day: getCurrentGameDay(),
+          type: "build",
+          description: `建造了${building.name}`,
+          baseScore: 50,
+          bonus: 20, // 首次建造奖励
+          bonusReason: "首次建造",
+        },
+      });
+
+      // 更新当日分数
+      await ctx.db.player.update({
+        where: { id: player.id },
+        data: { currentDayScore: player.currentDayScore + 70 },
+      });
+
+      return {
+        built: true,
+        buildingName: building.name,
+        position: { x: input.positionX, y: input.positionY },
+        playerBuilding: newBuilding,
+      };
+    }),
+
+  // 使用招募卡招募角色
+  useRecruitCard: protectedProcedure
+    .input(z.object({ cardId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const player = await ctx.db.player.findUnique({
+        where: { userId },
+        include: { characters: true },
+      });
+      if (!player) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+      }
+
+      // 获取卡牌
+      const playerCard = await ctx.db.playerCard.findFirst({
+        where: { playerId: player.id, cardId: input.cardId },
+        include: { card: true },
+      });
+
+      if (!playerCard || playerCard.quantity < 1) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "没有该招募卡" });
+      }
+
+      if (playerCard.card.type !== "recruit") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "该卡牌不是招募卡" });
+      }
+
+      const effects = JSON.parse(playerCard.card.effects) as { characterId: string };
+      const characterId = effects.characterId;
+
+      // 检查角色模板
+      const character = await ctx.db.character.findUnique({ where: { id: characterId } });
+      if (!character) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "角色模板不存在" });
+      }
+
+      // 创建角色实例
+      const newCharacter = await ctx.db.playerCharacter.create({
+        data: {
+          playerId: player.id,
+          characterId,
+          level: 1,
+          tier: 1,
+          hp: character.baseHp,
+          maxHp: character.baseHp,
+          mp: character.baseMp,
+          maxMp: character.baseMp,
+          attack: character.baseAttack,
+          defense: character.baseDefense,
+          speed: character.baseSpeed,
+          luck: character.baseLuck,
+        },
+        include: { character: true },
+      });
+
+      // 消耗卡牌
+      if (playerCard.quantity === 1) {
+        await ctx.db.playerCard.delete({ where: { id: playerCard.id } });
+      } else {
+        await ctx.db.playerCard.update({
+          where: { id: playerCard.id },
+          data: { quantity: playerCard.quantity - 1 },
+        });
+      }
+
+      // 计算稀有度加成
+      const rarityBonus: Record<string, number> = {
+        "普通": 0,
+        "精英": 20,
+        "稀有": 40,
+        "史诗": 60,
+        "传说": 100,
+      };
+
+      // 记录行动分数
+      await ctx.db.actionLog.create({
+        data: {
+          playerId: player.id,
+          day: getCurrentGameDay(),
+          type: "recruit",
+          description: `招募了${character.name}`,
+          baseScore: 60,
+          bonus: rarityBonus[character.rarity] ?? 0,
+          bonusReason: `${character.rarity}角色`,
+        },
+      });
+
+      // 更新当日分数
+      const totalScore = 60 + (rarityBonus[character.rarity] ?? 0);
+      await ctx.db.player.update({
+        where: { id: player.id },
+        data: { currentDayScore: player.currentDayScore + totalScore },
+      });
+
+      return {
+        recruited: true,
+        characterName: character.name,
+        rarity: character.rarity,
+        playerCharacter: newCharacter,
+      };
+    }),
+
+  // 使用道具卡
+  useItemCard: protectedProcedure
+    .input(
+      z.object({
+        cardId: z.string(),
+        targetType: z.enum(["player", "character"]),
+        targetId: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const player = await ctx.db.player.findUnique({ where: { userId } });
+      if (!player) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+      }
+
+      // 获取卡牌
+      const playerCard = await ctx.db.playerCard.findFirst({
+        where: { playerId: player.id, cardId: input.cardId },
+        include: { card: true },
+      });
+
+      if (!playerCard || playerCard.quantity < 1) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "没有该道具卡" });
+      }
+
+      if (playerCard.card.type !== "item") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "该卡牌不是道具卡" });
+      }
+
+      const effects = JSON.parse(playerCard.card.effects) as {
+        heal?: number;
+        type?: string;
+        buff?: string;
+        value?: number;
+        duration?: number;
+        escape?: boolean;
+      };
+
+      let result: Record<string, unknown> = {};
+
+      if (input.targetType === "player") {
+        // 对玩家使用（暂时只处理恢复类）
+        if (effects.heal && effects.type === "hp") {
+          // HP恢复道具 - 玩家本身没有HP，跳过
+          result = { message: "玩家无法使用HP恢复道具" };
+        } else if (effects.heal && effects.type === "mp") {
+          // MP恢复 - 玩家无MP，跳过
+          result = { message: "玩家无法使用MP恢复道具" };
+        } else {
+          result = { message: "道具效果已应用", effects };
+        }
+      } else {
+        // 对角色使用
+        if (!input.targetId) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "需要指定目标角色" });
+        }
+
+        const character = await ctx.db.playerCharacter.findFirst({
+          where: { id: input.targetId, playerId: player.id },
+        });
+
+        if (!character) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
+        }
+
+        if (effects.heal && effects.type === "hp") {
+          const newHp = Math.min(character.hp + effects.heal, character.maxHp);
+          await ctx.db.playerCharacter.update({
+            where: { id: character.id },
+            data: { hp: newHp },
+          });
+          result = { healed: effects.heal, newHp };
+        } else if (effects.heal && effects.type === "mp") {
+          const newMp = Math.min(character.mp + effects.heal, character.maxMp);
+          await ctx.db.playerCharacter.update({
+            where: { id: character.id },
+            data: { mp: newMp },
+          });
+          result = { restored: effects.heal, newMp };
+        } else {
+          result = { message: "道具效果已应用", effects };
+        }
+      }
+
+      // 消耗卡牌
+      if (playerCard.quantity === 1) {
+        await ctx.db.playerCard.delete({ where: { id: playerCard.id } });
+      } else {
+        await ctx.db.playerCard.update({
+          where: { id: playerCard.id },
+          data: { quantity: playerCard.quantity - 1 },
+        });
+      }
+
+      return {
+        used: true,
+        itemName: playerCard.card.name,
+        ...result,
       };
     }),
 

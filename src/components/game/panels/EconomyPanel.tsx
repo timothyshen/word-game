@@ -1,4 +1,4 @@
-// 经济发展面板组件 - 使用 shadcn/ui
+// 经济发展面板组件 - 使用真实 API 数据
 
 import {
   Dialog,
@@ -7,22 +7,41 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { economyData, resourcesData } from "~/data/fixtures";
+import { api } from "~/trpc/react";
 
 interface EconomyPanelProps {
   onClose: () => void;
-  onBuildFacility?: () => void;
-  onAssignWorker?: () => void;
-  onViewHistory?: () => void;
 }
 
-export default function EconomyPanel({
-  onClose,
-  onBuildFacility,
-  onAssignWorker,
-  onViewHistory,
-}: EconomyPanelProps) {
-  const { dailyIncome, dailyExpense, netIncome, productionFacilities, weeklyTrend } = economyData;
+export default function EconomyPanel({ onClose }: EconomyPanelProps) {
+  // 获取玩家数据（包含资源）
+  const { data: player, isLoading: playerLoading } = api.player.getStatus.useQuery();
+
+  // 获取每日产出
+  const { data: dailyOutput, isLoading: outputLoading } = api.building.calculateDailyOutput.useQuery();
+
+  // 获取所有建筑
+  const { data: buildings } = api.building.getAll.useQuery();
+
+  const isLoading = playerLoading || outputLoading;
+
+  if (isLoading) {
+    return (
+      <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+          <div className="text-center text-[#888]">加载中...</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const totalOutput = dailyOutput?.totalOutput ?? { gold: 0, wood: 0, stone: 0, food: 0, crystals: 0 };
+  const consumption = dailyOutput?.consumption ?? { food: 0 };
+  const netOutput = dailyOutput?.netOutput ?? { gold: 0, wood: 0, stone: 0, food: 0, crystals: 0 };
+  const breakdown = dailyOutput?.breakdown ?? [];
+
+  // 生产设施（有产出的建筑）
+  const productionFacilities = breakdown.filter(b => Object.keys(b.output).length > 0);
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
@@ -53,11 +72,11 @@ export default function EconomyPanel({
             <div className="p-4 border-b border-[#2a2a30]">
               <SectionTitle>当前资源</SectionTitle>
               <div className="grid grid-cols-5 gap-2 mt-2">
-                <ResourceBlock icon="🪙" label="金币" value={resourcesData.gold} color="#c9a227" />
-                <ResourceBlock icon="🪵" label="木材" value={resourcesData.wood} color="#8b6914" />
-                <ResourceBlock icon="🪨" label="石材" value={resourcesData.stone} color="#888" />
-                <ResourceBlock icon="🍞" label="粮食" value={resourcesData.food} color="#4a9" />
-                <ResourceBlock icon="💎" label="水晶" value={resourcesData.crystals} color="#9b59b6" />
+                <ResourceBlock icon="🪙" label="金币" value={player?.gold ?? 0} color="#c9a227" />
+                <ResourceBlock icon="🪵" label="木材" value={player?.wood ?? 0} color="#8b6914" />
+                <ResourceBlock icon="🪨" label="石材" value={player?.stone ?? 0} color="#888" />
+                <ResourceBlock icon="🍞" label="粮食" value={player?.food ?? 0} color="#4a9" />
+                <ResourceBlock icon="💎" label="水晶" value={player?.crystals ?? 0} color="#9b59b6" />
               </div>
             </div>
 
@@ -69,11 +88,11 @@ export default function EconomyPanel({
                 <div className="p-3 bg-[#1a1a20] border-l-2 border-[#4a9]">
                   <div className="text-xs text-[#4a9] mb-2">📈 收入</div>
                   <div className="grid grid-cols-5 gap-2">
-                    <IncomeItem icon="🪙" value={dailyIncome.gold} />
-                    <IncomeItem icon="🪵" value={dailyIncome.wood} />
-                    <IncomeItem icon="🪨" value={dailyIncome.stone} />
-                    <IncomeItem icon="🍞" value={dailyIncome.food} />
-                    <IncomeItem icon="💎" value={dailyIncome.crystals} />
+                    <IncomeItem icon="🪙" value={totalOutput.gold ?? 0} />
+                    <IncomeItem icon="🪵" value={totalOutput.wood ?? 0} />
+                    <IncomeItem icon="🪨" value={totalOutput.stone ?? 0} />
+                    <IncomeItem icon="🍞" value={totalOutput.food ?? 0} />
+                    <IncomeItem icon="💎" value={totalOutput.crystals ?? 0} />
                   </div>
                 </div>
 
@@ -81,11 +100,14 @@ export default function EconomyPanel({
                 <div className="p-3 bg-[#1a1a20] border-l-2 border-[#e74c3c]">
                   <div className="text-xs text-[#e74c3c] mb-2">📉 支出</div>
                   <div className="grid grid-cols-5 gap-2">
-                    <ExpenseItem icon="🪙" value={dailyExpense.gold} />
-                    <ExpenseItem icon="🪵" value={dailyExpense.wood} />
-                    <ExpenseItem icon="🪨" value={dailyExpense.stone} />
-                    <ExpenseItem icon="🍞" value={dailyExpense.food} />
-                    <ExpenseItem icon="💎" value={dailyExpense.crystals} />
+                    <ExpenseItem icon="🪙" value={0} />
+                    <ExpenseItem icon="🪵" value={0} />
+                    <ExpenseItem icon="🪨" value={0} />
+                    <ExpenseItem icon="🍞" value={consumption.food ?? 0} />
+                    <ExpenseItem icon="💎" value={0} />
+                  </div>
+                  <div className="text-xs text-[#666] mt-1">
+                    人口消耗: {player?.characters.length ?? 0} 人 × 5 粮食/日
                   </div>
                 </div>
 
@@ -93,11 +115,11 @@ export default function EconomyPanel({
                 <div className="p-3 bg-[#1a1a20] border-l-2 border-[#c9a227]">
                   <div className="text-xs text-[#c9a227] mb-2">💰 净收入</div>
                   <div className="grid grid-cols-5 gap-2">
-                    <NetItem icon="🪙" value={netIncome.gold} />
-                    <NetItem icon="🪵" value={netIncome.wood} />
-                    <NetItem icon="🪨" value={netIncome.stone} />
-                    <NetItem icon="🍞" value={netIncome.food} />
-                    <NetItem icon="💎" value={netIncome.crystals} />
+                    <NetItem icon="🪙" value={netOutput.gold ?? 0} />
+                    <NetItem icon="🪵" value={netOutput.wood ?? 0} />
+                    <NetItem icon="🪨" value={netOutput.stone ?? 0} />
+                    <NetItem icon="🍞" value={netOutput.food ?? 0} />
+                    <NetItem icon="💎" value={netOutput.crystals ?? 0} />
                   </div>
                 </div>
               </div>
@@ -107,102 +129,80 @@ export default function EconomyPanel({
             <div className="p-4 border-b border-[#2a2a30]">
               <SectionTitle>生产设施</SectionTitle>
               <div className="mt-2 space-y-2">
-                {productionFacilities.map((facility, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a20]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-[#2a2a30] flex items-center justify-center text-lg">
-                        {facility.name === "农田" && "🌾"}
-                        {facility.name === "矿场" && "⛏️"}
-                        {facility.name === "伐木场" && "🪓"}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm">{facility.name}</span>
-                          <span className="text-xs px-1.5 py-0.5 bg-[#c9a227] text-[#000]">
-                            Lv.{facility.level}
-                          </span>
+                {productionFacilities.length === 0 ? (
+                  <div className="text-center text-[#666] py-4">暂无生产设施</div>
+                ) : (
+                  productionFacilities.map((facility, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a20]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#2a2a30] flex items-center justify-center text-lg">
+                          {facility.buildingName === "农田" && "🌾"}
+                          {facility.buildingName === "矿场" && "⛏️"}
+                          {facility.buildingName === "伐木场" && "🪓"}
+                          {facility.buildingName === "市场" && "🏪"}
+                          {!["农田", "矿场", "伐木场", "市场"].includes(facility.buildingName) && "🏠"}
                         </div>
-                        <div className="text-xs text-[#888] mt-0.5">
-                          {facility.assignedChar ? (
-                            <span className="text-[#4a9]">👤 {facility.assignedChar}</span>
-                          ) : (
-                            <span className="text-[#666]">未分配</span>
-                          )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm">{facility.buildingName}</span>
+                            <span className="text-xs px-1.5 py-0.5 bg-[#c9a227] text-[#000]">
+                              Lv.{facility.level}
+                            </span>
+                          </div>
+                          <div className="text-xs text-[#888] mt-0.5">
+                            {facility.hasWorker ? (
+                              <span className="text-[#4a9]">👤 已分配工人 (+50%)</span>
+                            ) : (
+                              <span className="text-[#666]">未分配工人</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-[#4a9] font-bold">
+                          {Object.entries(facility.output).map(([res, amt]) => (
+                            <span key={res} className="mr-2">
+                              {res === "food" && "🍞"}
+                              {res === "wood" && "🪵"}
+                              {res === "stone" && "🪨"}
+                              {res === "gold" && "🪙"}
+                              +{amt}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm text-[#4a9] font-bold">{facility.output}</div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* 所有建筑 */}
+            <div className="p-4 border-b border-[#2a2a30]">
+              <SectionTitle>所有建筑 ({buildings?.length ?? 0})</SectionTitle>
+              <div className="mt-2 space-y-2">
+                {buildings?.map((b) => (
+                  <div key={b.id} className="flex items-center justify-between p-2 bg-[#1a1a20] text-sm">
+                    <div className="flex items-center gap-2">
+                      <span>{b.building.icon}</span>
+                      <span>{b.building.name}</span>
+                      <span className="text-xs text-[#c9a227]">Lv.{b.level}</span>
                     </div>
+                    <span className={`text-xs ${b.status === "working" ? "text-[#4a9]" : "text-[#666]"}`}>
+                      {b.status === "working" ? "运作中" : "空闲"}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 7日趋势 */}
-            <div className="p-4 border-b border-[#2a2a30]">
-              <SectionTitle>7日趋势</SectionTitle>
-              <div className="mt-3">
-                {/* 简易文字图表 */}
-                <div className="bg-[#1a1a20] p-3">
-                  <div className="text-xs text-[#888] mb-2">🪙 金币</div>
-                  <div className="flex items-end gap-1 h-16">
-                    {weeklyTrend.map((day, i) => {
-                      const maxGold = Math.max(...weeklyTrend.map(d => d.gold));
-                      const heightPercent = (day.gold / maxGold) * 100;
-                      return (
-                        <div key={i} className="flex-1 flex flex-col items-center">
-                          <div
-                            className="w-full bg-[#c9a227] min-h-[4px]"
-                            style={{ height: `${heightPercent}%` }}
-                          />
-                          <div className="text-[10px] text-[#666] mt-1">D{day.day}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="bg-[#1a1a20] p-3 mt-2">
-                  <div className="text-xs text-[#888] mb-2">🍞 粮食</div>
-                  <div className="flex items-end gap-1 h-16">
-                    {weeklyTrend.map((day, i) => {
-                      const maxFood = Math.max(...weeklyTrend.map(d => d.food));
-                      const heightPercent = (day.food / maxFood) * 100;
-                      return (
-                        <div key={i} className="flex-1 flex flex-col items-center">
-                          <div
-                            className="w-full bg-[#4a9] min-h-[4px]"
-                            style={{ height: `${heightPercent}%` }}
-                          />
-                          <div className="text-[10px] text-[#666] mt-1">D{day.day}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* 操作按钮 */}
-            <div className="p-4 flex gap-2">
+            <div className="p-4">
               <button
-                onClick={onBuildFacility}
-                className="flex-1 py-2 border border-[#4a9] text-[#4a9] hover:bg-[#4a9] hover:text-[#08080a]"
+                onClick={onClose}
+                className="w-full py-2 border border-[#666] text-[#888] hover:border-[#c9a227] hover:text-[#c9a227]"
               >
-                建造设施
-              </button>
-              <button
-                onClick={onAssignWorker}
-                className="flex-1 py-2 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a]"
-              >
-                分配工人
-              </button>
-              <button
-                onClick={onViewHistory}
-                className="flex-1 py-2 border border-[#666] text-[#888] hover:border-[#c9a227] hover:text-[#c9a227]"
-              >
-                交易记录
+                关闭
               </button>
             </div>
           </div>

@@ -2,6 +2,16 @@ import { postRouter } from "~/server/api/routers/post";
 import { playerRouter } from "~/server/api/routers/player";
 import { settlementRouter } from "~/server/api/routers/settlement";
 import { cardRouter } from "~/server/api/routers/card";
+import { buildingRouter } from "~/server/api/routers/building";
+import { explorationRouter } from "~/server/api/routers/exploration";
+import { combatRouter } from "~/server/api/routers/combat";
+import { altarRouter } from "~/server/api/routers/altar";
+import { equipmentRouter } from "~/server/api/routers/equipment";
+import { breakthroughRouter } from "~/server/api/routers/breakthrough";
+import { professionRouter } from "~/server/api/routers/profession";
+import { portalRouter } from "~/server/api/routers/portal";
+import { storyRouter } from "~/server/api/routers/story";
+import { bossRouter } from "~/server/api/routers/boss";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -14,6 +24,16 @@ export const appRouter = createTRPCRouter({
   player: playerRouter,
   settlement: settlementRouter,
   card: cardRouter,
+  building: buildingRouter,
+  exploration: explorationRouter,
+  combat: combatRouter,
+  altar: altarRouter,
+  equipment: equipmentRouter,
+  breakthrough: breakthroughRouter,
+  profession: professionRouter,
+  portal: portalRouter,
+  story: storyRouter,
+  boss: bossRouter,
 });
 
 // export type definition of API

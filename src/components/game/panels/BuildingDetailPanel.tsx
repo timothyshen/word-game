@@ -1,5 +1,6 @@
 // 建筑详情面板组件 - 使用 shadcn/ui
 
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,32 +8,122 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { buildingsData, charactersData } from "~/data/fixtures";
-import type { TileAttributes } from "~/data/fixtures";
+import { api } from "~/trpc/react";
 
-type Building = typeof buildingsData[0];
+interface BuildingData {
+  id: string; // 真实的数据库ID
+  name: string;
+  level: number;
+  maxLevel: number;
+  icon: string;
+  status: string;
+  slot: string;
+  description: string;
+  effects: Array<{ type: string; value: string }>;
+  upgradeCost: { gold: number; wood: number; stone: number };
+  dailyOutput: Record<string, number> | null;
+  assignedCharId: string | null;
+  assignedCharacter?: {
+    id: string;
+    name: string;
+    portrait: string;
+    class: string;
+    level: number;
+  } | null;
+}
+
+interface TileAttributes {
+  fertility: number;
+  minerals: number;
+  danger: number;
+  discovery?: string;
+}
+
+interface CharacterOption {
+  id: string;
+  name: string;
+  portrait: string;
+  class: string;
+  level: number;
+  status: string;
+}
 
 interface BuildingDetailPanelProps {
-  building: Building;
+  building: BuildingData;
   tileAttributes?: TileAttributes;
+  availableCharacters?: CharacterOption[];
+  playerResources?: { gold: number; wood: number; stone: number };
   onClose: () => void;
-  onUpgrade?: () => void;
-  onAssignCharacter?: () => void;
-  onRemoveCharacter?: () => void;
+  onUpgradeSuccess?: () => void;
+  onAssignSuccess?: () => void;
 }
 
 export default function BuildingDetailPanel({
   building,
   tileAttributes,
+  availableCharacters = [],
+  playerResources,
   onClose,
-  onUpgrade,
-  onAssignCharacter,
-  onRemoveCharacter,
+  onUpgradeSuccess,
+  onAssignSuccess,
 }: BuildingDetailPanelProps) {
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
+  const utils = api.useUtils();
+
+  // 升级建筑 mutation
+  const upgradeMutation = api.building.upgrade.useMutation({
+    onSuccess: () => {
+      setUpgradeError(null);
+      void utils.player.getStatus.invalidate();
+      void utils.building.getAll.invalidate();
+      onUpgradeSuccess?.();
+    },
+    onError: (err) => {
+      setUpgradeError(err.message);
+    },
+  });
+
+  // 分配角色 mutation
+  const assignMutation = api.building.assignCharacter.useMutation({
+    onSuccess: () => {
+      setAssignError(null);
+      setShowAssignDialog(false);
+      void utils.player.getStatus.invalidate();
+      void utils.building.getAll.invalidate();
+      onAssignSuccess?.();
+    },
+    onError: (err) => {
+      setAssignError(err.message);
+    },
+  });
+
   const canUpgrade = building.level < building.maxLevel;
-  const assignedCharacter = "assignedCharId" in building && building.assignedCharId
-    ? charactersData.find(c => c.id === building.assignedCharId)
-    : null;
+  const assignedCharacter = building.assignedCharacter;
+
+  // 检查资源是否足够
+  const hasEnoughResources = playerResources
+    ? playerResources.gold >= building.upgradeCost.gold &&
+      playerResources.wood >= building.upgradeCost.wood &&
+      playerResources.stone >= building.upgradeCost.stone
+    : true;
+
+  const handleUpgrade = () => {
+    setUpgradeError(null);
+    upgradeMutation.mutate({ buildingId: building.id });
+  };
+
+  const handleAssignCharacter = (characterId: string | null) => {
+    setAssignError(null);
+    assignMutation.mutate({ buildingId: building.id, characterId });
+  };
+
+  // 可分配的角色（排除正在工作的）
+  const idleCharacters = availableCharacters.filter(
+    (c) => c.status === "idle" || c.id === building.assignedCharId
+  );
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
@@ -110,52 +201,38 @@ export default function BuildingDetailPanel({
               </div>
 
               {/* 每日产出 */}
-              {building.dailyOutput && (
-                <div className="mt-3 p-2 bg-[#1a1a20] border border-[#4a9]/30">
-                  <div className="text-xs text-[#4a9] mb-1">📦 每日产出</div>
-                  <div className="flex gap-4">
-                    {Object.entries(building.dailyOutput).map(([resource, amount]) => (
-                      <span key={resource} className="text-sm">
-                        {resource === "food" && "🍞"}
-                        {resource === "wood" && "🪵"}
-                        {resource === "stone" && "🪨"}
-                        {resource === "gold" && "🪙"}
-                        <span className="text-[#c9a227] ml-1">+{amount}</span>
-                      </span>
-                    ))}
+              {(() => {
+                const output = building.dailyOutput;
+                if (!output || Object.keys(output).length === 0) return null;
+                return (
+                  <div className="mt-3 p-2 bg-[#1a1a20] border border-[#4a9]/30">
+                    <div className="text-xs text-[#4a9] mb-1">📦 每日产出</div>
+                    <div className="flex gap-4">
+                      {Object.entries(output).map(([resource, amount]) => (
+                        <span key={resource} className="text-sm">
+                          {resource === "food" && "🍞"}
+                          {resource === "wood" && "🪵"}
+                          {resource === "stone" && "🪨"}
+                          {resource === "gold" && "🪙"}
+                          <span className="text-[#c9a227] ml-1">+{amount}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
-              {/* 可锻造配方 */}
-              {"recipes" in building && building.recipes && (
-                <div className="mt-3 p-2 bg-[#1a1a20] border border-[#c9a227]/30">
-                  <div className="text-xs text-[#c9a227] mb-1">🔨 可锻造</div>
-                  <div className="flex flex-wrap gap-2">
-                    {building.recipes.map((recipe, i) => (
-                      <span key={i} className="text-xs px-2 py-1 bg-[#2a2a30]">{recipe}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 解锁世界 */}
-              {"unlockedWorlds" in building && building.unlockedWorlds && (
-                <div className="mt-3 p-2 bg-[#1a1a20] border border-[#9b59b6]/30">
-                  <div className="text-xs text-[#9b59b6] mb-1">🌀 可前往世界</div>
-                  <div className="flex flex-wrap gap-2">
-                    {building.unlockedWorlds.map((world, i) => (
-                      <span key={i} className="text-xs px-2 py-1 bg-[#2a2a30]">{world}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* 分配角色 */}
             <div className="p-4 border-b border-[#2a2a30]">
               <SectionTitle>分配角色</SectionTitle>
               <div className="mt-2">
+                {assignError && (
+                  <div className="mb-2 p-2 bg-red-900/30 border border-red-500/50 text-red-400 text-sm">
+                    {assignError}
+                  </div>
+                )}
                 {assignedCharacter ? (
                   <div className="flex items-center justify-between p-3 bg-[#1a1a20] border border-[#4a9]/30">
                     <div className="flex items-center gap-3">
@@ -166,15 +243,16 @@ export default function BuildingDetailPanel({
                       </div>
                     </div>
                     <button
-                      onClick={onRemoveCharacter}
-                      className="text-xs px-2 py-1 border border-[#666] text-[#666] hover:border-[#c9a227] hover:text-[#c9a227]"
+                      onClick={() => handleAssignCharacter(null)}
+                      disabled={assignMutation.isPending}
+                      className="text-xs px-2 py-1 border border-[#666] text-[#666] hover:border-[#c9a227] hover:text-[#c9a227] disabled:opacity-50"
                     >
-                      移除
+                      {assignMutation.isPending ? "移除中..." : "移除"}
                     </button>
                   </div>
                 ) : (
                   <button
-                    onClick={onAssignCharacter}
+                    onClick={() => setShowAssignDialog(true)}
                     className="w-full p-3 border-2 border-dashed border-[#3a3a40] text-[#666] hover:border-[#c9a227] hover:text-[#c9a227]"
                   >
                     + 分配角色提升效率
@@ -223,30 +301,45 @@ export default function BuildingDetailPanel({
             {canUpgrade && (
               <div className="p-4 border-b border-[#2a2a30]">
                 <SectionTitle>升级到 Lv.{building.level + 1}</SectionTitle>
+                {upgradeError && (
+                  <div className="mt-2 p-2 bg-red-900/30 border border-red-500/50 text-red-400 text-sm">
+                    {upgradeError}
+                  </div>
+                )}
                 <div className="mt-2 space-y-2">
                   {/* 升级消耗 */}
                   <div className="flex items-center justify-between p-2 bg-[#1a1a20]">
                     <span className="text-sm text-[#888]">消耗</span>
                     <div className="flex gap-3">
-                      {"gold" in building.upgradeCost && building.upgradeCost.gold && (
-                        <span className="text-sm">🪙 <span className="text-[#c9a227]">{building.upgradeCost.gold}</span></span>
+                      {building.upgradeCost.gold > 0 && (
+                        <span className="text-sm">
+                          🪙 <span className={playerResources && playerResources.gold < building.upgradeCost.gold ? "text-red-400" : "text-[#c9a227]"}>
+                            {building.upgradeCost.gold}
+                          </span>
+                        </span>
                       )}
-                      {"wood" in building.upgradeCost && building.upgradeCost.wood && (
-                        <span className="text-sm">🪵 <span className="text-[#8b6914]">{building.upgradeCost.wood}</span></span>
+                      {building.upgradeCost.wood > 0 && (
+                        <span className="text-sm">
+                          🪵 <span className={playerResources && playerResources.wood < building.upgradeCost.wood ? "text-red-400" : "text-[#8b6914]"}>
+                            {building.upgradeCost.wood}
+                          </span>
+                        </span>
                       )}
-                      {"stone" in building.upgradeCost && building.upgradeCost.stone && (
-                        <span className="text-sm">🪨 <span className="text-[#888]">{building.upgradeCost.stone}</span></span>
-                      )}
-                      {"crystals" in building.upgradeCost && building.upgradeCost.crystals && (
-                        <span className="text-sm">💎 <span className="text-[#9b59b6]">{building.upgradeCost.crystals}</span></span>
+                      {building.upgradeCost.stone > 0 && (
+                        <span className="text-sm">
+                          🪨 <span className={playerResources && playerResources.stone < building.upgradeCost.stone ? "text-red-400" : "text-[#888]"}>
+                            {building.upgradeCost.stone}
+                          </span>
+                        </span>
                       )}
                     </div>
                   </div>
-                  {/* 升级时间 */}
-                  <div className="flex items-center justify-between p-2 bg-[#1a1a20]">
-                    <span className="text-sm text-[#888]">时间</span>
-                    <span className="text-sm text-[#c9a227]">⏱️ {building.upgradeTime}</span>
-                  </div>
+                  {/* 升级提示 */}
+                  {!hasEnoughResources && (
+                    <div className="p-2 bg-[#1a1a20] border border-red-500/30 text-red-400 text-xs">
+                      资源不足，无法升级
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -255,10 +348,11 @@ export default function BuildingDetailPanel({
             <div className="p-4 flex gap-2">
               {canUpgrade ? (
                 <button
-                  onClick={onUpgrade}
-                  className="flex-1 py-2 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a]"
+                  onClick={handleUpgrade}
+                  disabled={upgradeMutation.isPending || !hasEnoughResources}
+                  className="flex-1 py-2 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a] disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[#c9a227]"
                 >
-                  升级建筑
+                  {upgradeMutation.isPending ? "升级中..." : "升级建筑"}
                 </button>
               ) : (
                 <div className="flex-1 py-2 text-center text-[#666] bg-[#1a1a20]">
@@ -269,6 +363,50 @@ export default function BuildingDetailPanel({
                 拆除
               </button>
             </div>
+
+            {/* 角色分配对话框 */}
+            {showAssignDialog && (
+              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAssignDialog(false)}>
+                <div className="bg-[#101014] border-2 border-[#c9a227] p-4 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[#c9a227] font-bold">选择角色</span>
+                    <button onClick={() => setShowAssignDialog(false)} className="text-[#666] hover:text-[#c9a227]">✕</button>
+                  </div>
+                  {assignError && (
+                    <div className="mb-3 p-2 bg-red-900/30 border border-red-500/50 text-red-400 text-sm">
+                      {assignError}
+                    </div>
+                  )}
+                  {idleCharacters.length === 0 ? (
+                    <div className="text-center py-6 text-[#666]">
+                      <div className="text-3xl mb-2">👤</div>
+                      <div>没有可分配的角色</div>
+                      <div className="text-xs mt-1">所有角色都在工作中</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {idleCharacters.map((char) => (
+                        <button
+                          key={char.id}
+                          onClick={() => handleAssignCharacter(char.id)}
+                          disabled={assignMutation.isPending}
+                          className="w-full flex items-center gap-3 p-3 bg-[#1a1a20] hover:bg-[#222228] disabled:opacity-50"
+                        >
+                          <span className="text-2xl">{char.portrait}</span>
+                          <div className="flex-1 text-left">
+                            <div className="font-bold text-sm">{char.name}</div>
+                            <div className="text-xs text-[#888]">{char.class} · Lv.{char.level}</div>
+                          </div>
+                          {char.id === building.assignedCharId && (
+                            <span className="text-xs text-[#4a9]">当前</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </DialogContent>

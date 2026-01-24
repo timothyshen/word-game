@@ -236,13 +236,58 @@ export const settlementRouter = createTRPCRouter({
       },
     });
 
-    // TODO: 实际发放卡牌奖励（需要卡牌池数据）
+    // 实际发放卡牌奖励
+    const grantedCards: Array<{ name: string; rarity: string }> = [];
+
+    for (const reward of totalRewardCards) {
+      // 获取对应稀有度的卡牌
+      const availableCards = await ctx.db.card.findMany({
+        where: { rarity: reward.rarity },
+      });
+
+      if (availableCards.length === 0) continue;
+
+      // 随机选取卡牌
+      for (let i = 0; i < reward.count; i++) {
+        const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)]!;
+
+        // 检查玩家是否已有此卡
+        const existingCard = await ctx.db.playerCard.findUnique({
+          where: {
+            playerId_cardId: {
+              playerId: player.id,
+              cardId: randomCard.id,
+            },
+          },
+        });
+
+        if (existingCard) {
+          // 增加数量
+          await ctx.db.playerCard.update({
+            where: { id: existingCard.id },
+            data: { quantity: existingCard.quantity + 1 },
+          });
+        } else {
+          // 创建新记录
+          await ctx.db.playerCard.create({
+            data: {
+              playerId: player.id,
+              cardId: randomCard.id,
+              quantity: 1,
+            },
+          });
+        }
+
+        grantedCards.push({ name: randomCard.name, rarity: randomCard.rarity });
+      }
+    }
 
     return {
       settled: true,
       daysSettled: currentDay - player.lastSettlementDay,
       results: settlementResults,
       totalRewardCards,
+      grantedCards,
       newStreakDays,
     };
   }),
