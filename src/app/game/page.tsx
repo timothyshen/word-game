@@ -8,24 +8,16 @@ import { api } from "~/trpc/react";
 // 导入游戏组件
 import IsometricMap from "~/components/game/IsometricMap";
 import {
-  CharacterDetailPanel,
+  // Hub组件
+  CharacterHub,
+  InventoryHub,
+  AdventureHub,
+  ProgressHub,
+  LogHub,
+  // 独立弹窗
   BuildingDetailPanel,
   EconomyPanel,
-  MilitaryPanel,
-  SettlementPanel,
-  ExplorationPanel,
   CombatPanel,
-  AltarPanel,
-  BackpackPanel,
-  ShopPanel,
-  AchievementPanel,
-  BossPanel,
-  BreakthroughPanel,
-  ProfessionPanel,
-  PortalPanel,
-  StoryPanel,
-  CombatHistoryPanel,
-  ActionHistoryPanel,
 } from "~/components/game/panels";
 
 // 建筑位置映射
@@ -42,27 +34,32 @@ const BUILDING_POSITIONS: Record<string, { x: number; y: number }> = {
 };
 
 export default function GamePage() {
+  // 建筑相关状态
   const [selectedBuilding, setSelectedBuilding] = useState<ReturnType<typeof transformBuilding> | null>(null);
-  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [showBuildingPanel, setShowBuildingPanel] = useState(false);
-  const [showCharacterPanel, setShowCharacterPanel] = useState(false);
+
+  // Hub弹窗状态
+  const [showCharacterHub, setShowCharacterHub] = useState(false);
+  const [characterHubTab, setCharacterHubTab] = useState("list");
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+
+  const [showInventoryHub, setShowInventoryHub] = useState(false);
+  const [inventoryHubTab, setInventoryHubTab] = useState("backpack");
+
+  const [showAdventureHub, setShowAdventureHub] = useState(false);
+  const [adventureHubTab, setAdventureHubTab] = useState("exploration");
+
+  const [showProgressHub, setShowProgressHub] = useState(false);
+  const [progressHubTab, setProgressHubTab] = useState("profession");
+
+  const [showLogHub, setShowLogHub] = useState(false);
+  const [logHubTab, setLogHubTab] = useState("settlement");
+
+  // 独立弹窗状态
   const [showEconomyPanel, setShowEconomyPanel] = useState(false);
-  const [showMilitaryPanel, setShowMilitaryPanel] = useState(false);
-  const [showSettlementPanel, setShowSettlementPanel] = useState(false);
-  const [showExplorationPanel, setShowExplorationPanel] = useState(false);
   const [showCombatPanel, setShowCombatPanel] = useState(false);
   const [combatLevel, setCombatLevel] = useState(1);
-  const [showAltarPanel, setShowAltarPanel] = useState(false);
-  const [showBackpackPanel, setShowBackpackPanel] = useState(false);
-  const [showShopPanel, setShowShopPanel] = useState(false);
-  const [showAchievementPanel, setShowAchievementPanel] = useState(false);
-  const [showBossPanel, setShowBossPanel] = useState(false);
-  const [showBreakthroughPanel, setShowBreakthroughPanel] = useState(false);
-  const [showProfessionPanel, setShowProfessionPanel] = useState(false);
-  const [showPortalPanel, setShowPortalPanel] = useState(false);
-  const [showStoryPanel, setShowStoryPanel] = useState(false);
-  const [showCombatHistoryPanel, setShowCombatHistoryPanel] = useState(false);
-  const [showActionHistoryPanel, setShowActionHistoryPanel] = useState(false);
+
   const [exploreMessage, setExploreMessage] = useState<string | null>(null);
 
   // 获取玩家数据
@@ -136,7 +133,8 @@ export default function GamePage() {
   // 打开角色详情
   const handleCharacterClick = (characterId: string) => {
     setSelectedCharacterId(characterId);
-    setShowCharacterPanel(true);
+    setCharacterHubTab("detail");
+    setShowCharacterHub(true);
   };
 
   // 扩建领地 - 点击地图边缘扩建
@@ -261,23 +259,15 @@ export default function GamePage() {
             <div className="lg:col-span-5 space-y-4">
               {/* 快速行动 */}
               <DashboardCard title="快速行动" compact>
-                <div className="grid grid-cols-3 gap-2 p-3">
-                  <ActionButton icon="🎒" label="背包" sublabel="卡牌道具" onClick={() => setShowBackpackPanel(true)} />
+                <div className="grid grid-cols-4 gap-2 p-3">
+                  <ActionButton icon="👥" label="角色" sublabel="管理角色" onClick={() => { setCharacterHubTab("list"); setShowCharacterHub(true); }} />
+                  <ActionButton icon="🎒" label="背包" sublabel="物品管理" onClick={() => { setInventoryHubTab("backpack"); setShowInventoryHub(true); }} />
+                  <ActionButton icon="🗺️" label="冒险" sublabel="探索世界" onClick={() => { setAdventureHubTab("exploration"); setShowAdventureHub(true); }} />
+                  <ActionButton icon="⬆️" label="进阶" sublabel="职业成就" onClick={() => { setProgressHubTab("profession"); setShowProgressHub(true); }} />
                   <ActionButton icon="📊" label="经济" sublabel="资源总览" onClick={() => setShowEconomyPanel(true)} />
-                  <ActionButton icon="⚔️" label="军事" sublabel="战力部署" onClick={() => setShowMilitaryPanel(true)} />
-                  <ActionButton icon="🗺️" label="探索" sublabel="城外冒险" onClick={() => setShowExplorationPanel(true)} />
                   <ActionButton icon="👹" label="战斗" sublabel="挑战怪物" onClick={() => { setCombatLevel(1); setShowCombatPanel(true); }} />
-                  <ActionButton icon="🗿" label="祭坛" sublabel="每日卡牌" onClick={() => setShowAltarPanel(true)} />
-                  <ActionButton icon="🏪" label="商店" sublabel="买卖物品" onClick={() => setShowShopPanel(true)} />
-                  <ActionButton icon="🏆" label="成就" sublabel="荣誉殿堂" onClick={() => setShowAchievementPanel(true)} />
-                  <ActionButton icon="🐉" label="首领" sublabel="挑战BOSS" onClick={() => setShowBossPanel(true)} />
-                  <ActionButton icon="⬆️" label="突破" sublabel="提升阶级" onClick={() => setShowBreakthroughPanel(true)} />
-                  <ActionButton icon="📚" label="职业" sublabel="学习职业" onClick={() => setShowProfessionPanel(true)} />
-                  <ActionButton icon="🌀" label="传送" sublabel="位面旅行" onClick={() => setShowPortalPanel(true)} />
-                  <ActionButton icon="📜" label="剧情" sublabel="主线故事" onClick={() => setShowStoryPanel(true)} />
-                  <ActionButton icon="📋" label="行动" sublabel="今日记录" onClick={() => setShowActionHistoryPanel(true)} />
-                  <ActionButton icon="📖" label="战史" sublabel="战斗记录" onClick={() => setShowCombatHistoryPanel(true)} />
-                  <ActionButton icon="🎴" label="结算" sublabel="今日分数" onClick={() => setShowSettlementPanel(true)} highlight />
+                  <ActionButton icon="📋" label="记录" sublabel="历史记录" onClick={() => { setLogHubTab("action"); setShowLogHub(true); }} />
+                  <ActionButton icon="🎴" label="结算" sublabel="今日分数" onClick={() => { setLogHubTab("settlement"); setShowLogHub(true); }} highlight />
                 </div>
               </DashboardCard>
 
@@ -388,11 +378,54 @@ export default function GamePage() {
         />
       )}
 
-      {/* 角色详情面板 */}
-      {showCharacterPanel && selectedCharacterId && (
-        <CharacterDetailPanel
-          characterId={selectedCharacterId}
-          onClose={() => setShowCharacterPanel(false)}
+      {/* 角色Hub */}
+      {showCharacterHub && (
+        <CharacterHub
+          onClose={() => setShowCharacterHub(false)}
+          initialTab={characterHubTab}
+          initialCharacterId={selectedCharacterId ?? undefined}
+        />
+      )}
+
+      {/* 背包Hub */}
+      {showInventoryHub && (
+        <InventoryHub
+          onClose={() => setShowInventoryHub(false)}
+          initialTab={inventoryHubTab}
+        />
+      )}
+
+      {/* 冒险Hub */}
+      {showAdventureHub && (
+        <AdventureHub
+          onClose={() => setShowAdventureHub(false)}
+          initialTab={adventureHubTab}
+          onStartCombat={(level) => {
+            setShowAdventureHub(false);
+            setCombatLevel(level);
+            setShowCombatPanel(true);
+          }}
+        />
+      )}
+
+      {/* 进阶Hub */}
+      {showProgressHub && (
+        <ProgressHub
+          onClose={() => setShowProgressHub(false)}
+          initialTab={progressHubTab}
+        />
+      )}
+
+      {/* 记录Hub */}
+      {showLogHub && (
+        <LogHub
+          onClose={() => setShowLogHub(false)}
+          initialTab={logHubTab}
+          onResumeCombat={(combatId) => {
+            setShowLogHub(false);
+            setCombatLevel(1);
+            setShowCombatPanel(true);
+          }}
         />
       )}
 
@@ -401,94 +434,12 @@ export default function GamePage() {
         <EconomyPanel onClose={() => setShowEconomyPanel(false)} />
       )}
 
-      {/* 军事面板 */}
-      {showMilitaryPanel && (
-        <MilitaryPanel onClose={() => setShowMilitaryPanel(false)} />
-      )}
-
-      {/* 结算面板 */}
-      {showSettlementPanel && (
-        <SettlementPanel
-          onClose={() => setShowSettlementPanel(false)}
-        />
-      )}
-
-      {/* 探索面板 */}
-      {showExplorationPanel && (
-        <ExplorationPanel
-          playerStamina={player.stamina}
-          onClose={() => setShowExplorationPanel(false)}
-        />
-      )}
-
       {/* 战斗面板 */}
       {showCombatPanel && (
         <CombatPanel
           monsterLevel={combatLevel}
           onClose={() => setShowCombatPanel(false)}
         />
-      )}
-
-      {/* 祭坛面板 */}
-      {showAltarPanel && (
-        <AltarPanel onClose={() => setShowAltarPanel(false)} />
-      )}
-
-      {/* 背包面板 */}
-      {showBackpackPanel && (
-        <BackpackPanel onClose={() => setShowBackpackPanel(false)} />
-      )}
-
-      {/* 商店面板 */}
-      {showShopPanel && (
-        <ShopPanel onClose={() => setShowShopPanel(false)} />
-      )}
-
-      {/* 成就面板 */}
-      {showAchievementPanel && (
-        <AchievementPanel onClose={() => setShowAchievementPanel(false)} />
-      )}
-
-      {/* 首领面板 */}
-      {showBossPanel && (
-        <BossPanel onClose={() => setShowBossPanel(false)} />
-      )}
-
-      {/* 突破面板 */}
-      {showBreakthroughPanel && (
-        <BreakthroughPanel onClose={() => setShowBreakthroughPanel(false)} />
-      )}
-
-      {/* 职业面板 */}
-      {showProfessionPanel && (
-        <ProfessionPanel onClose={() => setShowProfessionPanel(false)} />
-      )}
-
-      {/* 传送面板 */}
-      {showPortalPanel && (
-        <PortalPanel onClose={() => setShowPortalPanel(false)} />
-      )}
-
-      {/* 剧情面板 */}
-      {showStoryPanel && (
-        <StoryPanel onClose={() => setShowStoryPanel(false)} />
-      )}
-
-      {/* 战斗历史面板 */}
-      {showCombatHistoryPanel && (
-        <CombatHistoryPanel
-          onClose={() => setShowCombatHistoryPanel(false)}
-          onResumeCombat={(combatId) => {
-            setShowCombatHistoryPanel(false);
-            setCombatLevel(1);
-            setShowCombatPanel(true);
-          }}
-        />
-      )}
-
-      {/* 行动历史面板 */}
-      {showActionHistoryPanel && (
-        <ActionHistoryPanel onClose={() => setShowActionHistoryPanel(false)} />
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
+import EquipmentPanel from "./EquipmentPanel";
 
 interface CharacterDetailPanelProps {
   characterId: string;
@@ -20,6 +21,7 @@ export default function CharacterDetailPanel({
   onClose,
 }: CharacterDetailPanelProps) {
   const [healingType, setHealingType] = useState<"hp" | "mp" | "both" | null>(null);
+  const [showEquipmentPanel, setShowEquipmentPanel] = useState(false);
 
   const utils = api.useUtils();
 
@@ -279,6 +281,12 @@ export default function CharacterDetailPanel({
 
         {/* 固定底部按钮 */}
         <div className="flex-shrink-0 bg-[#151518] border-t border-[#2a2a30] p-4 flex gap-2">
+          <button
+            onClick={() => setShowEquipmentPanel(true)}
+            className="flex-1 py-2 border border-[#9b59b6] text-[#9b59b6] hover:bg-[#9b59b6] hover:text-[#08080a]"
+          >
+            🛡️ 装备
+          </button>
           {character.status === "working" ? (
             <button
               className="flex-1 py-2 border border-[#666] text-[#888] hover:border-[#c9a227] hover:text-[#c9a227]"
@@ -297,6 +305,15 @@ export default function CharacterDetailPanel({
           </button>
         </div>
       </DialogContent>
+
+      {/* 装备面板 */}
+      {showEquipmentPanel && (
+        <EquipmentPanel
+          characterId={characterId}
+          characterName={character.name}
+          onClose={() => setShowEquipmentPanel(false)}
+        />
+      )}
     </Dialog>
   );
 }

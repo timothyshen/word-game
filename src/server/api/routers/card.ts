@@ -158,6 +158,23 @@ export const cardRouter = createTRPCRouter({
         });
       }
 
+      // Check if card unlocks breakthrough system (card name contains "突破")
+      if (card.name.includes("突破")) {
+        await ctx.db.unlockFlag.upsert({
+          where: {
+            playerId_flagName: {
+              playerId: player.id,
+              flagName: "breakthrough_system",
+            },
+          },
+          update: {},
+          create: {
+            playerId: player.id,
+            flagName: "breakthrough_system",
+          },
+        });
+      }
+
       return {
         added: true,
         cardName: card.name,
@@ -242,6 +259,23 @@ export const cardRouter = createTRPCRouter({
         },
         include: { building: true },
       });
+
+      // Check if building unlocks profession system (building name contains "职业")
+      if (building.name.includes("职业")) {
+        await ctx.db.unlockFlag.upsert({
+          where: {
+            playerId_flagName: {
+              playerId: player.id,
+              flagName: "profession_system",
+            },
+          },
+          update: {},
+          create: {
+            playerId: player.id,
+            flagName: "profession_system",
+          },
+        });
+      }
 
       // 消耗卡牌
       if (playerCard.quantity === 1) {

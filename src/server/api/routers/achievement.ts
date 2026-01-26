@@ -406,6 +406,13 @@ export const achievementRouter = createTRPCRouter({
         }
       }
 
+      // 解锁成就系统（首次领取成就时）
+      await ctx.db.unlockFlag.upsert({
+        where: { playerId_flagName: { playerId: player.id, flagName: "achievement_system" } },
+        update: {},
+        create: { playerId: player.id, flagName: "achievement_system" },
+      });
+
       return {
         success: true,
         achievementName: achievement.name,

@@ -1,0 +1,435 @@
+// 冒险Hub - 整合探索、Boss、传送、剧情
+
+import { useState } from "react";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { api } from "~/trpc/react";
+import HubPanel, { type HubTab } from "./HubPanel";
+
+interface AdventureHubProps {
+  onClose: () => void;
+  initialTab?: string;
+  onStartCombat?: (level: number) => void;
+}
+
+export default function AdventureHub({
+  onClose,
+  initialTab = "exploration",
+  onStartCombat,
+}: AdventureHubProps) {
+  const tabs: HubTab[] = [
+    {
+      id: "exploration",
+      label: "野外探索",
+      icon: "🗺️",
+      content: <ExplorationTab onStartCombat={onStartCombat} />,
+    },
+    {
+      id: "boss",
+      label: "首领挑战",
+      icon: "🐉",
+      content: <BossTab />,
+    },
+    {
+      id: "portal",
+      label: "位面传送",
+      icon: "🌀",
+      content: <PortalTab />,
+    },
+    {
+      id: "story",
+      label: "主线剧情",
+      icon: "📜",
+      content: <StoryTab />,
+    },
+  ];
+
+  return (
+    <HubPanel
+      title="冒险系统"
+      icon="🗺️"
+      tabs={tabs}
+      defaultTab={initialTab}
+      onClose={onClose}
+    />
+  );
+}
+
+// 探索标签页
+function ExplorationTab({ onStartCombat }: { onStartCombat?: (level: number) => void }) {
+  const { data: player } = api.player.getStatus.useQuery();
+  const { data: areas } = api.exploration.getExploredAreas.useQuery({ worldId: "main" });
+  const { data: facilities } = api.exploration.getWildernessFacilities.useQuery({ worldId: "main" });
+
+  const utils = api.useUtils();
+
+  const exploreMutation = api.exploration.exploreArea.useMutation({
+    onSuccess: () => {
+      void utils.exploration.getExploredAreas.invalidate();
+      void utils.exploration.getWildernessFacilities.invalidate();
+      void utils.player.getStatus.invalidate();
+    },
+  });
+
+  const [selectedPos, setSelectedPos] = useState<{ x: number; y: number } | null>(null);
+
+  // 生成探索网格
+  const gridSize = 5;
+  const exploredSet = new Set(areas?.map((a) => `${a.positionX},${a.positionY}`) ?? []);
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* 体力显示 */}
+      <div className="flex-shrink-0 p-3 bg-[#0a0a0c] border-b border-[#2a2a30]">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-[#888]">体力</span>
+          <span className="text-[#4a9]">
+            ⚡ {player?.stamina ?? 0}/{player?.maxStamina ?? 100}
+          </span>
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1">
+        <div className="p-4">
+          {/* 探索网格 */}
+          <div className="mb-4">
+            <div className="text-sm text-[#c9a227] mb-2">▸ 世界地图</div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
+              {Array.from({ length: gridSize * gridSize }).map((_, i) => {
+                const x = i % gridSize;
+                const y = Math.floor(i / gridSize);
+                const key = `${x},${y}`;
+                const isExplored = exploredSet.has(key);
+                const isSelected = selectedPos?.x === x && selectedPos?.y === y;
+                const area = areas?.find((a) => a.positionX === x && a.positionY === y);
+
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedPos({ x, y })}
+                    className={`aspect-square flex items-center justify-center text-xs border transition-colors ${
+                      isSelected
+                        ? "border-[#c9a227] bg-[#1a1810]"
+                        : isExplored
+                        ? "border-[#4a9] bg-[#1a3a1a]/30"
+                        : "border-[#2a2a30] bg-[#1a1a20] hover:bg-[#222228]"
+                    }`}
+                  >
+                    {isExplored ? "✓" : "?"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 选中区域操作 */}
+          {selectedPos && (
+            <div className="p-3 bg-[#1a1a20] border border-[#2a2a30] mb-4">
+              <div className="text-sm mb-2">
+                坐标: ({selectedPos.x}, {selectedPos.y})
+                {exploredSet.has(`${selectedPos.x},${selectedPos.y}`) && (
+                  <span className="text-[#4a9] ml-2">已探索</span>
+                )}
+              </div>
+              {!exploredSet.has(`${selectedPos.x},${selectedPos.y}`) && (
+                <button
+                  onClick={() =>
+                    exploreMutation.mutate({
+                      worldId: "main",
+                      positionX: selectedPos.x,
+                      positionY: selectedPos.y,
+                    })
+                  }
+                  disabled={exploreMutation.isPending || (player?.stamina ?? 0) < 15}
+                  className="w-full py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50"
+                >
+                  {exploreMutation.isPending ? "探索中..." : "探索 (15体力)"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 已发现设施 */}
+          {facilities && facilities.length > 0 && (
+            <div>
+              <div className="text-sm text-[#c9a227] mb-2">▸ 已发现设施</div>
+              <div className="space-y-2">
+                {facilities.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex items-center justify-between p-3 bg-[#1a1a20] border border-[#2a2a30]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">{f.icon}</div>
+                      <div>
+                        <div className="font-bold text-sm">{f.name}</div>
+                        <div className="text-xs text-[#888]">{f.description}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 快速战斗入口 */}
+          {onStartCombat && (
+            <div className="mt-4 p-3 bg-[#1a1a20] border border-[#2a2a30]">
+              <div className="text-sm text-[#c9a227] mb-2">▸ 快速战斗</div>
+              <button
+                onClick={() => onStartCombat(1)}
+                className="w-full py-2 bg-[#e74c3c] text-white font-bold hover:bg-[#c0392b]"
+              >
+                👹 挑战怪物
+              </button>
+            </div>
+          )}
+
+          {/* 操作反馈 */}
+          {exploreMutation.isSuccess && exploreMutation.data && (
+            <div className="mt-4 p-3 bg-[#1a3a1a] border border-[#4a9]/30 text-sm text-[#4a9]">
+              🗺️ 发现了 {exploreMutation.data.areaName}
+              {exploreMutation.data.facilityFound && (
+                <span> 并找到了 {exploreMutation.data.facilityFound.name}!</span>
+              )}
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+// Boss标签页
+function BossTab() {
+  const { data: bosses, isLoading } = api.boss.getAll.useQuery();
+  const utils = api.useUtils();
+
+  const challengeMutation = api.boss.challenge.useMutation({
+    onSuccess: () => {
+      void utils.boss.getAll.invalidate();
+      void utils.player.getStatus.invalidate();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center text-[#888]">
+        加载中...
+      </div>
+    );
+  }
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-4 space-y-3">
+        {bosses?.map((boss) => (
+          <div
+            key={boss.id}
+            className={`p-4 border ${
+              boss.canChallenge
+                ? "border-[#e67e22] bg-[#3a2a1a]/30"
+                : boss.isUnlocked
+                ? "border-[#2a2a30] bg-[#1a1a20]"
+                : "border-[#1a1a20] bg-[#0a0a0c] opacity-50"
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <div className="text-4xl">{boss.icon}</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-lg">{boss.name}</span>
+                  <span className="text-xs px-2 py-0.5 bg-[#2a2a30] text-[#888]">
+                    Lv.{boss.level}
+                  </span>
+                </div>
+                <div className="text-sm text-[#888] mt-1">{boss.description}</div>
+                <div className="flex items-center gap-4 mt-2 text-xs text-[#666]">
+                  <span>HP: {boss.hp}</span>
+                  <span>本周: {boss.weeklyAttempts}/{boss.weeklyAttemptLimit}</span>
+                </div>
+                {boss.rewards && (
+                  <div className="flex items-center gap-3 mt-2 text-xs">
+                    <span className="text-[#c9a227]">🪙 {boss.rewards.gold}</span>
+                    <span className="text-[#9b59b6]">💎 {boss.rewards.crystals}</span>
+                    <span className="text-[#4a9eff]">⭐ {boss.rewards.exp}</span>
+                  </div>
+                )}
+              </div>
+              <div>
+                {boss.canChallenge ? (
+                  <button
+                    onClick={() => challengeMutation.mutate({ bossId: boss.id })}
+                    disabled={challengeMutation.isPending}
+                    className="px-4 py-2 bg-[#e67e22] text-[#08080a] font-bold hover:bg-[#f39c12] disabled:opacity-50"
+                  >
+                    挑战
+                  </button>
+                ) : !boss.isUnlocked ? (
+                  <span className="text-xs text-[#666]">未解锁</span>
+                ) : (
+                  <span className="text-xs text-[#666]">次数已用完</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* 操作反馈 */}
+        {challengeMutation.isSuccess && challengeMutation.data && (
+          <div
+            className={`p-3 border text-sm ${
+              challengeMutation.data.victory
+                ? "bg-[#1a3a1a] border-[#4a9]/30 text-[#4a9]"
+                : "bg-[#3a1a1a] border-[#e74c3c]/30 text-[#e74c3c]"
+            }`}
+          >
+            {challengeMutation.data.message}
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  );
+}
+
+// 传送标签页
+function PortalTab() {
+  const { data: player } = api.player.getStatus.useQuery();
+  const utils = api.useUtils();
+
+  const travelMutation = api.portal.travel.useMutation({
+    onSuccess: () => {
+      void utils.player.getStatus.invalidate();
+    },
+  });
+
+  const worlds = [
+    { id: "main", name: "主位面", icon: "🌍", description: "你的家园世界" },
+    { id: "fire_realm", name: "火焰位面", icon: "🔥", description: "炎热的火焰世界" },
+    { id: "ice_realm", name: "寒冰位面", icon: "❄️", description: "冰封的寒冷世界" },
+    { id: "shadow_realm", name: "暗影位面", icon: "🌑", description: "黑暗笼罩的世界" },
+    { id: "celestial_realm", name: "天界", icon: "✨", description: "神圣的天空之境" },
+  ];
+
+  const currentWorld = player?.currentWorld ?? "main";
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-4">
+        <div className="text-center mb-4">
+          <div className="text-sm text-[#888]">当前位置</div>
+          <div className="text-xl font-bold text-[#c9a227]">
+            {worlds.find((w) => w.id === currentWorld)?.icon}{" "}
+            {worlds.find((w) => w.id === currentWorld)?.name}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {worlds.map((world) => (
+            <div
+              key={world.id}
+              className={`p-4 border ${
+                world.id === currentWorld
+                  ? "border-[#c9a227] bg-[#1a1810]"
+                  : "border-[#2a2a30] bg-[#1a1a20]"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">{world.icon}</div>
+                  <div>
+                    <div className="font-bold">{world.name}</div>
+                    <div className="text-xs text-[#888]">{world.description}</div>
+                  </div>
+                </div>
+                {world.id !== currentWorld && (
+                  <button
+                    onClick={() => travelMutation.mutate({ worldId: world.id })}
+                    disabled={travelMutation.isPending}
+                    className="px-4 py-2 bg-[#9b59b6] text-white font-bold hover:bg-[#8e44ad] disabled:opacity-50"
+                  >
+                    传送
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {travelMutation.isSuccess && (
+          <div className="mt-4 p-3 bg-[#1a3a1a] border border-[#4a9]/30 text-sm text-[#4a9]">
+            🌀 传送成功！
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  );
+}
+
+// 剧情标签页
+function StoryTab() {
+  const { data: chapters, isLoading } = api.story.getChapters.useQuery();
+  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center text-[#888]">
+        加载中...
+      </div>
+    );
+  }
+
+  // 计算章节解锁状态：第一章默认解锁，后续章节需要前一章完成
+  const getChapterUnlockStatus = (index: number) => {
+    if (index === 0) return true;
+    const prevChapter = chapters?.[index - 1];
+    return prevChapter?.isCompleted ?? false;
+  };
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-4">
+        {!chapters || chapters.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">📜</div>
+            <div className="text-[#888]">暂无剧情章节</div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {chapters.map((chapter, index) => {
+              const isUnlocked = getChapterUnlockStatus(index);
+              return (
+                <div
+                  key={chapter.id}
+                  className={`p-4 border cursor-pointer transition-colors ${
+                    chapter.isCompleted
+                      ? "border-[#4a9] bg-[#1a3a1a]/30"
+                      : isUnlocked
+                      ? "border-[#c9a227] bg-[#1a1810] hover:bg-[#222218]"
+                      : "border-[#2a2a30] bg-[#1a1a20] opacity-50"
+                  }`}
+                  onClick={() => isUnlocked && setSelectedChapter(chapter.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold">第{index + 1}章</span>
+                        <span className="text-[#888]">{chapter.title}</span>
+                        {chapter.isCompleted && (
+                          <span className="text-xs text-[#4a9]">✓ 已完成</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[#666] mt-1">{chapter.description}</div>
+                    </div>
+                    {!isUnlocked && (
+                      <span className="text-xs text-[#666]">🔒 未解锁</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  );
+}

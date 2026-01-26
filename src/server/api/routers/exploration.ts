@@ -379,6 +379,32 @@ export const explorationRouter = createTRPCRouter({
             isDiscovered: true,
           },
         });
+
+        // Unlock system based on facility type discovered
+        let unlockFlagName: string | null = null;
+        if (facilityType === "altar") {
+          unlockFlagName = "altar_system";
+        } else if (facilityType === "portal") {
+          unlockFlagName = "portal_system";
+        } else if (facilityType === "merchant") {
+          unlockFlagName = "shop_system";
+        }
+
+        if (unlockFlagName) {
+          await ctx.db.unlockFlag.upsert({
+            where: {
+              playerId_flagName: {
+                playerId: player.id,
+                flagName: unlockFlagName,
+              },
+            },
+            update: {},
+            create: {
+              playerId: player.id,
+              flagName: unlockFlagName,
+            },
+          });
+        }
       }
 
       // 记录行动分数

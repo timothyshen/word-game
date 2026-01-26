@@ -312,6 +312,23 @@ export const altarRouter = createTRPCRouter({
         data: { data: JSON.stringify(data) },
       });
 
+      // Check if card unlocks breakthrough system (card name contains "突破")
+      if (card.name.includes("突破")) {
+        await ctx.db.unlockFlag.upsert({
+          where: {
+            playerId_flagName: {
+              playerId: player.id,
+              flagName: "breakthrough_system",
+            },
+          },
+          update: {},
+          create: {
+            playerId: player.id,
+            flagName: "breakthrough_system",
+          },
+        });
+      }
+
       return {
         success: true,
         altarName: altar.name,
@@ -397,6 +414,23 @@ export const altarRouter = createTRPCRouter({
         where: { id: altar.id },
         data: { data: JSON.stringify(data) },
       });
+
+      // Check if card unlocks breakthrough system (card name contains "突破")
+      if (card.name.includes("突破")) {
+        await ctx.db.unlockFlag.upsert({
+          where: {
+            playerId_flagName: {
+              playerId: player.id,
+              flagName: "breakthrough_system",
+            },
+          },
+          update: {},
+          create: {
+            playerId: player.id,
+            flagName: "breakthrough_system",
+          },
+        });
+      }
 
       collectedCards.push({
         altarName: altar.name,

@@ -71,7 +71,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 头部 */}
@@ -102,7 +102,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
         </DialogHeader>
 
         {/* 分类筛选 */}
-        <div className="flex gap-1 p-3 border-b border-[#2a2a30] overflow-x-auto">
+        <div className="flex gap-1 p-3 border-b border-[#2a2a30] overflow-x-auto hide-scrollbar">
           {(Object.keys(CATEGORY_LABELS) as CategoryType[]).map((cat) => {
             const info = CATEGORY_LABELS[cat];
             const count = cat === "all"

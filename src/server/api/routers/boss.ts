@@ -274,6 +274,21 @@ export const bossRouter = createTRPCRouter({
             weekStartDate: weekStart,
           },
         });
+
+        // First boss challenge - unlock boss system
+        await ctx.db.unlockFlag.upsert({
+          where: {
+            playerId_flagName: {
+              playerId: player.id,
+              flagName: "boss_system",
+            },
+          },
+          update: {},
+          create: {
+            playerId: player.id,
+            flagName: "boss_system",
+          },
+        });
       }
 
       if (victory) {
@@ -324,6 +339,23 @@ export const bossRouter = createTRPCRouter({
               });
             }
             droppedCard = { name: card.name, rarity: card.rarity };
+
+            // Check if card unlocks breakthrough system (card name contains "突破")
+            if (card.name.includes("突破")) {
+              await ctx.db.unlockFlag.upsert({
+                where: {
+                  playerId_flagName: {
+                    playerId: player.id,
+                    flagName: "breakthrough_system",
+                  },
+                },
+                update: {},
+                create: {
+                  playerId: player.id,
+                  flagName: "breakthrough_system",
+                },
+              });
+            }
           }
         }
 
