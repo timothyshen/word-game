@@ -10,7 +10,8 @@
 - **样式**: Tailwind CSS
 - **数据库**: SQLite (Prisma ORM)
 - **API**: tRPC
-- **认证**: NextAuth.js
+- **认证**: 简易邮箱认证 (dev-session cookie)
+- **测试**: Vitest
 - **UI组件**: shadcn/ui
 
 ## 项目结构
@@ -18,8 +19,9 @@
 ```
 src/
 ├── app/                    # Next.js App Router
+│   ├── admin/             # 管理后台
 │   ├── game/              # 游戏主页面
-│   └── login/             # 登录页面
+│   └── login/             # 登录/注册页面
 ├── components/
 │   ├── game/              # 游戏组件
 │   │   ├── panels/        # 各类面板组件
@@ -28,9 +30,37 @@ src/
 ├── server/
 │   └── api/
 │       ├── routers/       # tRPC 路由器
+│       ├── __tests__/     # 单元测试
 │       └── trpc.ts        # tRPC 配置
 └── trpc/                  # tRPC 客户端配置
 ```
+
+## 认证系统
+
+### 测试账号
+- **邮箱**: `test@test.com`
+- **用户名**: 测试玩家
+- **角色名**: 测试领主
+- **等级**: 5
+
+### 认证路由 (`auth.ts`)
+- `register` - 注册新用户（邮箱、用户名、角色名）
+- `login` - 邮箱登录
+- `me` - 获取当前用户信息
+- `logout` - 登出
+
+认证使用 `dev-session` cookie 存储用户ID，有效期7天。
+
+## 管理后台
+
+访问 `/admin` 可管理游戏数据：
+
+| 功能 | 路径 | 说明 |
+|------|------|------|
+| 卡牌管理 | `/admin/cards` | CRUD 卡牌模板 |
+| 剧情管理 | `/admin/stories` | 管理章节和节点 |
+| 冒险事件 | `/admin/adventures` | 管理探索事件 |
+| 统计概览 | `/admin` | 查看数据统计 |
 
 ## 核心系统
 
@@ -99,6 +129,12 @@ src/
 - 卡牌使用（建筑卡、招募卡、技能卡、道具卡）
 - 卡牌背包管理
 
+### 14. 管理系统 (`admin.ts`)
+- 卡牌CRUD（创建、查询、更新、删除）
+- 剧情章节/节点管理
+- 冒险事件管理
+- 数据统计
+
 ## 数据库模型
 
 ### 核心模型
@@ -153,6 +189,15 @@ npx prisma studio
 
 # 类型检查
 npm run typecheck
+
+# 运行测试
+npm test
+
+# 运行测试并生成覆盖率报告
+npm run test:coverage
+
+# 数据库初始化（含测试账号）
+npx prisma db seed
 ```
 
 ## 稀有度颜色
@@ -165,6 +210,18 @@ npm run typecheck
 | 史诗 | `#e67e22` |
 | 传说 | `#c9a227` |
 
+## 测试
+
+使用 Vitest 进行单元测试，测试文件位于 `src/server/api/__tests__/`。
+
+| 测试文件 | 覆盖范围 |
+|----------|----------|
+| `admin.test.ts` | 管理后台 CRUD 操作 |
+| `story.test.ts` | 剧情系统 |
+| `exploration.test.ts` | 探索系统 |
+
+测试使用 Mock Prisma Client，详见 `helpers.ts`。
+
 ## 注意事项
 
 1. **体力系统**: 体力基于时间自动回复，`calculateCurrentStamina` 函数在 `player.ts` 中
@@ -172,6 +229,7 @@ npm run typecheck
 3. **战斗系统**: 使用内存存储战斗状态，生产环境应改用 Redis
 4. **Boss系统**: 每周一重置挑战次数
 5. **API调用**: 使用 tRPC hooks (`useQuery`, `useMutation`)
+6. **认证**: 使用简易邮箱认证，cookie名为 `dev-session`
 
 ## 待优化项
 

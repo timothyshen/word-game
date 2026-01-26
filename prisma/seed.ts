@@ -5,6 +5,43 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding database...");
 
+  // ===== 测试账号 =====
+  const testUser = await prisma.user.upsert({
+    where: { email: "test@test.com" },
+    update: {},
+    create: {
+      id: "test-user-001",
+      email: "test@test.com",
+      name: "测试玩家",
+    },
+  });
+  console.log(`Created test user: ${testUser.email}`);
+
+  // 为测试用户创建玩家存档
+  await prisma.player.upsert({
+    where: { userId: testUser.id },
+    update: {},
+    create: {
+      userId: testUser.id,
+      name: "测试领主",
+      title: "领主",
+      level: 5,
+      exp: 500,
+      gold: 1000,
+      wood: 200,
+      stone: 150,
+      food: 300,
+      crystals: 50,
+      stamina: 100,
+      maxStamina: 100,
+      strength: 15,
+      agility: 12,
+      intellect: 10,
+      charisma: 10,
+    },
+  });
+  console.log(`Created player for test user`);
+
   // ===== 技能数据 =====
   const skills = [
     {

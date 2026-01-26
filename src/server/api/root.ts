@@ -17,6 +17,7 @@ import { characterRouter } from "~/server/api/routers/character";
 import { shopRouter } from "~/server/api/routers/shop";
 import { achievementRouter } from "~/server/api/routers/achievement";
 import { adminRouter } from "~/server/api/routers/admin";
+import { authRouter } from "~/server/api/routers/auth";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -44,6 +45,7 @@ export const appRouter = createTRPCRouter({
   shop: shopRouter,
   achievement: achievementRouter,
   admin: adminRouter,
+  auth: authRouter,
 });
 
 // export type definition of API
