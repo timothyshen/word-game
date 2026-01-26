@@ -86,7 +86,7 @@ model Player {
     title        String   @default("领主") // 头衔（非职业）
     level        Int      @default(1)
     exp          Int      @default(0)
-    currentWorld String   @default("主位面")
+    currentWorld String   @default("main") // main/fire_realm/ice_realm/shadow_realm/celestial_realm
 
     // 职阶系统
     tier         Int      @default(1) // 职阶：1阶、2阶、3阶...
@@ -132,6 +132,28 @@ model Player {
     learnedSkills    PlayerSkill[]      // 已学习技能
     actionLogs       ActionLog[]        // 行动记录（用于结算）
     settlementLogs   SettlementLog[]    // 结算记录
+
+    // 城外系统关联
+    wildernessFacilities WildernessFacility[]
+    exploredAreas        ExploredArea[]
+    bossStatuses         BossStatus[]
+
+    // 领地系统关联
+    territoryTiles       TerritoryTile[]
+
+    // 成就系统
+    achievements         PlayerAchievement[]
+
+    // 商店购买记录
+    shopPurchases        ShopPurchase[]
+
+    // 战斗记录
+    combatSessions       CombatSession[]
+
+    // 统计数据
+    combatWins           Int @default(0)
+    bossKills            Int @default(0)
+    totalGoldEarned      Int @default(0)
 }
 
 // 职业模板
@@ -531,9 +553,10 @@ model SettlementLog {
 model WildernessFacility {
     id       String @id @default(cuid())
     playerId String
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
     worldId  String @default("main") // 所属世界
 
-    type        String  // resource/monster/merchant/boss/ruin/portal
+    type        String  // resource/monster/merchant/altar/portal
     name        String
     icon        String
     description String
@@ -555,17 +578,19 @@ model WildernessFacility {
     @@unique([playerId, worldId, positionX, positionY])
 }
 
-// 已探索区域
+// 已探索区域（城外）
 model ExploredArea {
     id       String @id @default(cuid())
     playerId String
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
     worldId  String @default("main")
 
-    positionX  Int
-    positionY  Int
-    name       String
+    positionX    Int
+    positionY    Int
+    name         String
     discoveredAt DateTime @default(now())
 
+    @@index([playerId, worldId])
     @@unique([playerId, worldId, positionX, positionY])
 }
 
@@ -573,6 +598,7 @@ model ExploredArea {
 model BossStatus {
     id       String @id @default(cuid())
     playerId String
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
     bossId   String // Boss标识
 
     // 本周挑战次数
@@ -583,5 +609,94 @@ model BossStatus {
     // 每周一重置
     weekStartDate  DateTime
 
+    @@index([playerId])
     @@unique([playerId, bossId])
+}
+
+// ===== 领地系统 =====
+
+// 领地格子（已解锁的建筑位置）
+model TerritoryTile {
+    id       String @id @default(cuid())
+    playerId String
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    positionX Int
+    positionY Int
+
+    // 地形类型
+    terrain   String @default("grass") // grass/dirt/water/road
+
+    // 是否已解锁
+    unlocked    Boolean  @default(false)
+    unlockedAt  DateTime?
+
+    // 解锁花费记录
+    unlockCost  String?  // JSON: {gold: 100, wood: 50, ...}
+
+    createdAt DateTime @default(now())
+
+    @@index([playerId])
+    @@unique([playerId, positionX, positionY])
+}
+
+// ===== 成就系统 =====
+
+// 玩家已领取的成就
+model PlayerAchievement {
+    id            String   @id @default(cuid())
+    playerId      String
+    player        Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    achievementId String   // 成就ID
+    claimedAt     DateTime @default(now())
+
+    @@unique([playerId, achievementId])
+}
+
+// ===== 商店系统 =====
+
+// 商店购买记录（用于限购）
+model ShopPurchase {
+    id       String @id @default(cuid())
+    playerId String
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    itemId   String // 商品ID
+    date     String // 日期字符串 (YYYY-MM-DD)
+    quantity Int    @default(1)
+
+    @@unique([playerId, itemId, date])
+}
+
+// ===== 战斗系统 =====
+
+// 持久化的战斗会话
+model CombatSession {
+    id       String @id @default(cuid())
+    playerId String
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    // 战斗状态
+    status       String @default("active") // active/victory/defeat/fled
+    currentTurn  Int    @default(1)
+
+    // 玩家方数据（JSON）
+    playerTeam   String // JSON: [{id, name, hp, maxHp, mp, maxMp, ...}, ...]
+
+    // 敌方数据（JSON）
+    enemyTeam    String // JSON: [{id, name, hp, maxHp, attack, defense, ...}, ...]
+
+    // 战斗配置
+    combatType   String @default("normal") // normal/boss/pvp
+    areaLevel    Int    @default(1)
+
+    // 战斗日志（JSON数组）
+    logs         String @default("[]")
+
+    // 奖励数据（JSON，胜利后发放）
+    rewards      String @default("{}")
+
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
+
+    @@index([playerId])
 }

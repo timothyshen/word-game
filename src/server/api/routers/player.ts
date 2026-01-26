@@ -360,4 +360,239 @@ export const playerRouter = createTRPCRouter({
       totalScore: player.currentDayScore,
     };
   }),
+
+  // 玩家升级
+  levelUp: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+
+    const player = await ctx.db.player.findUnique({ where: { userId } });
+    if (!player) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+    }
+
+    // 计算升级所需经验
+    const expNeeded = Math.floor(100 * Math.pow(1.15, player.level - 1));
+
+    if (player.exp < expNeeded) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `经验不足，需要 ${expNeeded}，当前 ${player.exp}`,
+      });
+    }
+
+    // 检查是否达到当前阶位等级上限
+    const maxLevelForTier = player.tier * 20;
+    if (player.level >= maxLevelForTier) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "已达当前职阶等级上限，请先突破",
+      });
+    }
+
+    const newLevel = player.level + 1;
+
+    // 属性成长
+    const statGrowth = Math.floor(player.level * 0.5) + 1;
+    const newStrength = player.strength + statGrowth;
+    const newAgility = player.agility + statGrowth;
+    const newIntellect = player.intellect + statGrowth;
+    const newCharisma = player.charisma + Math.ceil(statGrowth * 0.5);
+
+    // 体力上限增加
+    const newMaxStamina = player.maxStamina + 5;
+
+    await ctx.db.player.update({
+      where: { id: player.id },
+      data: {
+        level: newLevel,
+        exp: player.exp - expNeeded,
+        strength: newStrength,
+        agility: newAgility,
+        intellect: newIntellect,
+        charisma: newCharisma,
+        maxStamina: newMaxStamina,
+        stamina: newMaxStamina, // 升级回满体力
+        lastStaminaUpdate: new Date(),
+      },
+    });
+
+    return {
+      success: true,
+      newLevel,
+      expUsed: expNeeded,
+      remainingExp: player.exp - expNeeded,
+      newStats: {
+        strength: newStrength,
+        agility: newAgility,
+        intellect: newIntellect,
+        charisma: newCharisma,
+        maxStamina: newMaxStamina,
+      },
+      message: `升级成功！达到 ${newLevel} 级`,
+    };
+  }),
+
+  // 增加经验值
+  addExp: protectedProcedure
+    .input(z.object({ amount: z.number().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const player = await ctx.db.player.findUnique({ where: { userId } });
+      if (!player) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+      }
+
+      const newExp = player.exp + input.amount;
+      const expNeeded = Math.floor(100 * Math.pow(1.15, player.level - 1));
+      const maxLevelForTier = player.tier * 20;
+
+      await ctx.db.player.update({
+        where: { id: player.id },
+        data: { exp: newExp },
+      });
+
+      return {
+        success: true,
+        expAdded: input.amount,
+        totalExp: newExp,
+        expToNext: expNeeded,
+        canLevelUp: newExp >= expNeeded && player.level < maxLevelForTier,
+      };
+    }),
+
+  // 更新玩家属性
+  updateStats: protectedProcedure
+    .input(
+      z.object({
+        strength: z.number().optional(),
+        agility: z.number().optional(),
+        intellect: z.number().optional(),
+        charisma: z.number().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const player = await ctx.db.player.findUnique({ where: { userId } });
+      if (!player) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+      }
+
+      const updates: Record<string, number> = {};
+
+      if (input.strength !== undefined) {
+        updates.strength = Math.max(1, player.strength + input.strength);
+      }
+      if (input.agility !== undefined) {
+        updates.agility = Math.max(1, player.agility + input.agility);
+      }
+      if (input.intellect !== undefined) {
+        updates.intellect = Math.max(1, player.intellect + input.intellect);
+      }
+      if (input.charisma !== undefined) {
+        updates.charisma = Math.max(1, player.charisma + input.charisma);
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return {
+          success: false,
+          message: "没有要更新的属性",
+        };
+      }
+
+      const updated = await ctx.db.player.update({
+        where: { id: player.id },
+        data: updates,
+      });
+
+      return {
+        success: true,
+        stats: {
+          strength: updated.strength,
+          agility: updated.agility,
+          intellect: updated.intellect,
+          charisma: updated.charisma,
+        },
+      };
+    }),
+
+  // 获取升级信息
+  getLevelUpInfo: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+
+    const player = await ctx.db.player.findUnique({ where: { userId } });
+    if (!player) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+    }
+
+    const expNeeded = Math.floor(100 * Math.pow(1.15, player.level - 1));
+    const maxLevelForTier = player.tier * 20;
+
+    return {
+      currentLevel: player.level,
+      currentExp: player.exp,
+      expNeeded,
+      progress: Math.min(100, Math.floor((player.exp / expNeeded) * 100)),
+      canLevelUp: player.exp >= expNeeded && player.level < maxLevelForTier,
+      maxLevelForTier,
+      isAtMaxLevel: player.level >= maxLevelForTier,
+      tier: player.tier,
+    };
+  }),
+
+  // 记录战斗胜利（用于成就统计）
+  recordCombatWin: protectedProcedure
+    .input(z.object({ isBoss: z.boolean().default(false) }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const player = await ctx.db.player.findUnique({ where: { userId } });
+      if (!player) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+      }
+
+      const updates: { combatWins: number; bossKills?: number } = {
+        combatWins: player.combatWins + 1,
+      };
+
+      if (input.isBoss) {
+        updates.bossKills = player.bossKills + 1;
+      }
+
+      await ctx.db.player.update({
+        where: { id: player.id },
+        data: updates,
+      });
+
+      return {
+        success: true,
+        combatWins: updates.combatWins,
+        bossKills: updates.bossKills ?? player.bossKills,
+      };
+    }),
+
+  // 记录金币获取（用于成就统计）
+  recordGoldEarned: protectedProcedure
+    .input(z.object({ amount: z.number().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const player = await ctx.db.player.findUnique({ where: { userId } });
+      if (!player) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+      }
+
+      await ctx.db.player.update({
+        where: { id: player.id },
+        data: {
+          totalGoldEarned: player.totalGoldEarned + input.amount,
+        },
+      });
+
+      return {
+        success: true,
+        totalGoldEarned: player.totalGoldEarned + input.amount,
+      };
+    }),
 });

@@ -292,7 +292,17 @@ export const explorationRouter = createTRPCRouter({
       let newFacility = null;
 
       if (Math.random() < facilityChance) {
-        const facilityTypes = ["resource", "monster", "merchant"];
+        // 根据区域等级和距离决定设施类型
+        // 祭坛和传送门在较远/较高等级区域更容易出现
+        let facilityTypes = ["resource", "resource", "monster", "merchant"];
+
+        // 距离越远，越有可能出现稀有设施
+        if (areaLevel >= 2 && Math.random() < 0.15) {
+          facilityTypes = ["altar"]; // 15% 祭坛
+        } else if (areaLevel >= 3 && Math.random() < 0.1) {
+          facilityTypes = ["portal"]; // 10% 传送门（需要更高等级）
+        }
+
         const facilityType = facilityTypes[Math.floor(Math.random() * facilityTypes.length)]!;
 
         const facilityData: Record<string, unknown> = {
@@ -301,6 +311,7 @@ export const explorationRouter = createTRPCRouter({
 
         let facilityName = "";
         let facilityIcon = "";
+        let facilityDescription = "";
 
         if (facilityType === "resource") {
           const resources = ["采矿点", "伐木点", "采集点"];
@@ -308,13 +319,49 @@ export const explorationRouter = createTRPCRouter({
           facilityIcon = facilityName === "采矿点" ? "⛏️" : facilityName === "伐木点" ? "🪓" : "🌿";
           facilityData.resourceType = facilityName === "采矿点" ? "stone" : facilityName === "伐木点" ? "wood" : "food";
           facilityData.amount = 10 + areaLevel * 5;
+          facilityDescription = `等级${areaLevel}的${facilityName}`;
         } else if (facilityType === "monster") {
           facilityName = "怪物巢穴";
           facilityIcon = "💀";
           facilityData.monsterLevel = areaLevel;
-        } else {
+          facilityDescription = `等级${areaLevel}的${facilityName}`;
+        } else if (facilityType === "merchant") {
           facilityName = "商人营地";
           facilityIcon = "🏕️";
+          facilityDescription = "流浪商人的营地";
+        } else if (facilityType === "altar") {
+          // 根据等级决定祭坛类型
+          if (areaLevel >= 5) {
+            facilityName = "远古祭坛";
+            facilityIcon = "🏛️";
+            facilityData.altarType = "ancient_altar";
+            facilityDescription = "远古文明遗留的神秘祭坛，有强大的守护者";
+          } else if (areaLevel >= 3) {
+            facilityName = "神圣祭坛";
+            facilityIcon = "⛩️";
+            facilityData.altarType = "sacred_altar";
+            facilityDescription = "蕴含神圣力量的祭坛，有守护者守卫";
+          } else {
+            facilityName = "普通祭坛";
+            facilityIcon = "🗿";
+            facilityData.altarType = "basic_altar";
+            facilityDescription = "散发微弱光芒的古老祭坛，有守卫看守";
+          }
+          facilityData.isDefeated = false; // 需要击败守卫
+        } else if (facilityType === "portal") {
+          // 传送门 - 连接到其他世界
+          const portalWorlds = [
+            { id: "fire_realm", name: "火焰位面", icon: "🔥" },
+            { id: "ice_realm", name: "寒冰位面", icon: "❄️" },
+            { id: "shadow_realm", name: "暗影位面", icon: "🌑" },
+          ];
+          const targetWorld = portalWorlds[Math.floor(Math.random() * portalWorlds.length)]!;
+          facilityName = `${targetWorld.name}传送门`;
+          facilityIcon = "🌀";
+          facilityData.targetWorld = targetWorld.id;
+          facilityData.isDefeated = false; // 需要击败守卫才能使用
+          facilityData.guardianLevel = areaLevel * 2; // 传送门守卫更强
+          facilityDescription = `通往${targetWorld.name}的神秘传送门，有强大守护者守卫`;
         }
 
         newFacility = await ctx.db.wildernessFacility.create({
@@ -324,7 +371,7 @@ export const explorationRouter = createTRPCRouter({
             type: facilityType,
             name: facilityName,
             icon: facilityIcon,
-            description: `等级${areaLevel}的${facilityName}`,
+            description: facilityDescription,
             positionX: input.positionX,
             positionY: input.positionY,
             data: JSON.stringify(facilityData),

@@ -36,25 +36,19 @@ interface Monster {
   };
 }
 
-// 战斗状态
-interface CombatState {
+// 玩家战斗单位
+interface PlayerUnit {
   id: string;
-  playerId: string;
-  monster: Monster;
-  playerHp: number;
-  playerMaxHp: number;
-  playerMp: number;
-  playerMaxMp: number;
-  turn: number;
-  combatLog: string[];
-  status: "ongoing" | "victory" | "defeat" | "fled";
-  playerBuffs: Array<{ name: string; turns: number; effect: string }>;
-  monsterBuffs: Array<{ name: string; turns: number; effect: string }>;
-  characterId?: string; // 如果使用角色战斗
+  name: string;
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  buffs: Array<{ name: string; turns: number; effect: string }>;
 }
-
-// 内存中存储战斗状态（实际项目应用Redis或数据库）
-const combatStates = new Map<string, CombatState>();
 
 // 生成怪物
 function generateMonster(level: number, type?: string): Monster {
@@ -106,7 +100,7 @@ function calculateDamage(
 ): number {
   const baseDamage = Math.max(1, attackPower - defense * 0.5);
   const critMult = isCritical ? 1.5 : 1.0;
-  const variance = 0.9 + Math.random() * 0.2; // 90%-110%
+  const variance = 0.9 + Math.random() * 0.2;
   return Math.floor(baseDamage * multiplier * critMult * variance);
 }
 
@@ -116,7 +110,7 @@ export const combatRouter = createTRPCRouter({
     .input(z.object({
       monsterLevel: z.number().min(1).max(100).default(1),
       monsterType: z.string().optional(),
-      characterId: z.string().optional(), // 可选：使用某个角色战斗
+      characterId: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
@@ -135,6 +129,15 @@ export const combatRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
       }
 
+      // 检查是否有进行中的战斗
+      const existingCombat = await ctx.db.combatSession.findFirst({
+        where: { playerId: player.id, status: "active" },
+      });
+
+      if (existingCombat) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "已有进行中的战斗" });
+      }
+
       // 检查体力
       const staminaCost = 15;
       if (player.stamina < staminaCost) {
@@ -151,42 +154,55 @@ export const combatRouter = createTRPCRouter({
       });
 
       // 获取战斗角色属性
-      let playerHp = 100;
-      let playerMaxHp = 100;
-      let playerMp = 50;
-      let playerMaxMp = 50;
+      let playerUnit: PlayerUnit = {
+        id: player.id,
+        name: player.name,
+        hp: 100,
+        maxHp: 100,
+        mp: 50,
+        maxMp: 50,
+        attack: player.strength * 2,
+        defense: player.agility,
+        speed: player.agility,
+        buffs: [],
+      };
 
       if (input.characterId && player.characters.length > 0) {
         const char = player.characters[0]!;
-        playerHp = char.hp;
-        playerMaxHp = char.maxHp;
-        playerMp = char.mp;
-        playerMaxMp = char.maxMp;
+        playerUnit = {
+          id: char.id,
+          name: char.character.name,
+          hp: char.hp,
+          maxHp: char.maxHp,
+          mp: char.mp,
+          maxMp: char.maxMp,
+          attack: char.attack,
+          defense: char.defense,
+          speed: char.speed,
+          buffs: [],
+        };
       }
 
       const monster = generateMonster(input.monsterLevel, input.monsterType);
+      const initialLog = [`⚔️ 战斗开始！你遭遇了 Lv.${monster.level} ${monster.name}！`];
 
-      const combatId = `combat_${player.id}_${Date.now()}`;
-      const combatState: CombatState = {
-        id: combatId,
-        playerId: player.id,
-        monster,
-        playerHp,
-        playerMaxHp,
-        playerMp,
-        playerMaxMp,
-        turn: 1,
-        combatLog: [`⚔️ 战斗开始！你遭遇了 Lv.${monster.level} ${monster.name}！`],
-        status: "ongoing",
-        playerBuffs: [],
-        monsterBuffs: [],
-        characterId: input.characterId,
-      };
-
-      combatStates.set(combatId, combatState);
+      // 创建战斗会话（持久化到数据库）
+      const combatSession = await ctx.db.combatSession.create({
+        data: {
+          playerId: player.id,
+          status: "active",
+          currentTurn: 1,
+          playerTeam: JSON.stringify([playerUnit]),
+          enemyTeam: JSON.stringify([monster]),
+          combatType: "normal",
+          areaLevel: input.monsterLevel,
+          logs: JSON.stringify(initialLog),
+          rewards: JSON.stringify(monster.rewards),
+        },
+      });
 
       return {
-        combatId,
+        combatId: combatSession.id,
         monster: {
           name: monster.name,
           icon: monster.icon,
@@ -194,12 +210,12 @@ export const combatRouter = createTRPCRouter({
           hp: monster.hp,
           maxHp: monster.maxHp,
         },
-        playerHp,
-        playerMaxHp,
-        playerMp,
-        playerMaxMp,
+        playerHp: playerUnit.hp,
+        playerMaxHp: playerUnit.maxHp,
+        playerMp: playerUnit.mp,
+        playerMaxMp: playerUnit.maxMp,
         turn: 1,
-        log: combatState.combatLog,
+        log: initialLog,
       };
     }),
 
@@ -214,30 +230,77 @@ export const combatRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
       }
 
-      const state = combatStates.get(input.combatId);
-      if (!state || state.playerId !== player.id) {
+      const combat = await ctx.db.combatSession.findFirst({
+        where: { id: input.combatId, playerId: player.id },
+      });
+
+      if (!combat) {
         throw new TRPCError({ code: "NOT_FOUND", message: "战斗不存在" });
       }
 
+      const playerTeam = JSON.parse(combat.playerTeam) as PlayerUnit[];
+      const enemyTeam = JSON.parse(combat.enemyTeam) as Monster[];
+      const logs = JSON.parse(combat.logs) as string[];
+      const playerUnit = playerTeam[0]!;
+      const monster = enemyTeam[0]!;
+
       return {
         monster: {
-          name: state.monster.name,
-          icon: state.monster.icon,
-          level: state.monster.level,
-          hp: state.monster.hp,
-          maxHp: state.monster.maxHp,
+          name: monster.name,
+          icon: monster.icon,
+          level: monster.level,
+          hp: monster.hp,
+          maxHp: monster.maxHp,
         },
-        playerHp: state.playerHp,
-        playerMaxHp: state.playerMaxHp,
-        playerMp: state.playerMp,
-        playerMaxMp: state.playerMaxMp,
-        turn: state.turn,
-        status: state.status,
-        log: state.combatLog.slice(-10), // 最近10条
-        playerBuffs: state.playerBuffs,
-        monsterBuffs: state.monsterBuffs,
+        playerHp: playerUnit.hp,
+        playerMaxHp: playerUnit.maxHp,
+        playerMp: playerUnit.mp,
+        playerMaxMp: playerUnit.maxMp,
+        turn: combat.currentTurn,
+        status: combat.status,
+        log: logs.slice(-10),
+        playerBuffs: playerUnit.buffs,
       };
     }),
+
+  // 获取当前活动的战斗
+  getActiveCombat: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const player = await ctx.db.player.findUnique({ where: { userId } });
+
+    if (!player) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+    }
+
+    const combat = await ctx.db.combatSession.findFirst({
+      where: { playerId: player.id, status: "active" },
+    });
+
+    if (!combat) {
+      return null;
+    }
+
+    const playerTeam = JSON.parse(combat.playerTeam) as PlayerUnit[];
+    const enemyTeam = JSON.parse(combat.enemyTeam) as Monster[];
+    const playerUnit = playerTeam[0]!;
+    const monster = enemyTeam[0]!;
+
+    return {
+      combatId: combat.id,
+      monster: {
+        name: monster.name,
+        icon: monster.icon,
+        level: monster.level,
+        hp: monster.hp,
+        maxHp: monster.maxHp,
+      },
+      playerHp: playerUnit.hp,
+      playerMaxHp: playerUnit.maxHp,
+      playerMp: playerUnit.mp,
+      playerMaxMp: playerUnit.maxMp,
+      turn: combat.currentTurn,
+    };
+  }),
 
   // 获取可用行动选项
   getActions: protectedProcedure
@@ -250,14 +313,20 @@ export const combatRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
       }
 
-      const state = combatStates.get(input.combatId);
-      if (!state || state.playerId !== player.id) {
+      const combat = await ctx.db.combatSession.findFirst({
+        where: { id: input.combatId, playerId: player.id },
+      });
+
+      if (!combat) {
         throw new TRPCError({ code: "NOT_FOUND", message: "战斗不存在" });
       }
 
-      if (state.status !== "ongoing") {
+      if (combat.status !== "active") {
         return { actions: [] };
       }
+
+      const playerTeam = JSON.parse(combat.playerTeam) as PlayerUnit[];
+      const playerUnit = playerTeam[0]!;
 
       const actions = [
         { id: "attack", name: "攻击", description: "对敌人造成物理伤害", icon: "⚔️", mpCost: 0 },
@@ -268,11 +337,10 @@ export const combatRouter = createTRPCRouter({
         { id: "flee", name: "逃跑", description: "尝试逃离战斗（50%成功率）", icon: "🏃", mpCost: 0 },
       ];
 
-      // 过滤MP不足的技能
       return {
         actions: actions.map(a => ({
           ...a,
-          disabled: a.mpCost > state.playerMp,
+          disabled: a.mpCost > playerUnit.mp,
         })),
       };
     }),
@@ -291,16 +359,27 @@ export const combatRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
       }
 
-      const state = combatStates.get(input.combatId);
-      if (!state || state.playerId !== player.id) {
+      const combat = await ctx.db.combatSession.findFirst({
+        where: { id: input.combatId, playerId: player.id },
+      });
+
+      if (!combat) {
         throw new TRPCError({ code: "NOT_FOUND", message: "战斗不存在" });
       }
 
-      if (state.status !== "ongoing") {
+      if (combat.status !== "active") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "战斗已结束" });
       }
 
-      const logs: string[] = [];
+      const playerTeam = JSON.parse(combat.playerTeam) as PlayerUnit[];
+      const enemyTeam = JSON.parse(combat.enemyTeam) as Monster[];
+      const logs = JSON.parse(combat.logs) as string[];
+      const rewards = JSON.parse(combat.rewards) as Monster["rewards"];
+
+      const playerUnit = playerTeam[0]!;
+      const monster = enemyTeam[0]!;
+
+      const newLogs: string[] = [];
       let playerDefending = false;
       let actionUsed = false;
 
@@ -308,56 +387,55 @@ export const combatRouter = createTRPCRouter({
       switch (input.actionId) {
         case "attack": {
           const isCrit = Math.random() < 0.15;
-          const damage = calculateDamage(player.strength * 2, state.monster.defense, 1.0, isCrit);
-          state.monster.hp -= damage;
-          logs.push(`你发起攻击，${isCrit ? "暴击！" : ""}对${state.monster.name}造成 ${damage} 点伤害`);
+          const damage = calculateDamage(playerUnit.attack, monster.defense, 1.0, isCrit);
+          monster.hp -= damage;
+          newLogs.push(`你发起攻击，${isCrit ? "暴击！" : ""}对${monster.name}造成 ${damage} 点伤害`);
           actionUsed = true;
           break;
         }
 
         case "heavy_attack": {
-          if (state.playerMp < 10) {
+          if (playerUnit.mp < 10) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "MP不足" });
           }
-          state.playerMp -= 10;
+          playerUnit.mp -= 10;
           const isCrit = Math.random() < 0.2;
-          const damage = calculateDamage(player.strength * 2, state.monster.defense, 1.5, isCrit);
-          state.monster.hp -= damage;
-          logs.push(`你使出重击！${isCrit ? "暴击！" : ""}对${state.monster.name}造成 ${damage} 点伤害`);
-          state.playerBuffs.push({ name: "破绽", turns: 1, effect: "defense_down" });
+          const damage = calculateDamage(playerUnit.attack, monster.defense, 1.5, isCrit);
+          monster.hp -= damage;
+          newLogs.push(`你使出重击！${isCrit ? "暴击！" : ""}对${monster.name}造成 ${damage} 点伤害`);
+          playerUnit.buffs.push({ name: "破绽", turns: 1, effect: "defense_down" });
           actionUsed = true;
           break;
         }
 
         case "defend": {
           playerDefending = true;
-          state.playerMp = Math.min(state.playerMaxMp, state.playerMp + 10);
-          logs.push("你采取防御姿态，准备承受敌人的攻击，MP恢复10点");
+          playerUnit.mp = Math.min(playerUnit.maxMp, playerUnit.mp + 10);
+          newLogs.push("你采取防御姿态，准备承受敌人的攻击，MP恢复10点");
           actionUsed = true;
           break;
         }
 
         case "skill_fire": {
-          if (state.playerMp < 20) {
+          if (playerUnit.mp < 20) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "MP不足" });
           }
-          state.playerMp -= 20;
-          const damage = calculateDamage(player.intellect * 2.5, state.monster.defense * 0.5, 1.0, false);
-          state.monster.hp -= damage;
-          state.monsterBuffs.push({ name: "灼烧", turns: 2, effect: "burn" });
-          logs.push(`你释放火焰术！对${state.monster.name}造成 ${damage} 点魔法伤害并附加灼烧`);
+          playerUnit.mp -= 20;
+          const damage = calculateDamage(player.intellect * 2.5, monster.defense * 0.5, 1.0, false);
+          monster.hp -= damage;
+          newLogs.push(`你释放火焰术！对${monster.name}造成 ${damage} 点魔法伤害`);
           actionUsed = true;
           break;
         }
 
         case "skill_heal": {
-          if (state.playerMp < 25) {
+          if (playerUnit.mp < 25) {
             throw new TRPCError({ code: "BAD_REQUEST", message: "MP不足" });
           }
-          state.playerMp -= 25;
-          const healAmount = Math.floor(state.playerMaxHp * 0.3);
-          state.playerHp = Math.min(state.playerMaxHp, state.playerHp + healAmount);
-          logs.push(`你使用治疗术，恢复了 ${healAmount} 点生命值`);
+          playerUnit.mp -= 25;
+          const healAmount = Math.floor(playerUnit.maxHp * 0.3);
+          playerUnit.hp = Math.min(playerUnit.maxHp, playerUnit.hp + healAmount);
+          newLogs.push(`你使用治疗术，恢复了 ${healAmount} 点生命值`);
           actionUsed = true;
           break;
         }
@@ -365,21 +443,28 @@ export const combatRouter = createTRPCRouter({
         case "flee": {
           const fleeSuccess = Math.random() < 0.5;
           if (fleeSuccess) {
-            state.status = "fled";
-            logs.push("你成功逃离了战斗！");
-            state.combatLog.push(...logs);
-            combatStates.set(input.combatId, state);
+            newLogs.push("你成功逃离了战斗！");
+
+            await ctx.db.combatSession.update({
+              where: { id: combat.id },
+              data: {
+                status: "fled",
+                logs: JSON.stringify([...logs, ...newLogs]),
+                playerTeam: JSON.stringify(playerTeam),
+              },
+            });
+
             return {
               success: true,
               status: "fled",
               message: "成功逃跑",
-              log: logs,
-              playerHp: state.playerHp,
-              playerMp: state.playerMp,
-              monsterHp: state.monster.hp,
+              log: newLogs,
+              playerHp: playerUnit.hp,
+              playerMp: playerUnit.mp,
+              monsterHp: monster.hp,
             };
           } else {
-            logs.push("逃跑失败！敌人追了上来...");
+            newLogs.push("逃跑失败！敌人追了上来...");
             actionUsed = true;
           }
           break;
@@ -387,20 +472,20 @@ export const combatRouter = createTRPCRouter({
       }
 
       // 检查怪物是否死亡
-      if (state.monster.hp <= 0) {
-        state.status = "victory";
-        logs.push(`🎉 战斗胜利！你击败了 ${state.monster.name}！`);
+      if (monster.hp <= 0) {
+        newLogs.push(`🎉 战斗胜利！你击败了 ${monster.name}！`);
 
         // 发放奖励
-        const rewards = state.monster.rewards;
         await ctx.db.player.update({
           where: { id: player.id },
           data: {
             gold: player.gold + rewards.gold,
             exp: player.exp + rewards.exp,
+            combatWins: player.combatWins + 1,
+            totalGoldEarned: player.totalGoldEarned + rewards.gold,
           },
         });
-        logs.push(`获得：${rewards.gold} 金币，${rewards.exp} 经验`);
+        newLogs.push(`获得：${rewards.gold} 金币，${rewards.exp} 经验`);
 
         // 记录战斗分数
         await ctx.db.actionLog.create({
@@ -408,10 +493,10 @@ export const combatRouter = createTRPCRouter({
             playerId: player.id,
             day: getCurrentGameDay(),
             type: "combat",
-            description: `击败了 Lv.${state.monster.level} ${state.monster.name}`,
-            baseScore: 20 * state.monster.level,
-            bonus: state.monster.level >= 5 ? 30 : 0,
-            bonusReason: state.monster.level >= 5 ? "击败强敌" : undefined,
+            description: `击败了 Lv.${monster.level} ${monster.name}`,
+            baseScore: 20 * monster.level,
+            bonus: monster.level >= 5 ? 30 : 0,
+            bonusReason: monster.level >= 5 ? "击败强敌" : undefined,
           },
         });
 
@@ -435,153 +520,115 @@ export const combatRouter = createTRPCRouter({
                 data: { playerId: player.id, cardId: card.id, quantity: 1 },
               });
             }
-            logs.push(`🃏 获得卡牌：${card.name}（${card.rarity}）`);
+            newLogs.push(`🃏 获得卡牌：${card.name}（${card.rarity}）`);
           }
         }
 
-        state.combatLog.push(...logs);
-        combatStates.set(input.combatId, state);
+        await ctx.db.combatSession.update({
+          where: { id: combat.id },
+          data: {
+            status: "victory",
+            logs: JSON.stringify([...logs, ...newLogs]),
+            playerTeam: JSON.stringify(playerTeam),
+            enemyTeam: JSON.stringify(enemyTeam),
+          },
+        });
 
         return {
           success: true,
           status: "victory",
           message: "战斗胜利",
-          log: logs,
-          rewards: {
-            gold: rewards.gold,
-            exp: rewards.exp,
-          },
-          playerHp: state.playerHp,
-          playerMp: state.playerMp,
-          monsterHp: 0,
-        };
-      }
-
-      // 处理怪物buff（如灼烧）
-      for (const buff of state.monsterBuffs) {
-        if (buff.effect === "burn") {
-          const burnDamage = Math.floor(state.monster.maxHp * 0.05);
-          state.monster.hp -= burnDamage;
-          logs.push(`${state.monster.name}受到灼烧，损失 ${burnDamage} 点生命`);
-        }
-        buff.turns--;
-      }
-      state.monsterBuffs = state.monsterBuffs.filter(b => b.turns > 0);
-
-      // 检查灼烧后怪物是否死亡
-      if (state.monster.hp <= 0) {
-        state.status = "victory";
-        logs.push(`🎉 ${state.monster.name}被灼烧击杀！战斗胜利！`);
-
-        const rewards = state.monster.rewards;
-        await ctx.db.player.update({
-          where: { id: player.id },
-          data: {
-            gold: player.gold + rewards.gold,
-            exp: player.exp + rewards.exp,
-          },
-        });
-        logs.push(`获得：${rewards.gold} 金币，${rewards.exp} 经验`);
-
-        await ctx.db.actionLog.create({
-          data: {
-            playerId: player.id,
-            day: getCurrentGameDay(),
-            type: "combat",
-            description: `击败了 Lv.${state.monster.level} ${state.monster.name}`,
-            baseScore: 20 * state.monster.level,
-          },
-        });
-
-        state.combatLog.push(...logs);
-        combatStates.set(input.combatId, state);
-
-        return {
-          success: true,
-          status: "victory",
-          message: "战斗胜利",
-          log: logs,
+          log: newLogs,
           rewards: { gold: rewards.gold, exp: rewards.exp },
-          playerHp: state.playerHp,
-          playerMp: state.playerMp,
+          playerHp: playerUnit.hp,
+          playerMp: playerUnit.mp,
           monsterHp: 0,
         };
       }
 
       // 怪物行动
       if (actionUsed) {
-        // 选择怪物技能
-        const availableSkills = state.monster.skills.filter(s => s.currentCooldown === 0);
+        const availableSkills = monster.skills.filter(s => s.currentCooldown === 0);
         const skill = availableSkills[Math.floor(Math.random() * availableSkills.length)]!;
 
-        // 计算伤害
-        let monsterDamage = calculateDamage(state.monster.attack, player.agility, skill.damage);
+        let monsterDamage = calculateDamage(monster.attack, playerUnit.defense, skill.damage);
 
-        // 防御减伤
         if (playerDefending) {
           monsterDamage = Math.floor(monsterDamage * 0.5);
-          logs.push(`你的防御抵消了部分伤害`);
+          newLogs.push(`你的防御抵消了部分伤害`);
         }
 
-        // 破绽增伤
-        const hasWeakness = state.playerBuffs.some(b => b.effect === "defense_down");
+        const hasWeakness = playerUnit.buffs.some(b => b.effect === "defense_down");
         if (hasWeakness) {
           monsterDamage = Math.floor(monsterDamage * 1.3);
-          logs.push(`由于破绽，你受到了额外伤害`);
+          newLogs.push(`由于破绽，你受到了额外伤害`);
         }
 
-        state.playerHp -= monsterDamage;
-        logs.push(`${state.monster.name}使用${skill.name}，对你造成 ${monsterDamage} 点伤害`);
+        playerUnit.hp -= monsterDamage;
+        newLogs.push(`${monster.name}使用${skill.name}，对你造成 ${monsterDamage} 点伤害`);
 
-        // 重置技能冷却
         if (skill.cooldown > 0) {
           skill.currentCooldown = skill.cooldown;
         }
 
-        // 减少冷却
-        state.monster.skills.forEach(s => {
+        monster.skills.forEach(s => {
           if (s.currentCooldown > 0) s.currentCooldown--;
         });
       }
 
       // 处理玩家buff
-      state.playerBuffs = state.playerBuffs.filter(b => {
+      playerUnit.buffs = playerUnit.buffs.filter(b => {
         b.turns--;
         return b.turns > 0;
       });
 
       // 检查玩家是否死亡
-      if (state.playerHp <= 0) {
-        state.status = "defeat";
-        logs.push("💀 你被击败了...");
-        state.combatLog.push(...logs);
-        combatStates.set(input.combatId, state);
+      if (playerUnit.hp <= 0) {
+        newLogs.push("💀 你被击败了...");
+
+        await ctx.db.combatSession.update({
+          where: { id: combat.id },
+          data: {
+            status: "defeat",
+            logs: JSON.stringify([...logs, ...newLogs]),
+            playerTeam: JSON.stringify(playerTeam),
+            enemyTeam: JSON.stringify(enemyTeam),
+          },
+        });
 
         return {
           success: true,
           status: "defeat",
           message: "战斗失败",
-          log: logs,
+          log: newLogs,
           playerHp: 0,
-          playerMp: state.playerMp,
-          monsterHp: state.monster.hp,
+          playerMp: playerUnit.mp,
+          monsterHp: monster.hp,
         };
       }
 
       // 回合结束
-      state.turn++;
-      state.combatLog.push(...logs);
-      combatStates.set(input.combatId, state);
+      const newTurn = combat.currentTurn + 1;
+
+      await ctx.db.combatSession.update({
+        where: { id: combat.id },
+        data: {
+          currentTurn: newTurn,
+          logs: JSON.stringify([...logs, ...newLogs]),
+          playerTeam: JSON.stringify(playerTeam),
+          enemyTeam: JSON.stringify(enemyTeam),
+        },
+      });
 
       return {
         success: true,
-        status: "ongoing",
-        message: `回合 ${state.turn - 1} 结束`,
-        log: logs,
-        playerHp: state.playerHp,
-        playerMp: state.playerMp,
-        monsterHp: state.monster.hp,
-        turn: state.turn,
+        status: "active",
+        message: `回合 ${combat.currentTurn} 结束`,
+        log: newLogs,
+        playerHp: playerUnit.hp,
+        playerMp: playerUnit.mp,
+        monsterHp: monster.hp,
+        turn: newTurn,
       };
     }),
 
@@ -596,11 +643,49 @@ export const combatRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
       }
 
-      const state = combatStates.get(input.combatId);
-      if (state && state.playerId === player.id) {
-        combatStates.delete(input.combatId);
+      const combat = await ctx.db.combatSession.findFirst({
+        where: { id: input.combatId, playerId: player.id },
+      });
+
+      if (combat && combat.status === "active") {
+        await ctx.db.combatSession.update({
+          where: { id: combat.id },
+          data: { status: "fled" },
+        });
       }
 
       return { success: true };
+    }),
+
+  // 获取战斗历史
+  getHistory: protectedProcedure
+    .input(z.object({ limit: z.number().min(1).max(50).default(10) }))
+    .query(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      const player = await ctx.db.player.findUnique({ where: { userId } });
+
+      if (!player) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+      }
+
+      const combats = await ctx.db.combatSession.findMany({
+        where: { playerId: player.id },
+        orderBy: { createdAt: "desc" },
+        take: input.limit,
+      });
+
+      return combats.map(c => {
+        const enemyTeam = JSON.parse(c.enemyTeam) as Monster[];
+        const monster = enemyTeam[0]!;
+
+        return {
+          id: c.id,
+          status: c.status,
+          monsterName: monster.name,
+          monsterLevel: monster.level,
+          turns: c.currentTurn,
+          createdAt: c.createdAt,
+        };
+      });
     }),
 });

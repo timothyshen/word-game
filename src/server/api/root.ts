@@ -12,6 +12,10 @@ import { professionRouter } from "~/server/api/routers/profession";
 import { portalRouter } from "~/server/api/routers/portal";
 import { storyRouter } from "~/server/api/routers/story";
 import { bossRouter } from "~/server/api/routers/boss";
+import { territoryRouter } from "~/server/api/routers/territory";
+import { characterRouter } from "~/server/api/routers/character";
+import { shopRouter } from "~/server/api/routers/shop";
+import { achievementRouter } from "~/server/api/routers/achievement";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -34,6 +38,10 @@ export const appRouter = createTRPCRouter({
   portal: portalRouter,
   story: storyRouter,
   boss: bossRouter,
+  territory: territoryRouter,
+  character: characterRouter,
+  shop: shopRouter,
+  achievement: achievementRouter,
 });
 
 // export type definition of API
