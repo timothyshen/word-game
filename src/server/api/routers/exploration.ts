@@ -466,8 +466,77 @@ export const explorationRouter = createTRPCRouter({
       const distance = Math.sqrt(input.positionX ** 2 + input.positionY ** 2);
       const areaLevel = Math.max(1, Math.floor(distance / 2));
 
-      // 生成随机事件
-      const event = generateRandomEvent(areaLevel);
+      // 尝试从数据库获取奇遇事件
+      const dbAdventures = await ctx.db.adventure.findMany({
+        where: {
+          isActive: true,
+          minLevel: { lte: areaLevel },
+          AND: [
+            {
+              OR: [
+                { maxLevel: null },
+                { maxLevel: { gte: areaLevel } },
+              ],
+            },
+            {
+              OR: [
+                { worldId: null },
+                { worldId: input.worldId },
+              ],
+            },
+          ],
+        },
+      });
+
+      let event: ExplorationEvent;
+
+      // 如果数据库有奇遇，按权重随机选择
+      if (dbAdventures.length > 0) {
+        const totalWeight = dbAdventures.reduce((sum, a) => sum + a.weight, 0);
+        let random = Math.random() * totalWeight;
+        let selectedAdventure = dbAdventures[0]!;
+
+        for (const adventure of dbAdventures) {
+          random -= adventure.weight;
+          if (random <= 0) {
+            selectedAdventure = adventure;
+            break;
+          }
+        }
+
+        // 转换数据库奇遇为事件格式
+        const options = JSON.parse(selectedAdventure.optionsJson) as Array<{
+          text: string;
+          action: string;
+          cost?: { stamina?: number };
+          requirement?: { stat?: string; minValue?: number };
+        }>;
+        const rewards = selectedAdventure.rewardsJson
+          ? JSON.parse(selectedAdventure.rewardsJson) as Record<string, number>
+          : undefined;
+        const monster = selectedAdventure.monsterJson
+          ? JSON.parse(selectedAdventure.monsterJson) as {
+              name: string;
+              level: number;
+              hp: number;
+              attack: number;
+              defense: number;
+              rewards: { exp: number; gold: number; cardChance: number };
+            }
+          : undefined;
+
+        event = {
+          type: selectedAdventure.type as EventType,
+          title: selectedAdventure.title,
+          description: selectedAdventure.description,
+          options,
+          rewards,
+          monster,
+        };
+      } else {
+        // 没有数据库奇遇，使用生成的事件
+        event = generateRandomEvent(areaLevel);
+      }
 
       return {
         event,

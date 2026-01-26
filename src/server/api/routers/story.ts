@@ -2,143 +2,41 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
-// 剧情节点定义
-interface StoryNode {
+// 节点类型
+interface StoryNodeData {
   id: string;
+  nodeId: string;
   title: string;
   content: string;
-  speaker?: string;
-  speakerIcon?: string;
-  choices?: Array<{
-    text: string;
-    nextNode: string;
-    requirements?: Record<string, number>;
-    rewards?: Record<string, number>;
-  }>;
-  nextNode?: string; // 无选项时自动跳转
-  rewards?: Record<string, number>; // 节点完成奖励
-  unlockCondition?: {
-    level?: number;
-    tier?: number;
-    quest?: string;
-    day?: number;
-  };
+  speaker: string | null;
+  speakerIcon: string | null;
+  nextNodeId: string | null;
+  choicesJson: string | null;
+  rewardsJson: string | null;
 }
 
-// 剧情章节
-interface StoryChapter {
-  id: string;
-  title: string;
-  description: string;
-  nodes: StoryNode[];
-  rewards: {
-    gold?: number;
-    crystals?: number;
-    exp?: number;
-    cards?: Array<{ rarity: string; count: number }>;
-  };
+interface ParsedChoice {
+  text: string;
+  nextNode: string;
+  requirements?: Record<string, number>;
+  rewards?: Record<string, number>;
 }
 
-// 示例剧情数据
-const STORY_CHAPTERS: StoryChapter[] = [
-  {
-    id: "prologue",
-    title: "序章：领主的觉醒",
-    description: "你在一片废墟中醒来，发现自己成为了这片土地的领主...",
-    nodes: [
-      {
-        id: "prologue_1",
-        title: "觉醒",
-        content: "你缓缓睁开眼睛，发现自己躺在一片废墟之中。阳光透过破碎的屋顶照射进来，空气中弥漫着尘土的气息。",
-        nextNode: "prologue_2",
-      },
-      {
-        id: "prologue_2",
-        title: "神秘老人",
-        content: "一位白发苍苍的老人站在你面前，他的眼中闪烁着智慧的光芒。",
-        speaker: "神秘老人",
-        speakerIcon: "👴",
-        nextNode: "prologue_3",
-      },
-      {
-        id: "prologue_3",
-        title: "选择命运",
-        content: "\"年轻人，你是这片土地选中的领主。但前方的道路充满未知，你准备好了吗？\"",
-        speaker: "神秘老人",
-        speakerIcon: "👴",
-        choices: [
-          {
-            text: "我已准备好迎接挑战",
-            nextNode: "prologue_4a",
-            rewards: { gold: 100, exp: 50 },
-          },
-          {
-            text: "请告诉我更多信息",
-            nextNode: "prologue_4b",
-          },
-        ],
-      },
-      {
-        id: "prologue_4a",
-        title: "勇者之心",
-        content: "老人露出欣慰的笑容。\"很好，勇气是成为伟大领主的第一步。这是我送给你的礼物，愿它能帮助你开始这段旅程。\"",
-        speaker: "神秘老人",
-        speakerIcon: "👴",
-      },
-      {
-        id: "prologue_4b",
-        title: "求知之心",
-        content: "\"聪明的选择，知识同样是力量。这片土地曾经繁荣昌盛，但一场灾难让一切化为废墟。你的任务是重建它。\"",
-        speaker: "神秘老人",
-        speakerIcon: "👴",
-        nextNode: "prologue_4a",
-      },
-    ],
-    rewards: { gold: 200, crystals: 5, exp: 100 },
-  },
-  {
-    id: "chapter_1",
-    title: "第一章：重建家园",
-    description: "开始建设你的领地，招募第一批追随者。",
-    nodes: [
-      {
-        id: "ch1_1",
-        title: "第一步",
-        content: "神秘老人离开后，你开始审视周围的废墟。这里曾经是一座城堡的遗址，虽然破败，但根基还在。",
-        unlockCondition: { day: 2 },
-        nextNode: "ch1_2",
-      },
-      {
-        id: "ch1_2",
-        title: "建设开始",
-        content: "使用建筑卡可以在领地中建造各种设施。农田可以提供粮食，矿场可以提供资源，兵营可以训练士兵。",
-        choices: [
-          {
-            text: "先建造农田",
-            nextNode: "ch1_farm",
-          },
-          {
-            text: "先建造兵营",
-            nextNode: "ch1_barracks",
-          },
-        ],
-      },
-      {
-        id: "ch1_farm",
-        title: "民以食为天",
-        content: "\"粮食是发展的基础\"，你决定先确保领民的温饱。",
-        rewards: { food: 50 },
-      },
-      {
-        id: "ch1_barracks",
-        title: "以战养战",
-        content: "\"没有军队保护，再多的资源也守不住\"，你决定先组建军队。",
-        rewards: { gold: 50 },
-      },
-    ],
-    rewards: { gold: 300, exp: 150 },
-  },
-];
+// 解析节点的选项和奖励
+function parseNode(node: StoryNodeData) {
+  const choices = node.choicesJson ? JSON.parse(node.choicesJson) as ParsedChoice[] : undefined;
+  const rewards = node.rewardsJson ? JSON.parse(node.rewardsJson) as Record<string, number> : undefined;
+  return {
+    id: node.nodeId,
+    title: node.title,
+    content: node.content,
+    speaker: node.speaker ?? undefined,
+    speakerIcon: node.speakerIcon ?? undefined,
+    nextNode: node.nextNodeId ?? undefined,
+    choices,
+    rewards,
+  };
+}
 
 export const storyRouter = createTRPCRouter({
   // 获取所有剧情章节
@@ -158,13 +56,20 @@ export const storyRouter = createTRPCRouter({
       player.storyProgress.filter(p => p.completed).map(p => p.storyId)
     );
 
-    return STORY_CHAPTERS.map(chapter => ({
+    // 从数据库获取章节
+    const chapters = await ctx.db.storyChapter.findMany({
+      where: { isActive: true },
+      include: { nodes: true },
+      orderBy: { order: "asc" },
+    });
+
+    return chapters.map(chapter => ({
       id: chapter.id,
       title: chapter.title,
       description: chapter.description,
       isCompleted: completedStories.has(chapter.id),
       nodeCount: chapter.nodes.length,
-      rewards: chapter.rewards,
+      rewards: JSON.parse(chapter.rewardsJson) as Record<string, number>,
     }));
   }),
 
@@ -183,7 +88,12 @@ export const storyRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
       }
 
-      const chapter = STORY_CHAPTERS.find(c => c.id === input.chapterId);
+      // 从数据库获取章节和节点
+      const chapter = await ctx.db.storyChapter.findUnique({
+        where: { id: input.chapterId },
+        include: { nodes: { orderBy: { order: "asc" } } },
+      });
+
       if (!chapter) {
         throw new TRPCError({ code: "NOT_FOUND", message: "章节不存在" });
       }
@@ -198,13 +108,14 @@ export const storyRouter = createTRPCRouter({
       const choices = progress?.choices ? JSON.parse(progress.choices) as string[] : [];
       const currentNodeId = choices.length > 0
         ? choices[choices.length - 1]
-        : chapter.nodes[0]?.id;
+        : chapter.nodes[0]?.nodeId;
 
-      const node = chapter.nodes.find(n => n.id === currentNodeId);
+      const nodeData = chapter.nodes.find(n => n.nodeId === currentNodeId);
+      const firstNode = chapter.nodes[0];
 
       return {
         completed: false,
-        node: node ?? chapter.nodes[0],
+        node: nodeData ? parseNode(nodeData) : (firstNode ? parseNode(firstNode) : null),
         progress: choices.length,
         totalNodes: chapter.nodes.length,
       };
@@ -228,23 +139,30 @@ export const storyRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
       }
 
-      const chapter = STORY_CHAPTERS.find(c => c.id === input.chapterId);
+      // 从数据库获取章节和节点
+      const chapter = await ctx.db.storyChapter.findUnique({
+        where: { id: input.chapterId },
+        include: { nodes: { orderBy: { order: "asc" } } },
+      });
+
       if (!chapter) {
         throw new TRPCError({ code: "NOT_FOUND", message: "章节不存在" });
       }
 
-      let progress = player.storyProgress.find(p => p.storyId === input.chapterId);
+      const progress = player.storyProgress.find(p => p.storyId === input.chapterId);
       const choices = progress?.choices ? JSON.parse(progress.choices) as string[] : [];
 
       // 获取当前节点
       const currentNodeId = choices.length > 0
         ? choices[choices.length - 1]
-        : chapter.nodes[0]?.id;
+        : chapter.nodes[0]?.nodeId;
 
-      const currentNode = chapter.nodes.find(n => n.id === currentNodeId);
-      if (!currentNode) {
+      const currentNodeData = chapter.nodes.find(n => n.nodeId === currentNodeId);
+      if (!currentNodeData) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "节点不存在" });
       }
+
+      const currentNode = parseNode(currentNodeData);
 
       // 确定下一个节点
       let nextNodeId: string | undefined;
@@ -269,7 +187,8 @@ export const storyRouter = createTRPCRouter({
       }
 
       // 检查是否完成章节
-      const nextNode = chapter.nodes.find(n => n.id === nextNodeId);
+      const nextNodeData = chapter.nodes.find(n => n.nodeId === nextNodeId);
+      const nextNode = nextNodeData ? parseNode(nextNodeData) : undefined;
       const isCompleted = !nextNode || (!nextNode.nextNode && !nextNode.choices);
 
       if (progress) {
@@ -294,9 +213,10 @@ export const storyRouter = createTRPCRouter({
       }
 
       // 发放奖励
+      const chapterRewards = JSON.parse(chapter.rewardsJson) as Record<string, number>;
       if (Object.keys(rewards).length > 0 || isCompleted) {
         const finalRewards = isCompleted
-          ? { ...rewards, ...chapter.rewards }
+          ? { ...rewards, ...chapterRewards }
           : rewards;
 
         await ctx.db.player.update({
@@ -313,7 +233,7 @@ export const storyRouter = createTRPCRouter({
         advanced: true,
         nextNode,
         isCompleted,
-        rewards: isCompleted ? chapter.rewards : rewards,
+        rewards: isCompleted ? chapterRewards : rewards,
       };
     }),
 });

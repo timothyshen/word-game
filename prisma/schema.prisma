@@ -700,3 +700,85 @@ model CombatSession {
 
     @@index([playerId])
 }
+
+// ===== 管理后台模型 =====
+
+// 剧情章节（可通过Admin管理）
+model StoryChapter {
+    id          String      @id @default(cuid())
+    title       String
+    description String
+    order       Int         @default(0)
+    isActive    Boolean     @default(true)
+
+    // 奖励配置 JSON: {gold?: number, crystals?: number, exp?: number, cards?: [{rarity, count}]}
+    rewardsJson String      @default("{}")
+
+    // 解锁条件 JSON: {level?: number, tier?: number, day?: number}
+    unlockJson  String      @default("{}")
+
+    nodes       StoryNode[]
+
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+}
+
+// 剧情节点
+model StoryNode {
+    id          String       @id @default(cuid())
+    chapterId   String
+    chapter     StoryChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+    nodeId      String       // 节点标识符（用于跳转）
+    title       String
+    content     String
+    speaker     String?
+    speakerIcon String?
+    order       Int          @default(0)
+
+    // 下一节点ID（无选项时使用）
+    nextNodeId  String?
+
+    // 选项 JSON数组: [{text, nextNodeId, requirements?, rewards?}]
+    choicesJson String?
+
+    // 节点奖励 JSON: {gold?, crystals?, exp?}
+    rewardsJson String?
+
+    createdAt   DateTime     @default(now())
+    updatedAt   DateTime     @updatedAt
+
+    @@unique([chapterId, nodeId])
+    @@index([chapterId])
+}
+
+// 奇遇事件（可通过Admin管理）
+model Adventure {
+    id          String  @id @default(cuid())
+    name        String  @unique
+    type        String  // resource/monster/treasure/merchant/trap/special
+
+    // 出现条件
+    minLevel    Int     @default(1)
+    maxLevel    Int?
+    worldId     String? // 指定世界，null表示所有世界
+    weight      Int     @default(100) // 权重越高越容易出现
+    isActive    Boolean @default(true)
+
+    // 显示内容
+    title       String
+    description String
+    icon        String  @default("❓")
+
+    // 选项 JSON数组: [{text, action, cost?, requirement?}]
+    optionsJson String
+
+    // 奖励 JSON: {gold?, wood?, stone?, food?, exp?, cards?}
+    rewardsJson String?
+
+    // 怪物配置 JSON: {name, baseHp, baseAtk, baseDef, expReward, goldReward, cardChance}
+    monsterJson String?
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+}
