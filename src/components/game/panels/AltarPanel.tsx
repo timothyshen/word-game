@@ -1,4 +1,4 @@
-// 卡牌祭坛面板 - 抽卡/合成/献祭
+// 祭坛面板 - 管理已发现的祭坛，收集每日卡牌
 
 import { useState } from "react";
 import {
@@ -14,8 +14,6 @@ interface AltarPanelProps {
   onClose: () => void;
 }
 
-type TabType = "draw" | "synthesize" | "sacrifice";
-
 const RARITY_COLORS: Record<string, string> = {
   "普通": "#888",
   "精良": "#4a9",
@@ -25,75 +23,56 @@ const RARITY_COLORS: Record<string, string> = {
 };
 
 export default function AltarPanel({ onClose }: AltarPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("draw");
-  const [selectedCards, setSelectedCards] = useState<string[]>([]);
-  const [drawResult, setDrawResult] = useState<Array<{
-    id: string;
-    name: string;
-    type: string;
-    rarity: string;
-    icon: string;
+  const [selectedAltarId, setSelectedAltarId] = useState<string | null>(null);
+  const [collectResult, setCollectResult] = useState<{
+    altarName: string;
+    card: { name: string; rarity: string; icon: string };
     isNew: boolean;
-  }> | null>(null);
+  } | null>(null);
+  const [battleResult, setBattleResult] = useState<{
+    victory: boolean;
+    bossName: string;
+    message: string;
+    rewards?: { gold: number; exp: number; crystals: number };
+  } | null>(null);
 
   const utils = api.useUtils();
 
-  // 获取祭坛状态
-  const { data: status, isLoading } = api.altar.getStatus.useQuery();
+  // 获取已发现的祭坛
+  const { data: altars, isLoading } = api.altar.getDiscoveredAltars.useQuery();
 
-  // 获取玩家卡牌
-  const { data: playerCards } = api.card.getAll.useQuery();
-
-  // 单抽
-  const drawSingleMutation = api.altar.drawSingle.useMutation({
+  // 挑战守护者
+  const challengeMutation = api.altar.challengeGuardian.useMutation({
     onSuccess: (data) => {
-      setDrawResult([{ ...data.card, isNew: data.isNew }]);
-      void utils.altar.getStatus.invalidate();
-      void utils.card.getAll.invalidate();
+      setBattleResult(data);
+      void utils.altar.getDiscoveredAltars.invalidate();
       void utils.player.getStatus.invalidate();
     },
   });
 
-  // 十连抽
-  const drawTenMutation = api.altar.drawTen.useMutation({
+  // 收集每日卡牌
+  const collectMutation = api.altar.collectDailyCard.useMutation({
     onSuccess: (data) => {
-      setDrawResult(data.cards);
-      void utils.altar.getStatus.invalidate();
+      setCollectResult({
+        altarName: data.altarName,
+        card: data.card,
+        isNew: data.isNew,
+      });
+      void utils.altar.getDiscoveredAltars.invalidate();
       void utils.card.getAll.invalidate();
-      void utils.player.getStatus.invalidate();
     },
   });
 
-  // 献祭
-  const sacrificeMutation = api.altar.sacrifice.useMutation({
+  // 一键收集所有
+  const collectAllMutation = api.altar.collectAllDailyCards.useMutation({
     onSuccess: () => {
-      setSelectedCards([]);
-      void utils.altar.getStatus.invalidate();
+      void utils.altar.getDiscoveredAltars.invalidate();
       void utils.card.getAll.invalidate();
-      void utils.player.getStatus.invalidate();
     },
   });
 
-  // 合成
-  const synthesizeMutation = api.altar.synthesize.useMutation({
-    onSuccess: (data) => {
-      setSelectedCards([]);
-      if ("result" in data && data.result) {
-        setDrawResult([{ ...data.result, isNew: data.isNew ?? false }]);
-      }
-      void utils.altar.getStatus.invalidate();
-      void utils.card.getAll.invalidate();
-      void utils.player.getStatus.invalidate();
-    },
-  });
-
-  const toggleCardSelection = (cardId: string) => {
-    setSelectedCards((prev) =>
-      prev.includes(cardId)
-        ? prev.filter((id) => id !== cardId)
-        : [...prev, cardId]
-    );
-  };
+  const selectedAltar = altars?.find((a) => a.id === selectedAltarId);
+  const collectableCount = altars?.filter((a) => a.canCollect).length ?? 0;
 
   if (isLoading) {
     return (
@@ -105,53 +84,78 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
     );
   }
 
-  // 抽卡结果展示
-  if (drawResult) {
+  // 战斗结果展示
+  if (battleResult) {
     return (
-      <Dialog open={true} onOpenChange={() => setDrawResult(null)}>
-        <DialogContent
-          className="bg-[#101014] border-2 border-[#9b59b6] p-0 max-w-2xl"
-          showCloseButton={false}
-        >
-          <DialogHeader className="bg-gradient-to-r from-[#1a1020] to-[#101014] border-b border-[#9b59b6]/50 p-6">
-            <DialogTitle className="text-[#9b59b6] text-xl font-bold text-center">
-              {drawResult.length === 1 ? "抽卡结果" : `${drawResult.length}连抽结果`}
+      <Dialog open={true} onOpenChange={() => setBattleResult(null)}>
+        <DialogContent className="bg-[#101014] border-2 border-[#9b59b6] p-0 max-w-md" showCloseButton={false}>
+          <DialogHeader className={`p-6 ${battleResult.victory ? "bg-gradient-to-r from-[#1a2010] to-[#101014]" : "bg-gradient-to-r from-[#201010] to-[#101014]"}`}>
+            <DialogTitle className={`text-xl font-bold text-center ${battleResult.victory ? "text-[#4a9]" : "text-[#e74c3c]"}`}>
+              {battleResult.victory ? "战斗胜利!" : "战斗失败"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="p-6">
-            <div className={`grid gap-3 ${drawResult.length === 1 ? "grid-cols-1" : "grid-cols-5"}`}>
-              {drawResult.map((card, i) => (
-                <div
-                  key={i}
-                  className={`relative p-3 bg-[#1a1a20] border-2 text-center ${
-                    drawResult.length === 1 ? "py-8" : ""
-                  }`}
-                  style={{ borderColor: RARITY_COLORS[card.rarity] ?? "#888" }}
-                >
-                  {card.isNew && (
-                    <span className="absolute top-1 right-1 text-xs px-1.5 py-0.5 bg-[#c9a227] text-[#000]">
-                      NEW
-                    </span>
-                  )}
-                  <div className={`mb-2 ${drawResult.length === 1 ? "text-5xl" : "text-3xl"}`}>
-                    {card.icon}
-                  </div>
-                  <div className={`font-bold ${drawResult.length === 1 ? "text-lg" : "text-xs"}`}>
-                    {card.name}
-                  </div>
-                  <div
-                    className="text-xs mt-1"
-                    style={{ color: RARITY_COLORS[card.rarity] }}
-                  >
-                    {card.rarity}
-                  </div>
+          <div className="p-6 text-center">
+            <div className="text-4xl mb-4">{battleResult.victory ? "🎉" : "💀"}</div>
+            <p className="text-[#e0dcd0] mb-4">{battleResult.message}</p>
+
+            {battleResult.victory && battleResult.rewards && (
+              <div className="bg-[#1a1a20] p-4 mb-4">
+                <div className="text-sm text-[#888] mb-2">战利品</div>
+                <div className="flex justify-center gap-4">
+                  <span className="text-[#c9a227]">🪙 {battleResult.rewards.gold}</span>
+                  <span className="text-[#9b59b6]">💎 {battleResult.rewards.crystals}</span>
+                  <span className="text-[#4a9]">✨ {battleResult.rewards.exp} EXP</span>
                 </div>
-              ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setBattleResult(null)}
+              className="w-full py-3 bg-[#9b59b6] text-white font-bold hover:bg-[#8e44ad]"
+            >
+              确定
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // 收集结果展示
+  if (collectResult) {
+    return (
+      <Dialog open={true} onOpenChange={() => setCollectResult(null)}>
+        <DialogContent className="bg-[#101014] border-2 border-[#9b59b6] p-0 max-w-md" showCloseButton={false}>
+          <DialogHeader className="bg-gradient-to-r from-[#1a1020] to-[#101014] border-b border-[#9b59b6]/50 p-6">
+            <DialogTitle className="text-[#9b59b6] text-xl font-bold text-center">
+              获得卡牌!
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="p-6 text-center">
+            <div className="text-sm text-[#888] mb-2">来自 {collectResult.altarName}</div>
+            <div
+              className="relative p-6 bg-[#1a1a20] border-2 inline-block"
+              style={{ borderColor: RARITY_COLORS[collectResult.card.rarity] }}
+            >
+              {collectResult.isNew && (
+                <span className="absolute top-1 right-1 text-xs px-1.5 py-0.5 bg-[#c9a227] text-[#000]">
+                  NEW
+                </span>
+              )}
+              <div className="text-5xl mb-3">{collectResult.card.icon}</div>
+              <div className="font-bold text-lg">{collectResult.card.name}</div>
+              <div
+                className="text-sm mt-1"
+                style={{ color: RARITY_COLORS[collectResult.card.rarity] }}
+              >
+                {collectResult.card.rarity}
+              </div>
             </div>
 
             <button
-              onClick={() => setDrawResult(null)}
+              onClick={() => setCollectResult(null)}
               className="w-full mt-6 py-3 bg-[#9b59b6] text-white font-bold hover:bg-[#8e44ad]"
             >
               确定
@@ -173,272 +177,121 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#9b59b6] flex items-center justify-center text-3xl">
-                🔮
+                🗿
               </div>
               <div>
-                <div className="text-[#9b59b6] text-xs uppercase tracking-wider">卡牌祭坛</div>
+                <div className="text-[#9b59b6] text-xs uppercase tracking-wider">野外祭坛</div>
                 <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  神秘召唤
+                  祭坛管理
                 </DialogTitle>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-xs text-[#888]">水晶</div>
-                <div className="text-lg font-bold text-[#9b59b6]">💎 {status?.crystals ?? 0}</div>
-              </div>
+            <div className="flex items-center gap-3">
+              {collectableCount > 0 && (
+                <button
+                  onClick={() => collectAllMutation.mutate()}
+                  disabled={collectAllMutation.isPending}
+                  className="px-3 py-1.5 bg-[#4a9] text-white text-sm font-bold hover:bg-[#3a8] disabled:opacity-50"
+                >
+                  一键收集 ({collectableCount})
+                </button>
+              )}
               <button onClick={onClose} className="text-[#666] hover:text-[#9b59b6] text-xl">✕</button>
             </div>
           </div>
         </DialogHeader>
 
-        {/* 标签页 */}
-        <div className="flex border-b border-[#2a2a30]">
-          {[
-            { id: "draw" as const, label: "抽卡", icon: "🎴" },
-            { id: "synthesize" as const, label: "合成", icon: "⚗️" },
-            { id: "sacrifice" as const, label: "献祭", icon: "🔥" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setSelectedCards([]);
-              }}
-              className={`flex-1 py-3 text-center transition-colors ${
-                activeTab === tab.id
-                  ? "bg-[#9b59b6]/20 text-[#9b59b6] border-b-2 border-[#9b59b6]"
-                  : "text-[#666] hover:text-[#888]"
-              }`}
-            >
-              <span className="mr-2">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* 内容区域 */}
+        {/* 内容 */}
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-4">
-            {/* 抽卡页面 */}
-            {activeTab === "draw" && (
-              <div className="space-y-6">
-                {/* 概率展示 */}
-                <div className="bg-[#1a1a20] p-4 rounded">
-                  <div className="text-sm text-[#888] mb-3">抽卡概率</div>
-                  <div className="flex gap-2 flex-wrap">
-                    {Object.entries(status?.cardStats ?? {}).map(([rarity, count]) => (
-                      <div
-                        key={rarity}
-                        className="px-3 py-1.5 bg-[#2a2a30] text-sm"
-                        style={{ borderLeft: `3px solid ${RARITY_COLORS[rarity]}` }}
-                      >
-                        <span style={{ color: RARITY_COLORS[rarity] }}>{rarity}</span>
-                        <span className="text-[#666] ml-2">拥有{count}张</span>
+            {(!altars || altars.length === 0) ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">🔍</div>
+                <div className="text-[#888]">尚未发现任何祭坛</div>
+                <div className="text-sm text-[#666] mt-2">
+                  探索地图时有机会发现祭坛
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {altars.map((altar) => (
+                  <div
+                    key={altar.id}
+                    className={`bg-[#1a1a20] border-2 p-4 transition-all ${
+                      altar.isDefeated
+                        ? altar.canCollect
+                          ? "border-[#4a9] hover:border-[#5ba]"
+                          : "border-[#3a3a40]"
+                        : "border-[#e74c3c] hover:border-[#f55]"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 bg-[#2a2a30] flex items-center justify-center text-2xl shrink-0">
+                        {altar.icon}
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 普通抽卡 */}
-                <div className="bg-[#1a1a20] p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="font-bold text-[#e0dcd0]">普通召唤</div>
-                      <div className="text-xs text-[#666]">消耗5水晶</div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => drawSingleMutation.mutate({ boosted: false })}
-                        disabled={drawSingleMutation.isPending || (status?.crystals ?? 0) < 5}
-                        className="px-4 py-2 bg-[#9b59b6] text-white font-bold hover:bg-[#8e44ad] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        单抽 ×1
-                      </button>
-                      <button
-                        onClick={() => drawTenMutation.mutate({ boosted: false })}
-                        disabled={drawTenMutation.isPending || (status?.crystals ?? 0) < 45}
-                        className="px-4 py-2 bg-[#8e44ad] text-white font-bold hover:bg-[#7b3a9e] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        十连 ×10
-                      </button>
-                    </div>
-                  </div>
-                  <div className="text-xs text-[#666]">
-                    十连抽消耗45水晶（9折），保底至少1张精良
-                  </div>
-                </div>
-
-                {/* 提升抽卡 */}
-                <div className="bg-[#1a1a20] p-4 border-l-4 border-[#c9a227]">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <div className="font-bold text-[#c9a227]">高级召唤</div>
-                      <div className="text-xs text-[#666]">消耗15水晶，稀有度UP</div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => drawSingleMutation.mutate({ boosted: true })}
-                        disabled={drawSingleMutation.isPending || (status?.crystals ?? 0) < 15}
-                        className="px-4 py-2 bg-[#c9a227] text-[#000] font-bold hover:bg-[#ddb52f] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        单抽 ×1
-                      </button>
-                      <button
-                        onClick={() => drawTenMutation.mutate({ boosted: true })}
-                        disabled={drawTenMutation.isPending || (status?.crystals ?? 0) < 135}
-                        className="px-4 py-2 bg-[#b8860b] text-[#000] font-bold hover:bg-[#c9a227] disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        十连 ×10
-                      </button>
-                    </div>
-                  </div>
-                  <div className="text-xs text-[#888]">
-                    稀有度提升：普通30% → 精良35% → 稀有25% → 史诗8% → 传说2%
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 合成页面 */}
-            {activeTab === "synthesize" && (
-              <div className="space-y-4">
-                <div className="bg-[#1a1a20] p-4">
-                  <div className="font-bold text-[#e0dcd0] mb-2">品质提升</div>
-                  <div className="text-sm text-[#888] mb-3">
-                    选择3张相同稀有度的卡牌，合成1张更高品质的卡牌
-                  </div>
-
-                  {/* 卡牌选择 */}
-                  <div className="grid grid-cols-5 gap-2 mb-4">
-                    {playerCards?.filter(pc => pc.quantity > 0 && pc.card.rarity !== "传说").map((pc) => (
-                      <button
-                        key={pc.card.id}
-                        onClick={() => toggleCardSelection(pc.card.id)}
-                        className={`p-2 border-2 text-center transition-all ${
-                          selectedCards.includes(pc.card.id)
-                            ? "border-[#9b59b6] bg-[#9b59b6]/20"
-                            : "border-[#2a2a30] hover:border-[#3a3a40]"
-                        }`}
-                        style={selectedCards.includes(pc.card.id) ? {} : { borderLeftColor: RARITY_COLORS[pc.card.rarity] }}
-                      >
-                        <div className="text-xl">{pc.card.icon}</div>
-                        <div className="text-xs truncate">{pc.card.name}</div>
-                        <div className="text-xs text-[#666]">×{pc.quantity}</div>
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      if (selectedCards.length === 3) {
-                        synthesizeMutation.mutate({
-                          recipeId: "basic_upgrade",
-                          materialCardIds: selectedCards,
-                        });
-                      }
-                    }}
-                    disabled={selectedCards.length !== 3 || synthesizeMutation.isPending}
-                    className="w-full py-3 bg-[#9b59b6] text-white font-bold hover:bg-[#8e44ad] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    合成 ({selectedCards.length}/3)
-                  </button>
-                </div>
-
-                <div className="bg-[#1a1a20] p-4">
-                  <div className="font-bold text-[#e0dcd0] mb-2">水晶提取</div>
-                  <div className="text-sm text-[#888] mb-3">
-                    选择5张卡牌分解为水晶
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (selectedCards.length === 5) {
-                        synthesizeMutation.mutate({
-                          recipeId: "crystal_extraction",
-                          materialCardIds: selectedCards,
-                        });
-                      }
-                    }}
-                    disabled={selectedCards.length !== 5 || synthesizeMutation.isPending}
-                    className="w-full py-3 bg-[#59b] text-white font-bold hover:bg-[#4a8] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    提取水晶 ({selectedCards.length}/5)
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* 献祭页面 */}
-            {activeTab === "sacrifice" && (
-              <div className="space-y-4">
-                <div className="bg-[#1a1a20] p-4">
-                  <div className="font-bold text-[#e0dcd0] mb-2">卡牌献祭</div>
-                  <div className="text-sm text-[#888] mb-3">
-                    选择卡牌献祭，获得水晶和金币
-                  </div>
-
-                  <div className="grid grid-cols-5 gap-2 mb-4 max-h-[300px] overflow-y-auto">
-                    {playerCards?.filter(pc => pc.quantity > 0).map((pc) => (
-                      <button
-                        key={pc.card.id}
-                        onClick={() => toggleCardSelection(pc.card.id)}
-                        className={`p-2 border-2 text-center transition-all ${
-                          selectedCards.includes(pc.card.id)
-                            ? "border-[#e74c3c] bg-[#e74c3c]/20"
-                            : "border-[#2a2a30] hover:border-[#3a3a40]"
-                        }`}
-                        style={selectedCards.includes(pc.card.id) ? {} : { borderLeftColor: RARITY_COLORS[pc.card.rarity] }}
-                      >
-                        <div className="text-xl">{pc.card.icon}</div>
-                        <div className="text-xs truncate">{pc.card.name}</div>
-                        <div className="text-xs" style={{ color: RARITY_COLORS[pc.card.rarity] }}>
-                          {pc.card.rarity}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-[#e0dcd0]">{altar.name}</div>
+                        <div className="text-xs text-[#888] mb-2">{altar.description}</div>
+                        <div className="text-xs text-[#666]">
+                          位置: ({altar.position.x}, {altar.position.y})
                         </div>
-                        <div className="text-xs text-[#666]">×{pc.quantity}</div>
-                      </button>
-                    ))}
-                  </div>
-
-                  {selectedCards.length > 0 && (
-                    <div className="mb-4 p-3 bg-[#2a2a30] text-sm">
-                      <span className="text-[#888]">预计获得：</span>
-                      <span className="text-[#9b59b6] ml-2">
-                        💎 {selectedCards.reduce((sum, id) => {
-                          const pc = playerCards?.find(c => c.card.id === id);
-                          if (!pc) return sum;
-                          const rewards: Record<string, number> = {
-                            "普通": 1, "精良": 2, "稀有": 5, "史诗": 15, "传说": 50
-                          };
-                          return sum + (rewards[pc.card.rarity] ?? 1);
-                        }, 0)}
-                      </span>
-                      <span className="text-[#c9a227] ml-4">
-                        🪙 {selectedCards.reduce((sum, id) => {
-                          const pc = playerCards?.find(c => c.card.id === id);
-                          if (!pc) return sum;
-                          const rewards: Record<string, number> = {
-                            "普通": 10, "精良": 25, "稀有": 50, "史诗": 100, "传说": 250
-                          };
-                          return sum + (rewards[pc.card.rarity] ?? 10);
-                        }, 0)}
-                      </span>
+                      </div>
                     </div>
-                  )}
 
-                  <button
-                    onClick={() => {
-                      if (selectedCards.length > 0) {
-                        sacrificeMutation.mutate({ cardIds: selectedCards });
-                      }
-                    }}
-                    disabled={selectedCards.length === 0 || sacrificeMutation.isPending}
-                    className="w-full py-3 bg-[#e74c3c] text-white font-bold hover:bg-[#c0392b] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    献祭 {selectedCards.length} 张卡牌
-                  </button>
-                </div>
+                    {/* 状态和操作 */}
+                    <div className="mt-3 pt-3 border-t border-[#2a2a30]">
+                      {!altar.isDefeated ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[#e74c3c]">⚔️</span>
+                            <span className="text-sm text-[#e74c3c]">
+                              守护者: {altar.guardianBoss?.name} (Lv.{altar.guardianBoss?.level})
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => challengeMutation.mutate({ altarId: altar.id })}
+                            disabled={challengeMutation.isPending}
+                            className="w-full py-2 bg-[#e74c3c] text-white text-sm font-bold hover:bg-[#c0392b] disabled:opacity-50"
+                          >
+                            {challengeMutation.isPending ? "战斗中..." : "挑战守护者 (30体力)"}
+                          </button>
+                        </>
+                      ) : altar.canCollect ? (
+                        <>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[#4a9]">✨</span>
+                            <span className="text-sm text-[#4a9]">可收集每日卡牌</span>
+                          </div>
+                          <button
+                            onClick={() => collectMutation.mutate({ altarId: altar.id })}
+                            disabled={collectMutation.isPending}
+                            className="w-full py-2 bg-[#4a9] text-white text-sm font-bold hover:bg-[#3a8] disabled:opacity-50"
+                          >
+                            {collectMutation.isPending ? "收集中..." : "收集卡牌"}
+                          </button>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#666]">⏳</span>
+                          <span className="text-sm text-[#666]">今日已收集</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
+
+            {/* 说明 */}
+            <div className="mt-6 p-4 bg-[#1a1a20] border border-[#2a2a30]">
+              <div className="text-sm font-bold text-[#9b59b6] mb-2">关于祭坛</div>
+              <ul className="text-xs text-[#888] space-y-1">
+                <li>· 祭坛通过探索地图发现</li>
+                <li>· 每个祭坛都有守护者Boss需要击败</li>
+                <li>· 击败守护者后，祭坛每天可以生成一张卡牌</li>
+                <li>· 不同等级的祭坛产出不同稀有度的卡牌</li>
+              </ul>
+            </div>
           </div>
         </ScrollArea>
       </DialogContent>

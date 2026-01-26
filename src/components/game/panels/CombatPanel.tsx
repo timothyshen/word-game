@@ -195,16 +195,6 @@ export default function CombatPanel({
               </div>
             </div>
 
-            {/* 怪物Buff */}
-            {combatStatus?.monsterBuffs && combatStatus.monsterBuffs.length > 0 && (
-              <div className="mt-2 flex gap-2">
-                {combatStatus.monsterBuffs.map((buff, i) => (
-                  <span key={i} className="text-xs px-2 py-0.5 bg-[#e74c3c]/20 text-[#e74c3c] rounded">
-                    {buff.name} ({buff.turns})
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* 战斗日志 */}

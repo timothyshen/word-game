@@ -16,6 +16,14 @@ import {
   ExplorationPanel,
   CombatPanel,
   AltarPanel,
+  BackpackPanel,
+  ShopPanel,
+  AchievementPanel,
+  BossPanel,
+  BreakthroughPanel,
+  ProfessionPanel,
+  PortalPanel,
+  StoryPanel,
 } from "~/components/game/panels";
 
 // 建筑位置映射
@@ -33,7 +41,7 @@ const BUILDING_POSITIONS: Record<string, { x: number; y: number }> = {
 
 export default function GamePage() {
   const [selectedBuilding, setSelectedBuilding] = useState<ReturnType<typeof transformBuilding> | null>(null);
-  const [selectedCharacter, setSelectedCharacter] = useState<ReturnType<typeof transformCharacter> | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [showBuildingPanel, setShowBuildingPanel] = useState(false);
   const [showCharacterPanel, setShowCharacterPanel] = useState(false);
   const [showEconomyPanel, setShowEconomyPanel] = useState(false);
@@ -43,10 +51,33 @@ export default function GamePage() {
   const [showCombatPanel, setShowCombatPanel] = useState(false);
   const [combatLevel, setCombatLevel] = useState(1);
   const [showAltarPanel, setShowAltarPanel] = useState(false);
+  const [showBackpackPanel, setShowBackpackPanel] = useState(false);
+  const [showShopPanel, setShowShopPanel] = useState(false);
+  const [showAchievementPanel, setShowAchievementPanel] = useState(false);
+  const [showBossPanel, setShowBossPanel] = useState(false);
+  const [showBreakthroughPanel, setShowBreakthroughPanel] = useState(false);
+  const [showProfessionPanel, setShowProfessionPanel] = useState(false);
+  const [showPortalPanel, setShowPortalPanel] = useState(false);
+  const [showStoryPanel, setShowStoryPanel] = useState(false);
   const [exploreMessage, setExploreMessage] = useState<string | null>(null);
 
   // 获取玩家数据
   const { data: player, isLoading, error } = api.player.getStatus.useQuery();
+
+  // 获取升级信息
+  const { data: levelUpInfo } = api.player.getLevelUpInfo.useQuery(undefined, {
+    enabled: !!player,
+  });
+
+  const utils = api.useUtils();
+
+  // 升级mutation
+  const levelUpMutation = api.player.levelUp.useMutation({
+    onSuccess: () => {
+      void utils.player.getStatus.invalidate();
+      void utils.player.getLevelUpInfo.invalidate();
+    },
+  });
 
   // 加载中
   if (isLoading) {
@@ -99,14 +130,16 @@ export default function GamePage() {
   };
 
   // 打开角色详情
-  const handleCharacterClick = (character: ReturnType<typeof transformCharacter>) => {
-    setSelectedCharacter(character);
+  const handleCharacterClick = (characterId: string) => {
+    setSelectedCharacterId(characterId);
     setShowCharacterPanel(true);
   };
 
-  // 探索 - 点击地图边缘时打开探索面板
-  const handleExplore = (_x: number, _y: number) => {
-    setShowExplorationPanel(true);
+  // 扩建领地 - 点击地图边缘扩建
+  const handleExpand = (x: number, y: number) => {
+    // TODO: 调用后端API扩建领地
+    setExploreMessage(`成功扩建了领地 (${x}, ${y})！`);
+    setTimeout(() => setExploreMessage(null), 3000);
   };
 
   return (
@@ -121,13 +154,40 @@ export default function GamePage() {
                 {player.tier}
               </div>
               <div>
-                <div className="text-[#c9a227] font-bold">{player.name}</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#c9a227] font-bold">{player.name}</span>
+                  <span className="text-xs text-[#888]">Lv.{levelUpInfo?.currentLevel ?? 1}</span>
+                </div>
                 <div className="text-xs text-[#666]">
                   {player.tier}阶领主
                   {player.profession?.profession && ` · ${player.profession.profession.name}`}
                 </div>
+                {/* 经验条 */}
+                {levelUpInfo && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-24 h-1.5 bg-[#2a2a30] overflow-hidden">
+                      <div
+                        className="h-full bg-[#9b59b6] transition-all"
+                        style={{ width: `${levelUpInfo.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#666]">
+                      {levelUpInfo.currentExp}/{levelUpInfo.expNeeded}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
+            {/* 升级按钮 */}
+            {levelUpInfo?.canLevelUp && (
+              <button
+                onClick={() => levelUpMutation.mutate()}
+                disabled={levelUpMutation.isPending}
+                className="px-3 py-1 bg-[#c9a227] text-[#08080a] text-xs font-bold hover:bg-[#ddb52f] disabled:opacity-50 animate-pulse"
+              >
+                {levelUpMutation.isPending ? "升级中..." : "升级!"}
+              </button>
+            )}
           </div>
 
           {/* 体力条 */}
@@ -188,7 +248,7 @@ export default function GamePage() {
                     id: b.numericId, // IsometricMap expects numeric ID
                   }))}
                   onBuildingClick={handleBuildingClick}
-                  onExplore={handleExplore}
+                  onExpand={handleExpand}
                 />
               </DashboardCard>
             </div>
@@ -198,11 +258,19 @@ export default function GamePage() {
               {/* 快速行动 */}
               <DashboardCard title="快速行动" compact>
                 <div className="grid grid-cols-3 gap-2 p-3">
+                  <ActionButton icon="🎒" label="背包" sublabel="卡牌道具" onClick={() => setShowBackpackPanel(true)} />
                   <ActionButton icon="📊" label="经济" sublabel="资源总览" onClick={() => setShowEconomyPanel(true)} />
                   <ActionButton icon="⚔️" label="军事" sublabel="战力部署" onClick={() => setShowMilitaryPanel(true)} />
                   <ActionButton icon="🗺️" label="探索" sublabel="城外冒险" onClick={() => setShowExplorationPanel(true)} />
                   <ActionButton icon="👹" label="战斗" sublabel="挑战怪物" onClick={() => { setCombatLevel(1); setShowCombatPanel(true); }} />
-                  <ActionButton icon="🔮" label="祭坛" sublabel="抽卡合成" onClick={() => setShowAltarPanel(true)} />
+                  <ActionButton icon="🗿" label="祭坛" sublabel="每日卡牌" onClick={() => setShowAltarPanel(true)} />
+                  <ActionButton icon="🏪" label="商店" sublabel="买卖物品" onClick={() => setShowShopPanel(true)} />
+                  <ActionButton icon="🏆" label="成就" sublabel="荣誉殿堂" onClick={() => setShowAchievementPanel(true)} />
+                  <ActionButton icon="🐉" label="首领" sublabel="挑战BOSS" onClick={() => setShowBossPanel(true)} />
+                  <ActionButton icon="⬆️" label="突破" sublabel="提升阶级" onClick={() => setShowBreakthroughPanel(true)} />
+                  <ActionButton icon="📚" label="职业" sublabel="学习职业" onClick={() => setShowProfessionPanel(true)} />
+                  <ActionButton icon="🌀" label="传送" sublabel="位面旅行" onClick={() => setShowPortalPanel(true)} />
+                  <ActionButton icon="📜" label="剧情" sublabel="主线故事" onClick={() => setShowStoryPanel(true)} />
                   <ActionButton icon="🎴" label="结算" sublabel="今日分数" onClick={() => setShowSettlementPanel(true)} highlight />
                 </div>
               </DashboardCard>
@@ -224,7 +292,7 @@ export default function GamePage() {
                       <CharacterRow
                         key={c.id}
                         character={c}
-                        onClick={() => handleCharacterClick(c)}
+                        onClick={() => handleCharacterClick(c.dbId)}
                       />
                     ))}
                   </div>
@@ -315,10 +383,9 @@ export default function GamePage() {
       )}
 
       {/* 角色详情面板 */}
-      {showCharacterPanel && selectedCharacter && (
+      {showCharacterPanel && selectedCharacterId && (
         <CharacterDetailPanel
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          character={selectedCharacter as any}
+          characterId={selectedCharacterId}
           onClose={() => setShowCharacterPanel(false)}
         />
       )}
@@ -359,6 +426,46 @@ export default function GamePage() {
       {/* 祭坛面板 */}
       {showAltarPanel && (
         <AltarPanel onClose={() => setShowAltarPanel(false)} />
+      )}
+
+      {/* 背包面板 */}
+      {showBackpackPanel && (
+        <BackpackPanel onClose={() => setShowBackpackPanel(false)} />
+      )}
+
+      {/* 商店面板 */}
+      {showShopPanel && (
+        <ShopPanel onClose={() => setShowShopPanel(false)} />
+      )}
+
+      {/* 成就面板 */}
+      {showAchievementPanel && (
+        <AchievementPanel onClose={() => setShowAchievementPanel(false)} />
+      )}
+
+      {/* 首领面板 */}
+      {showBossPanel && (
+        <BossPanel onClose={() => setShowBossPanel(false)} />
+      )}
+
+      {/* 突破面板 */}
+      {showBreakthroughPanel && (
+        <BreakthroughPanel onClose={() => setShowBreakthroughPanel(false)} />
+      )}
+
+      {/* 职业面板 */}
+      {showProfessionPanel && (
+        <ProfessionPanel onClose={() => setShowProfessionPanel(false)} />
+      )}
+
+      {/* 传送面板 */}
+      {showPortalPanel && (
+        <PortalPanel onClose={() => setShowPortalPanel(false)} />
+      )}
+
+      {/* 剧情面板 */}
+      {showStoryPanel && (
+        <StoryPanel onClose={() => setShowStoryPanel(false)} />
       )}
     </div>
   );
@@ -453,6 +560,7 @@ function transformCharacter(pc: {
 }) {
   return {
     id: parseInt(pc.id.slice(-4), 16) || 1,
+    dbId: pc.id, // 真实的数据库ID
     name: pc.character.name,
     class: pc.character.baseClass,
     profession: pc.profession?.profession.name ?? null,

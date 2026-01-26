@@ -1,0 +1,263 @@
+// 背包面板 - 显示玩家拥有的卡牌
+
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { api } from "~/trpc/react";
+
+interface BackpackPanelProps {
+  onClose: () => void;
+}
+
+type TabType = "all" | "building" | "character" | "skill" | "item";
+
+const RARITY_COLORS: Record<string, string> = {
+  "普通": "#888",
+  "精良": "#4a9",
+  "稀有": "#59b",
+  "史诗": "#e67e22",
+  "传说": "#c9a227",
+};
+
+const RARITY_ORDER = ["传说", "史诗", "稀有", "精良", "普通"];
+
+const TYPE_LABELS: Record<string, string> = {
+  building: "建筑",
+  character: "角色",
+  skill: "技能",
+  item: "道具",
+  equipment: "装备",
+  resource: "资源",
+};
+
+export default function BackpackPanel({ onClose }: BackpackPanelProps) {
+  const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [selectedCard, setSelectedCard] = useState<{
+    id: string;
+    name: string;
+    type: string;
+    rarity: string;
+    icon: string;
+    description: string;
+    quantity: number;
+  } | null>(null);
+
+  const utils = api.useUtils();
+
+  // 获取玩家卡牌
+  const { data: playerCards, isLoading } = api.card.getAll.useQuery();
+
+  // 使用卡牌
+  const useCardMutation = api.card.useCard.useMutation({
+    onSuccess: () => {
+      void utils.card.getAll.invalidate();
+      void utils.player.getStatus.invalidate();
+      setSelectedCard(null);
+    },
+  });
+
+  // 过滤卡牌
+  const filteredCards = playerCards
+    ?.filter((pc) => pc.quantity > 0)
+    .filter((pc) => activeTab === "all" || pc.card.type === activeTab)
+    .sort((a, b) => {
+      // 先按稀有度排序
+      const rarityDiff = RARITY_ORDER.indexOf(a.card.rarity) - RARITY_ORDER.indexOf(b.card.rarity);
+      if (rarityDiff !== 0) return rarityDiff;
+      // 再按名称排序
+      return a.card.name.localeCompare(b.card.name);
+    });
+
+  // 统计各类型数量
+  const cardCounts = {
+    all: playerCards?.filter((pc) => pc.quantity > 0).length ?? 0,
+    building: playerCards?.filter((pc) => pc.quantity > 0 && pc.card.type === "building").length ?? 0,
+    character: playerCards?.filter((pc) => pc.quantity > 0 && pc.card.type === "character").length ?? 0,
+    skill: playerCards?.filter((pc) => pc.quantity > 0 && pc.card.type === "skill").length ?? 0,
+    item: playerCards?.filter((pc) => pc.quantity > 0 && (pc.card.type === "item" || pc.card.type === "equipment" || pc.card.type === "resource")).length ?? 0,
+  };
+
+  if (isLoading) {
+    return (
+      <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+          <div className="text-center text-[#888]">加载中...</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-3xl max-h-[90vh] flex flex-col gap-0"
+        showCloseButton={false}
+      >
+        {/* 头部 */}
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#1a1810] to-[#101014] border-b border-[#c9a227]/50 p-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#c9a227] flex items-center justify-center text-3xl">
+                🎒
+              </div>
+              <div>
+                <div className="text-[#c9a227] text-xs uppercase tracking-wider">卡牌背包</div>
+                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
+                  我的收藏
+                </DialogTitle>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-[#888]">
+                共 <span className="text-[#c9a227] font-bold">{cardCounts.all}</span> 张卡牌
+              </div>
+              <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+            </div>
+          </div>
+        </DialogHeader>
+
+        {/* 标签页 */}
+        <div className="flex border-b border-[#2a2a30]">
+          {[
+            { id: "all" as const, label: "全部", icon: "📦" },
+            { id: "building" as const, label: "建筑", icon: "🏠" },
+            { id: "character" as const, label: "角色", icon: "👤" },
+            { id: "skill" as const, label: "技能", icon: "📖" },
+            { id: "item" as const, label: "道具", icon: "🧪" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-3 text-center transition-colors ${
+                activeTab === tab.id
+                  ? "bg-[#c9a227]/20 text-[#c9a227] border-b-2 border-[#c9a227]"
+                  : "text-[#666] hover:text-[#888]"
+              }`}
+            >
+              <span className="mr-1">{tab.icon}</span>
+              {tab.label}
+              <span className="ml-1 text-xs">({cardCounts[tab.id]})</span>
+            </button>
+          ))}
+        </div>
+
+        {/* 内容区域 */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-4">
+            {(!filteredCards || filteredCards.length === 0) ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">📭</div>
+                <div className="text-[#888]">暂无卡牌</div>
+                <div className="text-sm text-[#666] mt-2">
+                  通过探索、祭坛或商店获取卡牌
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                {filteredCards.map((pc) => (
+                  <button
+                    key={pc.card.id}
+                    onClick={() => setSelectedCard({
+                      id: pc.card.id,
+                      name: pc.card.name,
+                      type: pc.card.type,
+                      rarity: pc.card.rarity,
+                      icon: pc.card.icon,
+                      description: pc.card.description,
+                      quantity: pc.quantity,
+                    })}
+                    className="relative p-3 bg-[#1a1a20] border-2 text-center hover:bg-[#222228] transition-colors"
+                    style={{ borderColor: RARITY_COLORS[pc.card.rarity] ?? "#888" }}
+                  >
+                    {/* 数量标记 */}
+                    {pc.quantity > 1 && (
+                      <span className="absolute top-1 right-1 text-xs px-1.5 py-0.5 bg-[#2a2a30] text-[#e0dcd0]">
+                        ×{pc.quantity}
+                      </span>
+                    )}
+                    <div className="text-2xl mb-1">{pc.card.icon}</div>
+                    <div className="text-xs truncate">{pc.card.name}</div>
+                    <div
+                      className="text-[10px] mt-0.5"
+                      style={{ color: RARITY_COLORS[pc.card.rarity] }}
+                    >
+                      {pc.card.rarity}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* 卡牌详情弹窗 */}
+        {selectedCard && (
+          <Dialog open={true} onOpenChange={() => setSelectedCard(null)}>
+            <DialogContent className="bg-[#101014] border-2 p-0 max-w-md" style={{ borderColor: RARITY_COLORS[selectedCard.rarity] }} showCloseButton={false}>
+              <DialogHeader className="p-4 border-b border-[#2a2a30]">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-16 h-16 bg-[#1a1a20] border-2 flex items-center justify-center text-4xl"
+                    style={{ borderColor: RARITY_COLORS[selectedCard.rarity] }}
+                  >
+                    {selectedCard.icon}
+                  </div>
+                  <div>
+                    <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
+                      {selectedCard.name}
+                    </DialogTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className="text-sm"
+                        style={{ color: RARITY_COLORS[selectedCard.rarity] }}
+                      >
+                        {selectedCard.rarity}
+                      </span>
+                      <span className="text-xs text-[#666]">
+                        {TYPE_LABELS[selectedCard.type] ?? selectedCard.type}
+                      </span>
+                      <span className="text-xs text-[#888]">
+                        ×{selectedCard.quantity}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="p-4">
+                <p className="text-sm text-[#888] mb-4">{selectedCard.description}</p>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => useCardMutation.mutate({ cardId: selectedCard.id })}
+                    disabled={useCardMutation.isPending}
+                    className="flex-1 py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50"
+                  >
+                    {useCardMutation.isPending ? "使用中..." : "使用卡牌"}
+                  </button>
+                  <button
+                    onClick={() => setSelectedCard(null)}
+                    className="px-4 py-2 border border-[#3a3a40] text-[#888] hover:text-[#e0dcd0]"
+                  >
+                    关闭
+                  </button>
+                </div>
+
+                {useCardMutation.error && (
+                  <div className="mt-3 p-2 bg-[#3a1a1a] border border-[#e74c3c]/30 text-sm text-[#e74c3c]">
+                    {useCardMutation.error.message}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

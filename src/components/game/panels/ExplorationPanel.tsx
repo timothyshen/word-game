@@ -150,7 +150,11 @@ export default function ExplorationPanel({
       { x, y: y - 1 },
       { x, y: y + 1 },
     ];
-    return adjacent.some(pos => exploredAreas?.some(a => a.positionX === pos.x && a.positionY === pos.y));
+    // 主城 (0,0) 视为已探索，允许探索相邻格子
+    return adjacent.some(pos =>
+      (pos.x === 0 && pos.y === 0) ||
+      exploredAreas?.some(a => a.positionX === pos.x && a.positionY === pos.y)
+    );
   };
 
   const handleExplore = () => {
@@ -258,7 +262,9 @@ export default function ExplorationPanel({
                         {!isCenter && cell.facility && (
                           cell.facility.type === "resource" ? "📦" :
                           cell.facility.type === "monster" ? "👹" :
-                          cell.facility.type === "merchant" ? "🏪" : "❓"
+                          cell.facility.type === "merchant" ? "🏪" :
+                          cell.facility.type === "altar" ? "🗿" :
+                          cell.facility.type === "portal" ? "🌀" : "❓"
                         )}
                         {!isCenter && isExplored && !cell.facility && "🌲"}
                         {!isExplored && canExploreThis && "❓"}
@@ -368,10 +374,21 @@ export default function ExplorationPanel({
                                 {facility.type === "resource" && "📦 资源点"}
                                 {facility.type === "monster" && "👹 怪物巢穴"}
                                 {facility.type === "merchant" && "🏪 流浪商人"}
+                                {facility.type === "altar" && "🗿 祭坛"}
+                                {facility.type === "portal" && "🌀 传送门"}
                               </div>
                               <div className="text-xs text-[#888]">
-                                等级: {(facility.data as { level?: number }).level ?? 1}
+                                {facility.name}
+                                {(facility.data as { level?: number }).level && (
+                                  <span className="ml-2">等级: {(facility.data as { level?: number }).level}</span>
+                                )}
                               </div>
+                              {facility.type === "altar" && !(facility.data as { isDefeated?: boolean }).isDefeated && (
+                                <div className="text-xs text-[#e74c3c] mt-1">⚔️ 需要击败守护者</div>
+                              )}
+                              {facility.type === "portal" && !(facility.data as { isDefeated?: boolean }).isDefeated && (
+                                <div className="text-xs text-[#e74c3c] mt-1">⚔️ 需要击败守护者才能使用</div>
+                              )}
                             </div>
                           )}
 
@@ -463,6 +480,8 @@ export default function ExplorationPanel({
                             {f.type === "resource" && "📦"}
                             {f.type === "monster" && "👹"}
                             {f.type === "merchant" && "🏪"}
+                            {f.type === "altar" && "🗿"}
+                            {f.type === "portal" && "🌀"}
                             <span className="ml-1">{f.name}</span>
                           </span>
                           <span className="text-xs text-[#666]">
