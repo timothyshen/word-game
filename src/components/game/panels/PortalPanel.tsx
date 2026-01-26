@@ -33,6 +33,12 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
   // 获取已发现的传送门
   const { data: portals } = api.portal.getDiscoveredPortals.useQuery();
 
+  // 获取当前世界的资源点
+  const { data: worldResources } = api.portal.getWorldResources.useQuery(
+    { worldId: currentWorld?.id ?? "main" },
+    { enabled: !!currentWorld }
+  );
+
   // 传送到世界
   const travelMutation = api.portal.travel.useMutation({
     onSuccess: () => {
@@ -197,6 +203,37 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
                 ))}
               </div>
             </div>
+
+            {/* 当前世界资源点 */}
+            {worldResources && worldResources.length > 0 && (
+              <div className="mb-6">
+                <div className="text-[#c9a227] text-sm font-bold mb-3">
+                  {currentWorld?.name ?? "当前世界"} 的资源点
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {worldResources.map((resource) => (
+                    <div
+                      key={resource.id}
+                      className="p-3 border border-[#2a2a30] bg-[#1a1a20]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="text-xl">{resource.icon}</div>
+                        <div className="flex-1">
+                          <div className="text-sm font-bold">{resource.name}</div>
+                          <div className="text-xs text-[#888]">{resource.type}</div>
+                        </div>
+                        {resource.remainingUses !== null && (
+                          <div className="text-xs text-[#666]">
+                            剩余 {resource.remainingUses}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-[#666] mt-1">{resource.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 已发现的传送门 */}
             {portals && portals.length > 0 && (

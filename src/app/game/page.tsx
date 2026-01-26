@@ -24,6 +24,8 @@ import {
   ProfessionPanel,
   PortalPanel,
   StoryPanel,
+  CombatHistoryPanel,
+  ActionHistoryPanel,
 } from "~/components/game/panels";
 
 // 建筑位置映射
@@ -59,6 +61,8 @@ export default function GamePage() {
   const [showProfessionPanel, setShowProfessionPanel] = useState(false);
   const [showPortalPanel, setShowPortalPanel] = useState(false);
   const [showStoryPanel, setShowStoryPanel] = useState(false);
+  const [showCombatHistoryPanel, setShowCombatHistoryPanel] = useState(false);
+  const [showActionHistoryPanel, setShowActionHistoryPanel] = useState(false);
   const [exploreMessage, setExploreMessage] = useState<string | null>(null);
 
   // 获取玩家数据
@@ -271,6 +275,8 @@ export default function GamePage() {
                   <ActionButton icon="📚" label="职业" sublabel="学习职业" onClick={() => setShowProfessionPanel(true)} />
                   <ActionButton icon="🌀" label="传送" sublabel="位面旅行" onClick={() => setShowPortalPanel(true)} />
                   <ActionButton icon="📜" label="剧情" sublabel="主线故事" onClick={() => setShowStoryPanel(true)} />
+                  <ActionButton icon="📋" label="行动" sublabel="今日记录" onClick={() => setShowActionHistoryPanel(true)} />
+                  <ActionButton icon="📖" label="战史" sublabel="战斗记录" onClick={() => setShowCombatHistoryPanel(true)} />
                   <ActionButton icon="🎴" label="结算" sublabel="今日分数" onClick={() => setShowSettlementPanel(true)} highlight />
                 </div>
               </DashboardCard>
@@ -466,6 +472,23 @@ export default function GamePage() {
       {/* 剧情面板 */}
       {showStoryPanel && (
         <StoryPanel onClose={() => setShowStoryPanel(false)} />
+      )}
+
+      {/* 战斗历史面板 */}
+      {showCombatHistoryPanel && (
+        <CombatHistoryPanel
+          onClose={() => setShowCombatHistoryPanel(false)}
+          onResumeCombat={(combatId) => {
+            setShowCombatHistoryPanel(false);
+            setCombatLevel(1);
+            setShowCombatPanel(true);
+          }}
+        />
+      )}
+
+      {/* 行动历史面板 */}
+      {showActionHistoryPanel && (
+        <ActionHistoryPanel onClose={() => setShowActionHistoryPanel(false)} />
       )}
     </div>
   );

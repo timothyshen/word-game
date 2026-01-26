@@ -30,6 +30,14 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
   // 获取结算历史
   const { data: history } = api.settlement.getHistory.useQuery();
 
+  // 领取建筑产出
+  const collectOutputMutation = api.building.collectDailyOutput.useMutation({
+    onSuccess: () => {
+      void utils.player.getStatus.invalidate();
+      void utils.settlement.getSettlementPreview.invalidate();
+    },
+  });
+
   // 执行结算
   const settleMutation = api.settlement.executeSettlement.useMutation({
     onSuccess: (data) => {
@@ -39,6 +47,19 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
       void utils.settlement.getHistory.invalidate();
     },
   });
+
+  // 一键结算（先领取产出，再执行结算）
+  const handleSettlement = async () => {
+    try {
+      // 先领取建筑产出
+      await collectOutputMutation.mutateAsync();
+      // 再执行结算
+      settleMutation.mutate();
+    } catch {
+      // 如果领取产出失败，仍然尝试结算
+      settleMutation.mutate();
+    }
+  };
 
   const rarityColors: Record<string, string> = {
     "普通": "#888",
@@ -288,11 +309,11 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
             <div className="p-4">
               {preview?.pendingDays && preview.pendingDays > 0 && !settlementResult?.settled ? (
                 <button
-                  onClick={() => settleMutation.mutate()}
-                  disabled={settleMutation.isPending}
+                  onClick={() => void handleSettlement()}
+                  disabled={settleMutation.isPending || collectOutputMutation.isPending}
                   className="w-full py-4 bg-gradient-to-r from-[#c9a227] to-[#e6b82a] text-[#000] font-bold text-lg hover:from-[#ddb52f] hover:to-[#f0c940] transition-all disabled:opacity-50"
                 >
-                  {settleMutation.isPending ? "结算中..." : "领取奖励"}
+                  {collectOutputMutation.isPending ? "领取产出中..." : settleMutation.isPending ? "结算中..." : "领取奖励"}
                 </button>
               ) : (
                 <button

@@ -16,3 +16,5 @@ export { default as BreakthroughPanel } from "./BreakthroughPanel";
 export { default as ProfessionPanel } from "./ProfessionPanel";
 export { default as PortalPanel } from "./PortalPanel";
 export { default as StoryPanel } from "./StoryPanel";
+export { default as CombatHistoryPanel } from "./CombatHistoryPanel";
+export { default as ActionHistoryPanel } from "./ActionHistoryPanel";

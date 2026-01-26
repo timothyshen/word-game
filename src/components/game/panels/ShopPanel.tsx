@@ -22,6 +22,8 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
   const [category, setCategory] = useState<CategoryType>("all");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [buyQuantity, setBuyQuantity] = useState(1);
+  const [selectedSellCard, setSelectedSellCard] = useState<string | null>(null);
+  const [sellQuantity, setSellQuantity] = useState(1);
 
   const utils = api.useUtils();
 
@@ -41,12 +43,19 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
     },
   });
 
+  // 获取出售价格预览
+  const { data: sellPricePreview } = api.shop.getSellPrice.useQuery(
+    { cardId: selectedSellCard! },
+    { enabled: !!selectedSellCard }
+  );
+
   // 出售卡牌
   const sellMutation = api.shop.sell.useMutation({
     onSuccess: () => {
       void utils.card.getAll.invalidate();
       void utils.player.getStatus.invalidate();
-      setSelectedItem(null);
+      setSelectedSellCard(null);
+      setSellQuantity(1);
     },
   });
 
@@ -243,58 +252,106 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
 
         {/* 出售内容 */}
         {activeTab === "sell" && (
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-4">
-              {sellableCards.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-4xl mb-4">📭</div>
-                  <div className="text-[#888]">没有可出售的卡牌</div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {sellableCards.map((pc) => {
-                    const rarityPrices: Record<string, { gold: number; crystals: number }> = {
-                      "普通": { gold: 10, crystals: 0 },
-                      "精良": { gold: 30, crystals: 1 },
-                      "稀有": { gold: 80, crystals: 3 },
-                      "史诗": { gold: 200, crystals: 10 },
-                      "传说": { gold: 500, crystals: 30 },
-                    };
-                    const price = rarityPrices[pc.card.rarity] ?? rarityPrices["普通"]!;
+          <>
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-4">
+                {sellableCards.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-4">📭</div>
+                    <div className="text-[#888]">没有可出售的卡牌</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {sellableCards.map((pc) => {
+                      const rarityPrices: Record<string, { gold: number; crystals: number }> = {
+                        "普通": { gold: 10, crystals: 0 },
+                        "精良": { gold: 30, crystals: 1 },
+                        "稀有": { gold: 80, crystals: 3 },
+                        "史诗": { gold: 200, crystals: 10 },
+                        "传说": { gold: 500, crystals: 30 },
+                      };
+                      const price = rarityPrices[pc.card.rarity] ?? rarityPrices["普通"]!;
+                      const isSelected = selectedSellCard === pc.card.id;
 
-                    return (
-                      <div
-                        key={pc.card.id}
-                        className="p-3 border border-[#2a2a30] bg-[#1a1a20]"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="text-2xl">{pc.card.icon}</div>
-                          <div className="flex-1">
-                            <div className="font-bold text-sm">{pc.card.name}</div>
-                            <div className="text-xs text-[#666]">{pc.card.rarity} x{pc.quantity}</div>
-                            <div className="text-xs mt-1">
-                              <span className="text-[#c9a227]">🪙 {price.gold}</span>
-                              {price.crystals > 0 && (
-                                <span className="text-[#9b59b6] ml-2">💎 {price.crystals}</span>
-                              )}
-                              <span className="text-[#666]">/张</span>
+                      return (
+                        <button
+                          key={pc.card.id}
+                          onClick={() => {
+                            setSelectedSellCard(pc.card.id);
+                            setSellQuantity(1);
+                          }}
+                          className={`p-3 border text-left transition-colors ${
+                            isSelected
+                              ? "border-[#c9a227] bg-[#c9a227]/10"
+                              : "border-[#2a2a30] bg-[#1a1a20] hover:bg-[#222228]"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="text-2xl">{pc.card.icon}</div>
+                            <div className="flex-1">
+                              <div className="font-bold text-sm">{pc.card.name}</div>
+                              <div className="text-xs text-[#666]">{pc.card.rarity} x{pc.quantity}</div>
+                              <div className="text-xs mt-1">
+                                <span className="text-[#c9a227]">🪙 {price.gold}</span>
+                                {price.crystals > 0 && (
+                                  <span className="text-[#9b59b6] ml-2">💎 {price.crystals}</span>
+                                )}
+                                <span className="text-[#666]">/张</span>
+                              </div>
                             </div>
                           </div>
-                          <button
-                            onClick={() => sellMutation.mutate({ cardId: pc.card.id, quantity: 1 })}
-                            disabled={sellMutation.isPending}
-                            className="px-3 py-1 text-sm bg-[#c9a227] text-[#08080a] hover:bg-[#ddb52f] disabled:opacity-50"
-                          >
-                            出售
-                          </button>
-                        </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* 出售确认 */}
+            {selectedSellCard && sellPricePreview && (
+              <div className="border-t border-[#2a2a30] p-4 bg-[#151518]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="font-bold">{sellPricePreview.cardName}</div>
+                      <div className="text-sm text-[#888]">
+                        获得:
+                        <span className="text-[#c9a227] ml-1">🪙 {sellPricePreview.pricePerUnit.gold * sellQuantity}</span>
+                        {sellPricePreview.pricePerUnit.crystals > 0 && (
+                          <span className="text-[#9b59b6] ml-2">💎 {sellPricePreview.pricePerUnit.crystals * sellQuantity}</span>
+                        )}
                       </div>
-                    );
-                  })}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setSellQuantity((q) => Math.max(1, q - 1))}
+                        className="w-8 h-8 bg-[#2a2a30] hover:bg-[#3a3a40] text-[#888]"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center">{sellQuantity}</span>
+                      <button
+                        onClick={() => setSellQuantity((q) => Math.min(sellPricePreview.quantity, q + 1))}
+                        className="w-8 h-8 bg-[#2a2a30] hover:bg-[#3a3a40] text-[#888]"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => sellMutation.mutate({ cardId: selectedSellCard, quantity: sellQuantity })}
+                      disabled={sellMutation.isPending}
+                      className="px-4 py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50"
+                    >
+                      {sellMutation.isPending ? "出售中..." : "出售"}
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          </ScrollArea>
+              </div>
+            )}
+          </>
         )}
 
         {/* 操作反馈 */}
