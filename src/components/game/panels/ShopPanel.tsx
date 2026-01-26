@@ -174,7 +174,7 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
                     <div className="flex items-start gap-3">
                       <div className="text-2xl">{item.icon}</div>
                       <div className="flex-1">
-                        <div className="font-bold text-sm">{item.name}</div>
+                        <div className="font-bold text-sm text-white">{item.name}</div>
                         <div className="text-xs text-[#666] mt-1">{item.description}</div>
                         <div className="flex items-center gap-2 mt-2">
                           {item.price.gold && (
@@ -211,7 +211,7 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
                       <div className="flex items-center gap-3">
                         <span className="text-xl">{item.icon}</span>
                         <div>
-                          <div className="font-bold">{item.name}</div>
+                          <div className="font-bold text-white">{item.name}</div>
                           <div className="text-sm text-[#888]">
                             {totalGold > 0 && <span className="text-[#c9a227]">🪙 {totalGold}</span>}
                             {totalCrystals > 0 && <span className="text-[#9b59b6] ml-2">💎 {totalCrystals}</span>}
@@ -289,7 +289,7 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
                           <div className="flex items-start gap-3">
                             <div className="text-2xl">{pc.card.icon}</div>
                             <div className="flex-1">
-                              <div className="font-bold text-sm">{pc.card.name}</div>
+                              <div className="font-bold text-sm text-white">{pc.card.name}</div>
                               <div className="text-xs text-[#666]">{pc.card.rarity} x{pc.quantity}</div>
                               <div className="text-xs mt-1">
                                 <span className="text-[#c9a227]">🪙 {price.gold}</span>
@@ -314,7 +314,7 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div>
-                      <div className="font-bold">{sellPricePreview.cardName}</div>
+                      <div className="font-bold text-white">{sellPricePreview.cardName}</div>
                       <div className="text-sm text-[#888]">
                         获得:
                         <span className="text-[#c9a227] ml-1">🪙 {sellPricePreview.pricePerUnit.gold * sellQuantity}</span>

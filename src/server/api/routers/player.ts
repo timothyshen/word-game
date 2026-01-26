@@ -49,11 +49,18 @@ export const playerRouter = createTRPCRouter({
         data: {
           userId,
           name: ctx.session.user.name ?? "旅行者",
+          title: "领主",
           lastSettlementDay: getCurrentGameDay() - 1, // 确保首次登录不会立即触发结算
           gold: 500,
           wood: 200,
           stone: 100,
           food: 300,
+          stamina: 100,
+          maxStamina: 100,
+          strength: 10,
+          agility: 10,
+          intellect: 10,
+          charisma: 14,
         },
         include: {
           profession: { include: { profession: true } },

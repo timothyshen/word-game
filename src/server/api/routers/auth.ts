@@ -2,6 +2,15 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
+// 获取当前游戏日（基于服务器时间，0点结算）
+function getCurrentGameDay(): number {
+  const now = new Date();
+  // 以2024-01-01为游戏第1天
+  const gameStart = new Date("2024-01-01T00:00:00Z");
+  const daysPassed = Math.floor((now.getTime() - gameStart.getTime()) / (1000 * 60 * 60 * 24));
+  return daysPassed + 1;
+}
+
 export const authRouter = createTRPCRouter({
   // 注册新用户
   register: publicProcedure
@@ -34,26 +43,101 @@ export const authRouter = createTRPCRouter({
       });
 
       // 创建玩家存档
-      await ctx.db.player.create({
+      const player = await ctx.db.player.create({
         data: {
           userId: user.id,
           name: input.playerName,
           title: "领主",
           level: 1,
           exp: 0,
-          gold: 100,
-          wood: 50,
-          stone: 30,
-          food: 100,
+          lastSettlementDay: getCurrentGameDay() - 1, // 确保首次登录不会立即触发结算
+          gold: 500,
+          wood: 200,
+          stone: 100,
+          food: 300,
           crystals: 0,
           stamina: 100,
           maxStamina: 100,
           strength: 10,
           agility: 10,
           intellect: 10,
-          charisma: 10,
+          charisma: 14,
         },
       });
+
+      // 初始化主城堡
+      const mainCastle = await ctx.db.building.findFirst({
+        where: { name: "主城堡" },
+      });
+      if (mainCastle) {
+        await ctx.db.playerBuilding.create({
+          data: {
+            playerId: player.id,
+            buildingId: mainCastle.id,
+            level: 1,
+            positionX: 0,
+            positionY: 0,
+          },
+        });
+      }
+
+      // 初始化农田
+      const farmland = await ctx.db.building.findFirst({
+        where: { name: "农田" },
+      });
+      if (farmland) {
+        await ctx.db.playerBuilding.create({
+          data: {
+            playerId: player.id,
+            buildingId: farmland.id,
+            level: 1,
+            positionX: 1,
+            positionY: 0,
+          },
+        });
+      }
+
+      // 创建玩家初始角色（流浪剑士）
+      const lordCharacter = await ctx.db.character.findFirst({
+        where: { name: "流浪剑士" },
+      });
+      if (lordCharacter) {
+        await ctx.db.playerCharacter.create({
+          data: {
+            playerId: player.id,
+            characterId: lordCharacter.id,
+            level: 1,
+            tier: 1,
+            hp: lordCharacter.baseHp,
+            maxHp: lordCharacter.baseHp,
+            mp: lordCharacter.baseMp,
+            maxMp: lordCharacter.baseMp,
+            attack: lordCharacter.baseAttack,
+            defense: lordCharacter.baseDefense,
+            speed: lordCharacter.baseSpeed,
+            luck: lordCharacter.baseLuck,
+          },
+        });
+      }
+
+      // 给玩家一些初始卡牌
+      const starterCards = await ctx.db.card.findMany({
+        where: {
+          OR: [
+            { name: "回复药水" },
+            { name: "经验书" },
+          ],
+        },
+      });
+      for (const card of starterCards) {
+        await ctx.db.playerCard.create({
+          data: {
+            playerId: player.id,
+            cardId: card.id,
+            quantity: 3,
+          },
+        });
+      }
 
       return {
         success: true,

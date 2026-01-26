@@ -9,7 +9,20 @@ import superjson from "superjson";
 
 import { type AppRouter } from "~/server/api/root";
 
-const createQueryClient = () => new QueryClient();
+const createQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: (failureCount, error: unknown) => {
+        // Don't retry on auth errors
+        const trpcError = error as { data?: { code?: string } };
+        if (trpcError?.data?.code === 'UNAUTHORIZED') return false;
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 let clientQueryClientSingleton: QueryClient | undefined = undefined;
 const getQueryClient = () => {
@@ -43,6 +56,12 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
         httpBatchLink({
           transformer: superjson,
           url: `${getBaseUrl()}/api/trpc`,
+          fetch(url, options) {
+            return fetch(url, {
+              ...options,
+              credentials: "include",
+            });
+          },
         }),
       ],
     })

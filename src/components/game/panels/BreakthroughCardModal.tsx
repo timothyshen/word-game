@@ -376,7 +376,7 @@ export function BreakthroughCardList({
                         {profession?.icon ?? "?"}
                       </div>
                       <div>
-                        <div className="text-sm">{card.characterName}</div>
+                        <div className="text-sm text-white">{card.characterName}</div>
                         <div className="text-xs text-[#666]">
                           → {profession?.name ?? "未知职业"}
                         </div>

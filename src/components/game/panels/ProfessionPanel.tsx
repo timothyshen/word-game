@@ -162,7 +162,7 @@ export default function ProfessionPanel({ onClose }: ProfessionPanelProps) {
                       )}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="font-bold">{profession.name}</div>
+                        <div className="font-bold text-white">{profession.name}</div>
                       </div>
                       <div className="text-sm text-[#888] mt-1">{profession.description}</div>
                       <div className="mt-2 flex flex-wrap gap-2">

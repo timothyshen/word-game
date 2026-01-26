@@ -1,7 +1,8 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { api } from "~/trpc/react";
 
 function LoginForm() {
@@ -16,10 +17,18 @@ function LoginForm() {
 
   const callbackUrl = searchParams.get("callbackUrl") || "/game";
 
+  // Clear any stale queries that might interfere with login
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    // Cancel and remove all queries to prevent 401 errors on login page
+    queryClient.cancelQueries();
+    queryClient.clear();
+  }, [queryClient]);
+
   const loginMutation = api.auth.login.useMutation({
     onSuccess: (data) => {
-      // Set dev-session cookie
-      document.cookie = `dev-session=${data.userId}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      // Set dev-session cookie with SameSite for better browser compatibility
+      document.cookie = `dev-session=${data.userId}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
       router.push(callbackUrl);
     },
     onError: (err) => {
@@ -30,8 +39,8 @@ function LoginForm() {
 
   const registerMutation = api.auth.register.useMutation({
     onSuccess: (data) => {
-      // Set dev-session cookie
-      document.cookie = `dev-session=${data.userId}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      // Set dev-session cookie with SameSite for better browser compatibility
+      document.cookie = `dev-session=${data.userId}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
       router.push(callbackUrl);
     },
     onError: (err) => {
