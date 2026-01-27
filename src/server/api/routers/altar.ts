@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { getTodayString } from "../utils";
 
 // 祭坛类型定义
 interface AltarType {
@@ -80,11 +81,6 @@ function rollRarity(weights: Record<string, number>): string {
   return "普通";
 }
 
-// 获取今天的日期字符串（用于每日重置）
-function getTodayString(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
 
 export const altarRouter = createTRPCRouter({
   // 获取已发现的祭坛列表

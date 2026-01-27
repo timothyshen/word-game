@@ -5,15 +5,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { api } from "~/trpc/react";
-
-// 地形颜色映射
-const biomeColors: Record<string, string> = {
-  grassland: "#4a7c59",
-  forest: "#2d5a27",
-  mountain: "#6b6b6b",
-  desert: "#c9a227",
-  swamp: "#3d5a47",
-};
+import { BIOME_COLORS, POI_COLORS } from "~/constants";
 
 // ===== 地形装饰组件 =====
 
@@ -211,7 +203,7 @@ function TerrainTile({
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  const color = biomeColors[biome] ?? "#333";
+  const color = BIOME_COLORS[biome] ?? "#333";
   const opacity = explorationLevel === 2 ? 1 : explorationLevel === 1 ? 0.4 : 0.1;
 
   // 高亮动画
@@ -282,13 +274,7 @@ function TerrainTile({
 
 // POI 标记
 function POIMarker({ type }: { type: string }) {
-  const colors: Record<string, string> = {
-    resource: "#4a9",
-    garrison: "#e74c3c",
-    lair: "#9b59b6",
-    settlement: "#3498db",
-  };
-  const color = colors[type] ?? "#888";
+  const color = POI_COLORS[type] ?? "#888";
 
   return (
     <group position={[0, 0.2, 0]}>
@@ -336,8 +322,24 @@ interface OuterCityMiniMapProps {
   onOpenFull?: () => void;
 }
 
+// 战斗状态类型
+interface CombatState {
+  active: boolean;
+  poiId: string;
+  heroHp: number;
+  heroMaxHp: number;
+  enemyHp: number;
+  enemyMaxHp: number;
+  enemyName: string;
+  enemyIcon: string;
+  turn: number;
+  logs: string[];
+}
+
 export default function OuterCityMiniMap({ onOpenFull }: OuterCityMiniMapProps) {
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
+  const [combat, setCombat] = useState<CombatState | null>(null);
+  const [actionLog, setActionLog] = useState<string | null>(null);
 
   const utils = api.useUtils();
 
@@ -358,14 +360,73 @@ export default function OuterCityMiniMap({ onOpenFull }: OuterCityMiniMapProps) 
     },
   });
 
+  const startCombat = api.outerCity.startCombat.useMutation({
+    onSuccess: (data) => {
+      if (data.success && data.combat) {
+        setCombat({
+          active: true,
+          poiId: data.combat.poiId,
+          heroHp: data.combat.hero.hp,
+          heroMaxHp: data.combat.hero.maxHp,
+          enemyHp: data.combat.enemy.hp,
+          enemyMaxHp: data.combat.enemy.maxHp,
+          enemyName: data.combat.enemy.name,
+          enemyIcon: data.combat.enemy.icon,
+          turn: data.combat.turn,
+          logs: data.combat.logs,
+        });
+      }
+    },
+  });
+
+  const combatAction = api.outerCity.combatAction.useMutation({
+    onSuccess: (data) => {
+      if (data.result === "victory" || data.result === "defeat" || data.result === "fled") {
+        setCombat(null);
+        setActionLog(data.logs.join(" "));
+        setTimeout(() => setActionLog(null), 3000);
+        void utils.outerCity.getStatus.invalidate();
+        void utils.outerCity.getVisibleMap.invalidate();
+      } else if (combat) {
+        setCombat({
+          ...combat,
+          heroHp: data.heroHp,
+          enemyHp: data.enemyHp,
+          turn: data.turn,
+          logs: [...combat.logs.slice(-2), ...data.logs],
+        });
+      }
+    },
+  });
+
+  const harvestResource = api.outerCity.harvestResource.useMutation({
+    onSuccess: (data) => {
+      setActionLog(data.message);
+      setTimeout(() => setActionLog(null), 3000);
+      void utils.outerCity.getStatus.invalidate();
+      void utils.outerCity.getVisibleMap.invalidate();
+    },
+    onError: (err) => {
+      setActionLog(err.message);
+      setTimeout(() => setActionLog(null), 3000);
+    },
+  });
+
   const selectedHero = status?.heroes.find((h) => h.id === selectedHeroId);
   const centerX = selectedHero?.positionX ?? 0;
   const centerY = selectedHero?.positionY ?? 0;
 
+  // 检查英雄所在位置是否有POI
+  const currentPOI = selectedHero
+    ? mapData?.pois.find(
+        (p) => p.positionX === selectedHero.positionX && p.positionY === selectedHero.positionY
+      )
+    : null;
+
   const mapRadius = 3;
 
   const handleTileClick = (x: number, y: number) => {
-    if (!selectedHero) return;
+    if (!selectedHero || combat?.active) return;
 
     const dx = Math.abs(x - selectedHero.positionX);
     const dy = Math.abs(y - selectedHero.positionY);
@@ -373,6 +434,18 @@ export default function OuterCityMiniMap({ onOpenFull }: OuterCityMiniMapProps) 
     if (dx + dy === 1) {
       moveHero.mutate({ heroId: selectedHero.id, targetX: x, targetY: y });
     }
+  };
+
+  const handleCombatAction = (action: "attack" | "defend" | "skill" | "flee") => {
+    if (!combat || !selectedHero) return;
+    combatAction.mutate({
+      heroId: selectedHero.id,
+      poiId: combat.poiId,
+      action,
+      heroHp: combat.heroHp,
+      enemyHp: combat.enemyHp,
+      turn: combat.turn,
+    });
   };
 
   // 生成地图瓦片数据
@@ -500,6 +573,171 @@ export default function OuterCityMiniMap({ onOpenFull }: OuterCityMiniMapProps) 
           </div>
         )}
       </div>
+
+      {/* 战斗面板 */}
+      {combat?.active && selectedHero && (
+        <div className="absolute inset-0 bg-[#0a0a0c]/95 backdrop-blur flex flex-col p-2 z-30">
+          <div className="text-[10px] text-[#c9a227] font-bold mb-1">战斗中</div>
+
+          {/* 双方血条 */}
+          <div className="flex justify-between gap-2 mb-2">
+            {/* 英雄 */}
+            <div className="flex-1">
+              <div className="flex items-center gap-1 text-[10px] mb-0.5">
+                <span>{selectedHero.character.character.portrait}</span>
+                <span className="text-[#4a9]">{selectedHero.character.character.name}</span>
+              </div>
+              <div className="h-2 bg-[#1a1a20] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#4a9] to-[#5ba] transition-all"
+                  style={{ width: `${(combat.heroHp / combat.heroMaxHp) * 100}%` }}
+                />
+              </div>
+              <div className="text-[8px] text-[#888]">{combat.heroHp}/{combat.heroMaxHp}</div>
+            </div>
+
+            {/* 敌人 */}
+            <div className="flex-1">
+              <div className="flex items-center gap-1 text-[10px] mb-0.5 justify-end">
+                <span className="text-[#e74c3c]">{combat.enemyName}</span>
+                <span>{combat.enemyIcon}</span>
+              </div>
+              <div className="h-2 bg-[#1a1a20] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#e74c3c] to-[#c0392b] transition-all"
+                  style={{ width: `${(combat.enemyHp / combat.enemyMaxHp) * 100}%` }}
+                />
+              </div>
+              <div className="text-[8px] text-[#888] text-right">{combat.enemyHp}/{combat.enemyMaxHp}</div>
+            </div>
+          </div>
+
+          {/* 战斗日志 */}
+          <div className="flex-1 bg-[#1a1a20] rounded-sm p-1 mb-2 overflow-y-auto text-[8px] text-[#888]">
+            {combat.logs.slice(-3).map((log, i) => (
+              <div key={i}>{log}</div>
+            ))}
+          </div>
+
+          {/* 行动按钮 */}
+          <div className="grid grid-cols-4 gap-1">
+            <button
+              onClick={() => handleCombatAction("attack")}
+              disabled={combatAction.isPending}
+              className="py-1 text-[10px] bg-[#e74c3c] hover:bg-[#c0392b] disabled:opacity-50"
+            >
+              攻击
+            </button>
+            <button
+              onClick={() => handleCombatAction("skill")}
+              disabled={combatAction.isPending}
+              className="py-1 text-[10px] bg-[#9b59b6] hover:bg-[#8e44ad] disabled:opacity-50"
+            >
+              技能
+            </button>
+            <button
+              onClick={() => handleCombatAction("defend")}
+              disabled={combatAction.isPending}
+              className="py-1 text-[10px] bg-[#3498db] hover:bg-[#2980b9] disabled:opacity-50"
+            >
+              防御
+            </button>
+            <button
+              onClick={() => handleCombatAction("flee")}
+              disabled={combatAction.isPending}
+              className="py-1 text-[10px] bg-[#7f8c8d] hover:bg-[#95a5a6] disabled:opacity-50"
+            >
+              逃跑
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* POI交互面板 */}
+      {currentPOI && !combat?.active && selectedHero && (
+        <div className="absolute bottom-10 left-2 right-2 bg-[#0a0a0c]/95 backdrop-blur border border-[#3a3a42] rounded-sm p-2 z-20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{currentPOI.icon}</span>
+              <div>
+                <div className="text-[10px] font-bold text-[#e0dcd0]">{currentPOI.name}</div>
+                <div className="text-[8px] text-[#888]">
+                  {currentPOI.type === "resource" && `${currentPOI.resourceType}: ${currentPOI.resourceAmount}`}
+                  {currentPOI.type === "garrison" && `难度: ${currentPOI.difficulty}`}
+                  {currentPOI.type === "lair" && `难度: ${currentPOI.difficulty}`}
+                  {currentPOI.type === "settlement" && "友好定居点"}
+                  {currentPOI.type === "shrine" && `祈祷恢复 ${currentPOI.resourceType}`}
+                  {currentPOI.type === "ruin" && `探索难度: ${currentPOI.difficulty}`}
+                  {currentPOI.type === "caravan" && "交易商品"}
+                </div>
+              </div>
+            </div>
+
+            {/* 交互按钮 */}
+            {currentPOI.type === "resource" && (
+              <button
+                onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                disabled={harvestResource.isPending || currentPOI.resourceAmount <= 0}
+                className="px-2 py-1 text-[10px] bg-[#4a9] hover:bg-[#5ba] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {harvestResource.isPending ? "..." : "采集"}
+              </button>
+            )}
+            {(currentPOI.type === "garrison" || currentPOI.type === "lair") && !currentPOI.isDefeated && (
+              <button
+                onClick={() => startCombat.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                disabled={startCombat.isPending}
+                className="px-2 py-1 text-[10px] bg-[#e74c3c] hover:bg-[#c0392b] disabled:opacity-50"
+              >
+                {startCombat.isPending ? "..." : "战斗"}
+              </button>
+            )}
+            {(currentPOI.type === "garrison" || currentPOI.type === "lair") && currentPOI.isDefeated && (
+              <span className="text-[10px] text-[#4a9]">已征服</span>
+            )}
+            {currentPOI.type === "settlement" && (
+              <span className="text-[10px] text-[#3498db]">交易中...</span>
+            )}
+            {currentPOI.type === "shrine" && (
+              <button
+                onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                disabled={harvestResource.isPending}
+                className="px-2 py-1 text-[10px] bg-[#f1c40f] hover:bg-[#f39c12] text-[#08080a] disabled:opacity-50"
+              >
+                {harvestResource.isPending ? "..." : "祈祷"}
+              </button>
+            )}
+            {currentPOI.type === "ruin" && !currentPOI.isDefeated && (
+              <button
+                onClick={() => startCombat.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                disabled={startCombat.isPending}
+                className="px-2 py-1 text-[10px] bg-[#95a5a6] hover:bg-[#7f8c8d] disabled:opacity-50"
+              >
+                {startCombat.isPending ? "..." : "探索"}
+              </button>
+            )}
+            {currentPOI.type === "ruin" && currentPOI.isDefeated && (
+              <span className="text-[10px] text-[#4a9]">已探索</span>
+            )}
+            {currentPOI.type === "caravan" && (
+              <button
+                onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                disabled={harvestResource.isPending}
+                className="px-2 py-1 text-[10px] bg-[#e67e22] hover:bg-[#d35400] disabled:opacity-50"
+              >
+                {harvestResource.isPending ? "..." : "交易"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 行动日志提示 */}
+      {actionLog && (
+        <div className="absolute top-12 left-2 right-2 bg-[#c9a227]/90 text-[#08080a] text-[10px] px-2 py-1 rounded-sm text-center z-20">
+          {actionLog}
+        </div>
+      )}
 
       {/* 底部状态 */}
       <div className="absolute bottom-2 left-2 right-2">

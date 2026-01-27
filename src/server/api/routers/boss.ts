@@ -1,24 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-
-// 获取当前游戏日
-function getCurrentGameDay(): number {
-  const now = new Date();
-  const gameStart = new Date("2024-01-01T00:00:00Z");
-  const daysPassed = Math.floor((now.getTime() - gameStart.getTime()) / (1000 * 60 * 60 * 24));
-  return daysPassed + 1;
-}
-
-// 获取本周开始日期
-function getWeekStartDate(): Date {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-  const weekStart = new Date(now.setDate(diff));
-  weekStart.setHours(0, 0, 0, 0);
-  return weekStart;
-}
+import { getCurrentGameDay, getWeekStartDate } from "../utils";
 
 // Boss定义
 interface BossDefinition {

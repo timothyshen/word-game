@@ -1,14 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-
-// 获取当前游戏日
-function getCurrentGameDay(): number {
-  const now = new Date();
-  const gameStart = new Date("2024-01-01T00:00:00Z");
-  const daysPassed = Math.floor((now.getTime() - gameStart.getTime()) / (1000 * 60 * 60 * 24));
-  return daysPassed + 1;
-}
+import { getCurrentGameDay } from "../utils";
 
 // 随机事件类型
 type EventType = "resource" | "monster" | "merchant" | "treasure" | "trap" | "nothing";

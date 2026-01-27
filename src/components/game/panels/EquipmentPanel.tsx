@@ -9,20 +9,13 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
+import { RARITY_COLORS } from "~/constants";
 
 interface EquipmentPanelProps {
   characterId: string;
   characterName: string;
   onClose: () => void;
 }
-
-const RARITY_COLORS: Record<string, string> = {
-  "普通": "#888",
-  "精良": "#4a9",
-  "稀有": "#59b",
-  "史诗": "#e67e22",
-  "传说": "#c9a227",
-};
 
 const SLOT_ICONS: Record<string, string> = {
   mainHand: "🗡️",

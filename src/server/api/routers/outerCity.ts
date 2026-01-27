@@ -1,6 +1,53 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import type { PrismaClient } from "../../../../generated/prisma";
+
+// ===== 内外城联动：获取内城建筑加成 =====
+interface CityBonuses {
+  attackBonus: number;   // 攻击力加成百分比 (兵营)
+  defenseBonus: number;  // 防御力加成百分比 (铁匠铺)
+  tradeBonus: number;    // 交易加成百分比 (市场)
+  staminaBonus: number;  // 体力恢复加成 (农田)
+}
+
+async function getInnerCityBonuses(db: PrismaClient, playerId: string): Promise<CityBonuses> {
+  const buildings = await db.innerCityBuilding.findMany({
+    where: { playerId },
+    include: { template: true },
+  });
+
+  let attackBonus = 0;
+  let defenseBonus = 0;
+  let tradeBonus = 0;
+  let staminaBonus = 0;
+
+  for (const building of buildings) {
+    const templateName = building.template.name;
+    const level = building.level;
+
+    switch (templateName) {
+      case "兵营":
+        // 每级增加10%攻击力
+        attackBonus += level * 0.1;
+        break;
+      case "铁匠铺":
+        // 每级增加5%防御力
+        defenseBonus += level * 0.05;
+        break;
+      case "市场":
+        // 每级增加15%交易收益
+        tradeBonus += level * 0.15;
+        break;
+      case "农田":
+        // 每级增加10体力恢复
+        staminaBonus += level * 10;
+        break;
+    }
+  }
+
+  return { attackBonus, defenseBonus, tradeBonus, staminaBonus };
+}
 
 export const outerCityRouter = createTRPCRouter({
   // 获取外城状态
@@ -435,9 +482,13 @@ export const outerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "英雄不存在" });
       }
 
+      // 获取内城建筑加成
+      const cityBonuses = await getInnerCityBonuses(ctx.db, player.id);
+
       // 恢复体力需要消耗食物
       const foodCost = 10;
-      const staminaRestore = 30;
+      const baseStaminaRestore = 30;
+      const staminaRestore = baseStaminaRestore + cityBonuses.staminaBonus;
 
       if (player.food < foodCost) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "食物不足" });
@@ -454,10 +505,11 @@ export const outerCityRouter = createTRPCRouter({
         data: { stamina: newStamina },
       });
 
+      const bonusText = cityBonuses.staminaBonus > 0 ? ` (农田加成+${cityBonuses.staminaBonus})` : "";
       return {
         success: true,
         newStamina,
-        message: `消耗 ${foodCost} 食物，恢复 ${staminaRestore} 体力`,
+        message: `消耗 ${foodCost} 食物，恢复 ${staminaRestore} 体力${bonusText}`,
       };
     }),
 
@@ -498,7 +550,7 @@ export const outerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "兴趣点不存在" });
       }
 
-      if (poi.type !== "garrison" && poi.type !== "lair") {
+      if (poi.type !== "garrison" && poi.type !== "lair" && poi.type !== "ruin") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "该地点无法战斗" });
       }
 
@@ -525,11 +577,13 @@ export const outerCityRouter = createTRPCRouter({
       const enemyNames: Record<string, string> = {
         garrison: "守卫",
         lair: "巢穴怪物",
+        ruin: "遗迹守护者",
       };
 
       const enemyIcons: Record<string, string> = {
         garrison: "⚔️",
         lair: "🐺",
+        ruin: "👻",
       };
 
       // 返回战斗初始状态
@@ -611,11 +665,26 @@ export const outerCityRouter = createTRPCRouter({
       let enemyHp = input.enemyHp;
       let turn = input.turn;
 
-      const heroAtk = hero.character.attack;
-      const heroDef = hero.character.defense;
+      // 获取内城建筑加成
+      const cityBonuses = await getInnerCityBonuses(ctx.db, player.id);
+
+      // 应用内城加成到战斗属性
+      const heroBaseAtk = hero.character.attack;
+      const heroBaseDef = hero.character.defense;
+      const heroAtk = Math.floor(heroBaseAtk * (1 + cityBonuses.attackBonus));
+      const heroDef = Math.floor(heroBaseDef * (1 + cityBonuses.defenseBonus));
+
       const enemyLevel = poi.guardianLevel || poi.difficulty;
       const enemyAtk = 8 + enemyLevel * 3;
       const enemyDef = 3 + enemyLevel * 2;
+
+      // 显示加成信息（仅首回合）
+      if (turn === 1 && (cityBonuses.attackBonus > 0 || cityBonuses.defenseBonus > 0)) {
+        const bonusInfo: string[] = [];
+        if (cityBonuses.attackBonus > 0) bonusInfo.push(`攻击+${Math.floor(cityBonuses.attackBonus * 100)}%`);
+        if (cityBonuses.defenseBonus > 0) bonusInfo.push(`防御+${Math.floor(cityBonuses.defenseBonus * 100)}%`);
+        logs.push(`内城加成: ${bonusInfo.join(", ")}`);
+      }
 
       // 处理逃跑
       if (input.action === "flee") {
@@ -685,15 +754,29 @@ export const outerCityRouter = createTRPCRouter({
           },
         });
 
-        // 给予奖励
-        const goldReward = 20 + enemyLevel * 10;
-        const expReward = 10 + enemyLevel * 5;
+        // 给予奖励 - 遗迹有额外宝藏
+        let goldReward = 20 + enemyLevel * 10;
+        let expReward = 10 + enemyLevel * 5;
+        let crystalsReward = 0;
+        let extraMessage = "";
+
+        if (poi.type === "ruin") {
+          // 遗迹宝藏
+          if (poi.resourceType === "gold") {
+            goldReward += poi.resourceAmount ?? 0;
+            extraMessage = `，发现宝藏 ${poi.resourceAmount} 金币`;
+          } else if (poi.resourceType === "crystals") {
+            crystalsReward = poi.resourceAmount ?? 0;
+            extraMessage = `，发现 ${crystalsReward} 水晶`;
+          }
+        }
 
         await ctx.db.player.update({
           where: { id: player.id },
           data: {
             gold: player.gold + goldReward,
             exp: player.exp + expReward,
+            crystals: player.crystals + crystalsReward,
           },
         });
 
@@ -705,7 +788,7 @@ export const outerCityRouter = createTRPCRouter({
           },
         });
 
-        logs.push(`胜利！获得 ${goldReward} 金币，${expReward} 经验`);
+        logs.push(`胜利！获得 ${goldReward} 金币，${expReward} 经验${extraMessage}`);
 
         return {
           success: true,
@@ -714,7 +797,7 @@ export const outerCityRouter = createTRPCRouter({
           heroHp: Math.max(0, heroHp),
           enemyHp: 0,
           turn,
-          rewards: { gold: goldReward, exp: expReward },
+          rewards: { gold: goldReward, exp: expReward, crystals: crystalsReward },
         };
       }
 
@@ -772,6 +855,11 @@ export const outerCityRouter = createTRPCRouter({
 
       const hero = await ctx.db.heroInstance.findFirst({
         where: { id: input.heroId, playerId: player.id },
+        include: {
+          character: {
+            include: { character: true },
+          },
+        },
       });
 
       if (!hero) {
@@ -786,14 +874,125 @@ export const outerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "兴趣点不存在" });
       }
 
-      if (poi.type !== "resource") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "该地点不是资源点" });
+      if (poi.type !== "resource" && poi.type !== "shrine" && poi.type !== "caravan") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "该地点无法互动" });
       }
 
       if (hero.positionX !== poi.positionX || hero.positionY !== poi.positionY) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "英雄不在该位置" });
       }
 
+      // ===== 神殿：祈祷获得buff =====
+      if (poi.type === "shrine") {
+        const staminaCost = 5;
+        if (hero.stamina < staminaCost) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
+        }
+
+        // 消耗体力
+        await ctx.db.heroInstance.update({
+          where: { id: hero.id },
+          data: { stamina: hero.stamina - staminaCost },
+        });
+
+        // 根据神殿类型给予不同buff
+        let message = "";
+        if (poi.resourceType === "stamina") {
+          // 恢复英雄体力
+          const restoreAmount = poi.resourceAmount ?? 30;
+          const newStamina = Math.min(100, hero.stamina - staminaCost + restoreAmount);
+          await ctx.db.heroInstance.update({
+            where: { id: hero.id },
+            data: { stamina: newStamina },
+          });
+          message = `神殿祝福！恢复 ${restoreAmount} 体力`;
+        } else if (poi.resourceType === "attack") {
+          // 临时增加攻击力 - 更新角色基础攻击
+          const boostAmount = poi.resourceAmount ?? 5;
+          await ctx.db.playerCharacter.update({
+            where: { id: hero.characterId },
+            data: { attack: hero.character.attack + boostAmount },
+          });
+          message = `战神祝福！攻击力+${boostAmount}`;
+        } else {
+          message = "获得神殿祝福";
+        }
+
+        return {
+          success: true,
+          harvested: 0,
+          resourceType: poi.resourceType,
+          remaining: 0,
+          message,
+        };
+      }
+
+      // ===== 商队：随机交易 =====
+      if (poi.type === "caravan") {
+        const staminaCost = 5;
+        if (hero.stamina < staminaCost) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
+        }
+
+        // 消耗体力
+        await ctx.db.heroInstance.update({
+          where: { id: hero.id },
+          data: { stamina: hero.stamina - staminaCost },
+        });
+
+        // 获取内城建筑加成
+        const cityBonuses = await getInnerCityBonuses(ctx.db, player.id);
+
+        // 随机交易 - 用金币换取其他资源
+        const tradeOptions = [
+          { give: "gold", giveAmount: 50, receive: "wood", receiveAmount: 30 },
+          { give: "gold", giveAmount: 50, receive: "stone", receiveAmount: 25 },
+          { give: "gold", giveAmount: 30, receive: "food", receiveAmount: 40 },
+          { give: "wood", giveAmount: 40, receive: "gold", receiveAmount: 30 },
+          { give: "stone", giveAmount: 30, receive: "gold", receiveAmount: 40 },
+        ];
+
+        const trade = tradeOptions[Math.floor(Math.random() * tradeOptions.length)]!;
+
+        // 应用市场加成到交易收益
+        const bonusReceive = Math.floor(trade.receiveAmount * cityBonuses.tradeBonus);
+        const finalReceiveAmount = trade.receiveAmount + bonusReceive;
+
+        // 检查玩家是否有足够资源
+        const giveKey = trade.give as keyof typeof player;
+        const playerResource = player[giveKey] as number;
+        if (playerResource < trade.giveAmount) {
+          return {
+            success: false,
+            harvested: 0,
+            resourceType: "trade",
+            remaining: 0,
+            message: `商人想要 ${trade.giveAmount} ${trade.give}，但你没有足够资源`,
+          };
+        }
+
+        // 执行交易
+        const updates: Record<string, number> = {};
+        updates[trade.give] = playerResource - trade.giveAmount;
+        const receiveKey = trade.receive as keyof typeof player;
+        updates[trade.receive] = (player[receiveKey] as number) + finalReceiveAmount;
+
+        await ctx.db.player.update({
+          where: { id: player.id },
+          data: updates,
+        });
+
+        const bonusText = bonusReceive > 0 ? ` (市场加成+${bonusReceive})` : "";
+        return {
+          success: true,
+          harvested: finalReceiveAmount,
+          resourceType: trade.receive,
+          remaining: 0,
+          message: `交易完成！用 ${trade.giveAmount} ${trade.give} 换取 ${finalReceiveAmount} ${trade.receive}${bonusText}`,
+        };
+      }
+
+      // ===== 资源点：采集资源 =====
       // 检查资源是否可采集
       if (poi.resourceAmount <= 0) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "资源已耗尽" });
