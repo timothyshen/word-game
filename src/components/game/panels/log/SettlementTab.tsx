@@ -3,17 +3,8 @@
 import { useState } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
-import { ACTION_ICONS } from "~/constants";
+import { ACTION_ICONS, RARITY_COLORS } from "~/constants";
 import { ScoreBar } from "./helpers";
-
-// 结算用稀有度颜色（略有不同的紫色调）
-const rarityColors: Record<string, string> = {
-  "普通": "#888",
-  "精良": "#4a9",
-  "稀有": "#9b59b6",
-  "史诗": "#e67e22",
-  "传说": "#c9a227",
-};
 
 function getScoreGrade(score: number) {
   if (score >= 500) return { grade: "S", color: "#c9a227" };
@@ -86,7 +77,7 @@ export default function SettlementTab() {
           {settlementResult.grantedCards && settlementResult.grantedCards.length > 0 && (
             <div className="text-sm">
               获得卡牌: {settlementResult.grantedCards.map((c, i) => (
-                <span key={i} style={{ color: rarityColors[c.rarity] }} className="mr-2">
+                <span key={i} style={{ color: RARITY_COLORS[c.rarity] }} className="mr-2">
                   {c.name}
                 </span>
               ))}
@@ -176,13 +167,13 @@ export default function SettlementTab() {
                 <div
                   key={i}
                   className="relative p-3 bg-[#1a1a20] border-2 text-center"
-                  style={{ borderColor: rarityColors[card.rarity] ?? "#888" }}
+                  style={{ borderColor: RARITY_COLORS[card.rarity] ?? "#888" }}
                 >
                   <div className="text-2xl mb-1">🃏</div>
                   <div className="text-sm font-bold">×{card.count}</div>
                   <div
                     className="text-xs mt-1"
-                    style={{ color: rarityColors[card.rarity] ?? "#888" }}
+                    style={{ color: RARITY_COLORS[card.rarity] ?? "#888" }}
                   >
                     {card.rarity}卡牌
                   </div>

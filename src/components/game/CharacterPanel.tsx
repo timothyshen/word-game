@@ -1,14 +1,7 @@
 // 角色列表面板
 import { useState } from "react";
 import { api } from "~/trpc/react";
-
-const rarityColors: Record<string, string> = {
-  普通: "#888888",
-  精良: "#4a9eff",
-  稀有: "#9966cc",
-  史诗: "#ff9900",
-  传说: "#ff4444",
-};
+import { RARITY_COLORS } from "~/constants";
 
 export default function CharacterPanel() {
   const { data: player, isLoading } = api.player.getStatus.useQuery();
@@ -73,7 +66,7 @@ export default function CharacterPanel() {
                     {/* 稀有度边框 */}
                     <div
                       className="absolute top-0 left-0 right-0 h-1"
-                      style={{ backgroundColor: rarityColors[rarity] }}
+                      style={{ backgroundColor: RARITY_COLORS[rarity] }}
                     />
 
                     {/* 头像 */}
@@ -111,7 +104,7 @@ export default function CharacterPanel() {
               <div className="w-80 border border-[#3d3529] bg-[#12110d] p-4 flex-shrink-0">
                 <div
                   className="h-1 -mt-4 -mx-4 mb-4"
-                  style={{ backgroundColor: rarityColors[selectedChar.character.rarity] }}
+                  style={{ backgroundColor: RARITY_COLORS[selectedChar.character.rarity] }}
                 />
 
                 {/* 基本信息 */}

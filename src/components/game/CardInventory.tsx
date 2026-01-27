@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { RARITY_COLORS } from "~/constants";
 
 type CardType = "all" | "building" | "recruit" | "skill" | "enhance" | "item";
 
@@ -19,14 +20,6 @@ const cardTypeLabels: Record<CardType, { label: string; icon: string }> = {
   skill: { label: "技能", icon: "📖" },
   enhance: { label: "强化", icon: "💎" },
   item: { label: "道具", icon: "🧪" },
-};
-
-const rarityColors: Record<string, string> = {
-  普通: "#888888",
-  精良: "#4a9eff",
-  稀有: "#9966cc",
-  史诗: "#ff9900",
-  传说: "#ff4444",
 };
 
 interface CardInventoryProps {
@@ -209,7 +202,7 @@ export default function CardInventory({ onClose }: CardInventoryProps) {
                       {/* 稀有度边框 */}
                       <div
                         className="absolute top-0 left-0 right-0 h-1"
-                        style={{ backgroundColor: rarityColors[pc.card.rarity] }}
+                        style={{ backgroundColor: RARITY_COLORS[pc.card.rarity] }}
                       />
 
                       {/* 图标 */}
@@ -223,7 +216,7 @@ export default function CardInventory({ onClose }: CardInventoryProps) {
                       {/* 稀有度 */}
                       <div
                         className="text-xs text-center mt-1"
-                        style={{ color: rarityColors[pc.card.rarity] }}
+                        style={{ color: RARITY_COLORS[pc.card.rarity] }}
                       >
                         {pc.card.rarity}
                       </div>
@@ -245,7 +238,7 @@ export default function CardInventory({ onClose }: CardInventoryProps) {
               <div className="w-72 border border-[#3d3529] bg-[#12110d] p-4 flex-shrink-0">
                 <div
                   className="h-1 -mt-4 -mx-4 mb-4"
-                  style={{ backgroundColor: rarityColors[selectedCardData.card.rarity] }}
+                  style={{ backgroundColor: RARITY_COLORS[selectedCardData.card.rarity] }}
                 />
 
                 <div className="text-4xl text-center mb-3">
@@ -258,7 +251,7 @@ export default function CardInventory({ onClose }: CardInventoryProps) {
 
                 <div
                   className="text-sm text-center mb-3"
-                  style={{ color: rarityColors[selectedCardData.card.rarity] }}
+                  style={{ color: RARITY_COLORS[selectedCardData.card.rarity] }}
                 >
                   {selectedCardData.card.rarity} · {cardTypeLabels[selectedCardData.card.type as CardType]?.label}
                 </div>

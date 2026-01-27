@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { breakthroughCardData, professionTemplates, charactersData } from "~/data/fixtures";
+import { RARITY_COLORS } from "~/constants";
 
 type BreakthroughCard = typeof breakthroughCardData.availableCards[0];
 type ProfessionTemplate = typeof professionTemplates[0];
@@ -21,14 +22,6 @@ export default function BreakthroughCardModal({
   const [confirmStep, setConfirmStep] = useState(false);
 
   const character = charactersData.find(c => c.id === card.characterId);
-
-  const rarityColors: Record<string, string> = {
-    "普通": "#888",
-    "精英": "#4a9",
-    "稀有": "#9b59b6",
-    "史诗": "#e67e22",
-    "传说": "#c9a227",
-  };
 
   const handleSelect = (professionId: string) => {
     setSelectedProfessionId(professionId);
@@ -95,7 +88,7 @@ export default function BreakthroughCardModal({
                   <span className="font-bold">{character.name}</span>
                   <span
                     className="text-xs px-2 py-0.5"
-                    style={{ backgroundColor: rarityColors[character.rarity], color: "#000" }}
+                    style={{ backgroundColor: RARITY_COLORS[character.rarity], color: "#000" }}
                   >
                     {character.rarity}
                   </span>
@@ -151,7 +144,7 @@ export default function BreakthroughCardModal({
                           <span className="font-bold">{profession.name}</span>
                           <span
                             className="text-xs px-2 py-0.5"
-                            style={{ backgroundColor: rarityColors[profession.rarity], color: "#000" }}
+                            style={{ backgroundColor: RARITY_COLORS[profession.rarity], color: "#000" }}
                           >
                             {profession.rarity}
                           </span>

@@ -568,6 +568,15 @@ async function main() {
     // 定居点
     { positionX: -2, positionY: 3, name: "流浪商人", icon: "🏕️", type: "settlement", difficulty: 1 },
     { positionX: 3, positionY: -2, name: "隐士小屋", icon: "🏚️", type: "settlement", difficulty: 1 },
+    // 神殿 - 祈祷获得buff
+    { positionX: 0, positionY: 3, name: "风神殿", icon: "🏛️", type: "shrine", difficulty: 1, resourceType: "stamina", resourceAmount: 30 },
+    { positionX: -3, positionY: -2, name: "战神殿", icon: "⚔️", type: "shrine", difficulty: 2, resourceType: "attack", resourceAmount: 5 },
+    // 遗迹 - 探索获得宝藏
+    { positionX: 4, positionY: 0, name: "古代遗迹", icon: "🏚️", type: "ruin", difficulty: 3, guardianLevel: 4, resourceType: "gold", resourceAmount: 100 },
+    { positionX: -1, positionY: -3, name: "失落神庙", icon: "🗿", type: "ruin", difficulty: 4, guardianLevel: 6, resourceType: "crystals", resourceAmount: 10 },
+    // 商队 - 交易
+    { positionX: 2, positionY: 2, name: "沙漠商队", icon: "🐪", type: "caravan", difficulty: 1, resourceType: "trade", resourceAmount: 0 },
+    { positionX: -3, positionY: 0, name: "旅行商人", icon: "🧳", type: "caravan", difficulty: 1, resourceType: "trade", resourceAmount: 0 },
   ];
 
   for (const poi of outerCityPOIs) {

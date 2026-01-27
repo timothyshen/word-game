@@ -9,6 +9,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
+import { RARITY_COLORS } from "~/constants";
 import EquipmentPanel from "./EquipmentPanel";
 
 interface CharacterDetailPanelProps {
@@ -43,13 +44,6 @@ export default function CharacterDetailPanel({
       setHealingType(null);
     },
   });
-
-  const rarityColors: Record<string, string> = {
-    "普通": "#888",
-    "精英": "#4a9",
-    "稀有": "#9b59b6",
-    "传说": "#c9a227",
-  };
 
   if (isLoading) {
     return (
@@ -92,7 +86,7 @@ export default function CharacterDetailPanel({
                   <DialogTitle className="font-bold text-lg text-[#e0dcd0]">{character.name}</DialogTitle>
                   <span
                     className="text-xs px-2 py-0.5"
-                    style={{ backgroundColor: rarityColors[character.rarity] ?? "#888", color: "#000" }}
+                    style={{ backgroundColor: RARITY_COLORS[character.rarity] ?? "#888", color: "#000" }}
                   >
                     {character.rarity}
                   </span>

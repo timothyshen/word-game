@@ -9,6 +9,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
+import { RARITY_COLORS } from "~/constants";
 
 interface SettlementPanelProps {
   onClose: () => void;
@@ -59,14 +60,6 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
       // 如果领取产出失败，仍然尝试结算
       settleMutation.mutate();
     }
-  };
-
-  const rarityColors: Record<string, string> = {
-    "普通": "#888",
-    "精良": "#4a9",
-    "稀有": "#9b59b6",
-    "史诗": "#e67e22",
-    "传说": "#c9a227",
   };
 
   const actionIcons: Record<string, string> = {
@@ -141,7 +134,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                 {settlementResult.grantedCards && settlementResult.grantedCards.length > 0 && (
                   <div className="text-sm">
                     获得卡牌: {settlementResult.grantedCards.map((c, i) => (
-                      <span key={i} style={{ color: rarityColors[c.rarity] }} className="mr-2">
+                      <span key={i} style={{ color: RARITY_COLORS[c.rarity] }} className="mr-2">
                         {c.name}
                       </span>
                     ))}
@@ -239,13 +232,13 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                   <div
                     key={i}
                     className="relative p-3 bg-[#1a1a20] border-2 text-center"
-                    style={{ borderColor: rarityColors[card.rarity] ?? "#888" }}
+                    style={{ borderColor: RARITY_COLORS[card.rarity] ?? "#888" }}
                   >
                     <div className="text-2xl mb-1">🃏</div>
                     <div className="text-sm font-bold">×{card.count}</div>
                     <div
                       className="text-xs mt-1"
-                      style={{ color: rarityColors[card.rarity] ?? "#888" }}
+                      style={{ color: RARITY_COLORS[card.rarity] ?? "#888" }}
                     >
                       {card.rarity}卡牌
                     </div>
