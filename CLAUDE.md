@@ -1,5 +1,7 @@
 # 诸天领域 - 项目文档
 
+> **必须使用 Bun** - 本项目强制使用 bun 作为包管理器和运行时，禁止使用 npm/yarn/pnpm。所有命令都应使用 `bun` 而非 `npm`。
+
 ## 项目概述
 
 这是一个基于 T3 Stack 的领主养成类文字游戏，玩家作为领主管理领地、招募角色、探索世界、挑战Boss。
@@ -13,6 +15,7 @@
 - **认证**: 简易邮箱认证 (dev-session cookie)
 - **测试**: Vitest
 - **UI组件**: shadcn/ui
+- **包管理**: Bun (必须使用 bun，不要使用 npm/yarn/pnpm)
 
 ## 项目结构
 
@@ -174,30 +177,35 @@ src/
 
 ## 开发命令
 
+**重要：本项目必须使用 bun，禁止使用 npm/yarn/pnpm**
+
 ```bash
 # 开发
-npm run dev
+bun dev
 
 # 构建
-npm run build
+bun run build
 
 # 数据库迁移
-npx prisma db push
+bun prisma db push
 
 # 数据库可视化
-npx prisma studio
+bun prisma studio
 
 # 类型检查
-npm run typecheck
+bun run typecheck
 
 # 运行测试
-npm test
+bun test
 
 # 运行测试并生成覆盖率报告
-npm run test:coverage
+bun run test:coverage
 
 # 数据库初始化（含测试账号）
-npx prisma db seed
+bun prisma db seed
+
+# 安装依赖
+bun install
 ```
 
 ## 稀有度颜色
@@ -224,12 +232,13 @@ npx prisma db seed
 
 ## 注意事项
 
-1. **体力系统**: 体力基于时间自动回复，`calculateCurrentStamina` 函数在 `player.ts` 中
-2. **结算系统**: 需要玩家手动领取奖励，不是自动发放
-3. **战斗系统**: 使用内存存储战斗状态，生产环境应改用 Redis
-4. **Boss系统**: 每周一重置挑战次数
-5. **API调用**: 使用 tRPC hooks (`useQuery`, `useMutation`)
-6. **认证**: 使用简易邮箱认证，cookie名为 `dev-session`
+1. **包管理器**: 必须使用 bun，禁止使用 npm/yarn/pnpm
+2. **体力系统**: 体力基于时间自动回复，`calculateCurrentStamina` 函数在 `player.ts` 中
+3. **结算系统**: 需要玩家手动领取奖励，不是自动发放
+4. **战斗系统**: 使用内存存储战斗状态，生产环境应改用 Redis
+5. **Boss系统**: 每周一重置挑战次数
+6. **API调用**: 使用 tRPC hooks (`useQuery`, `useMutation`)
+7. **认证**: 使用简易邮箱认证，cookie名为 `dev-session`
 
 ## 待优化项
 

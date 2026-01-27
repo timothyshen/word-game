@@ -18,6 +18,8 @@ import { shopRouter } from "~/server/api/routers/shop";
 import { achievementRouter } from "~/server/api/routers/achievement";
 import { adminRouter } from "~/server/api/routers/admin";
 import { authRouter } from "~/server/api/routers/auth";
+import { innerCityRouter } from "~/server/api/routers/innerCity";
+import { outerCityRouter } from "~/server/api/routers/outerCity";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -46,6 +48,8 @@ export const appRouter = createTRPCRouter({
   achievement: achievementRouter,
   admin: adminRouter,
   auth: authRouter,
+  innerCity: innerCityRouter,
+  outerCity: outerCityRouter,
 });
 
 // export type definition of API

@@ -35,7 +35,7 @@ export const cardRouter = createTRPCRouter({
 
   // 按类型获取卡牌
   getByType: protectedProcedure
-    .input(z.object({ type: z.enum(["building", "recruit", "skill", "enhance", "item"]) }))
+    .input(z.object({ type: z.enum(["building", "recruit", "skill", "enhance", "item", "expansion"]) }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
 

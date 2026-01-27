@@ -154,6 +154,14 @@ model Player {
     combatWins           Int @default(0)
     bossKills            Int @default(0)
     totalGoldEarned      Int @default(0)
+
+    // 内城系统
+    innerCityTiles       InnerCityTile[]
+    innerCityBuildings   InnerCityBuilding[]
+    innerCityConfig      InnerCityConfig?
+
+    // 外城系统
+    heroInstances        HeroInstance[]
 }
 
 // 职业模板
@@ -242,6 +250,7 @@ model PlayerCharacter {
     profession    CharacterProfession?
     equippedItems EquippedItem[]
     learnedSkills CharacterSkill[]  // 已学习技能
+    heroInstance  HeroInstance?     // 外城英雄实例
 }
 
 // 角色职业（可为空，通过突破卡获得）
@@ -357,7 +366,8 @@ model Building {
     // 基础效果（JSON）
     baseEffects String
 
-    playerBuildings PlayerBuilding[]
+    playerBuildings    PlayerBuilding[]
+    innerCityBuildings InnerCityBuilding[]
 }
 
 // 玩家已建造建筑
@@ -585,10 +595,12 @@ model ExploredArea {
     player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
     worldId  String @default("main")
 
-    positionX    Int
-    positionY    Int
-    name         String
-    discoveredAt DateTime @default(now())
+    positionX        Int
+    positionY        Int
+    name             String
+    biome            String  @default("grassland") // grassland/forest/mountain/desert/swamp
+    explorationLevel Int     @default(2) // 0=hidden, 1=fog, 2=visible
+    discoveredAt     DateTime @default(now())
 
     @@index([playerId, worldId])
     @@unique([playerId, worldId, positionX, positionY])
@@ -781,4 +793,98 @@ model Adventure {
 
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
+}
+
+// ===== 内城系统 =====
+
+// 内城格子
+model InnerCityTile {
+    id        String   @id @default(cuid())
+    playerId  String
+    player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    positionX Int      // 以0,0为中心
+    positionY Int
+    unlocked  Boolean  @default(true)
+
+    createdAt DateTime @default(now())
+
+    @@unique([playerId, positionX, positionY])
+    @@index([playerId])
+}
+
+// 内城建筑
+model InnerCityBuilding {
+    id         String   @id @default(cuid())
+    playerId   String
+    player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    templateId String
+    template   Building @relation(fields: [templateId], references: [id])
+
+    positionX  Int
+    positionY  Int
+    level      Int      @default(1)
+
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+
+    @@unique([playerId, positionX, positionY])
+    @@index([playerId])
+}
+
+// 内城配置
+model InnerCityConfig {
+    id            String @id @default(cuid())
+    playerId      String @unique
+    player        Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    gridRadius    Int    @default(1)  // 1=3x3, 2=5x5, 3=7x7
+    spaceCapacity Int    @default(20) // 总高度容量
+
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+}
+
+// ===== 外城探索系统 =====
+
+// 外城英雄实例
+model HeroInstance {
+    id          String   @id @default(cuid())
+    playerId    String
+    player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    characterId String   @unique
+    character   PlayerCharacter @relation(fields: [characterId], references: [id])
+
+    positionX   Int      @default(0)
+    positionY   Int      @default(0)
+    status      String   @default("idle")  // idle/moving/exploring/fighting
+    stamina     Int      @default(100)
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([playerId])
+}
+
+// 外城兴趣点
+model OuterCityPOI {
+    id          String   @id @default(cuid())
+    positionX   Int
+    positionY   Int
+    name        String
+    icon        String
+    type        String   // resource/garrison/lair/settlement
+
+    difficulty  Int      @default(1)
+
+    resourceType   String?
+    resourceAmount Int    @default(0)
+    guardianLevel  Int    @default(0)
+
+    isDefeated  Boolean  @default(false)
+    defeatedAt  DateTime?
+    respawnsAt  DateTime?
+
+    @@unique([positionX, positionY])
 }

@@ -420,6 +420,31 @@ async function main() {
       icon: "📕",
       effects: JSON.stringify({ exp: 500 }),
     },
+    // 扩张卡
+    {
+      name: "领地扩张令",
+      type: "expansion",
+      rarity: "稀有",
+      description: "扩展内城网格面积，解锁更多建造空间",
+      icon: "🗺️",
+      effects: JSON.stringify({ type: "area", amount: 1 }),
+    },
+    {
+      name: "高级扩张令",
+      type: "expansion",
+      rarity: "史诗",
+      description: "大幅扩展内城网格面积",
+      icon: "🌍",
+      effects: JSON.stringify({ type: "area", amount: 2 }),
+    },
+    {
+      name: "空间扩张符",
+      type: "expansion",
+      rarity: "稀有",
+      description: "增加内城空间容量，允许建造更高的建筑",
+      icon: "📐",
+      effects: JSON.stringify({ type: "space", amount: 5 }),
+    },
   ];
 
   for (const card of cards) {
@@ -491,6 +516,83 @@ async function main() {
     });
   }
   console.log(`Created ${professions.length} professions`);
+
+  // ===== 给测试玩家分配卡牌 =====
+  const testPlayerRecord = await prisma.player.findUnique({
+    where: { userId: testUser.id },
+  });
+
+  if (testPlayerRecord) {
+    // 获取一些卡牌给测试玩家
+    const allCards = await prisma.card.findMany();
+
+    // 获取建筑卡、扩张卡各2张
+    const buildingCards = allCards.filter(c => c.type === "building").slice(0, 3);
+    const expansionCards = allCards.filter(c => c.type === "expansion");
+    const itemCards = allCards.filter(c => c.type === "item").slice(0, 2);
+
+    const cardsToGive = [...buildingCards, ...expansionCards, ...itemCards];
+
+    for (const card of cardsToGive) {
+      await prisma.playerCard.upsert({
+        where: {
+          playerId_cardId: {
+            playerId: testPlayerRecord.id,
+            cardId: card.id,
+          },
+        },
+        update: { quantity: 3 },
+        create: {
+          playerId: testPlayerRecord.id,
+          cardId: card.id,
+          quantity: 3,
+        },
+      });
+    }
+    console.log(`Gave ${cardsToGive.length} card types to test player`);
+  }
+
+  // ===== 外城兴趣点 =====
+  const outerCityPOIs = [
+    // 资源点
+    { positionX: 2, positionY: 0, name: "金矿", icon: "💰", type: "resource", difficulty: 1, resourceType: "gold", resourceAmount: 50 },
+    { positionX: -1, positionY: 2, name: "伐木场", icon: "🪵", type: "resource", difficulty: 1, resourceType: "wood", resourceAmount: 30 },
+    { positionX: 0, positionY: -2, name: "采石场", icon: "🪨", type: "resource", difficulty: 1, resourceType: "stone", resourceAmount: 20 },
+    { positionX: 3, positionY: 1, name: "农田", icon: "🌾", type: "resource", difficulty: 1, resourceType: "food", resourceAmount: 40 },
+    // 驻军点
+    { positionX: -2, positionY: -1, name: "强盗营地", icon: "⚔️", type: "garrison", difficulty: 2, guardianLevel: 3 },
+    { positionX: 1, positionY: 3, name: "哥布林巢穴", icon: "👺", type: "garrison", difficulty: 3, guardianLevel: 5 },
+    // 巢穴
+    { positionX: -3, positionY: 2, name: "狼穴", icon: "🐺", type: "lair", difficulty: 2, guardianLevel: 4 },
+    { positionX: 2, positionY: -3, name: "巨蜘蛛巢", icon: "🕷️", type: "lair", difficulty: 4, guardianLevel: 8 },
+    // 定居点
+    { positionX: -2, positionY: 3, name: "流浪商人", icon: "🏕️", type: "settlement", difficulty: 1 },
+    { positionX: 3, positionY: -2, name: "隐士小屋", icon: "🏚️", type: "settlement", difficulty: 1 },
+  ];
+
+  for (const poi of outerCityPOIs) {
+    await prisma.outerCityPOI.upsert({
+      where: {
+        positionX_positionY: {
+          positionX: poi.positionX,
+          positionY: poi.positionY,
+        },
+      },
+      update: {},
+      create: {
+        positionX: poi.positionX,
+        positionY: poi.positionY,
+        name: poi.name,
+        icon: poi.icon,
+        type: poi.type,
+        difficulty: poi.difficulty,
+        resourceType: poi.resourceType ?? null,
+        resourceAmount: poi.resourceAmount ?? 0,
+        guardianLevel: poi.guardianLevel ?? 0,
+      },
+    });
+  }
+  console.log(`Created ${outerCityPOIs.length} outer city POIs`);
 
   console.log("Seeding complete!");
 }

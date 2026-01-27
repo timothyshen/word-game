@@ -19,6 +19,9 @@ import {
   EconomyPanel,
   CombatPanel,
 } from "~/components/game/panels";
+import { InnerCityPanel } from "~/components/game/panels/InnerCityPanel";
+import OuterCityPanel from "~/components/game/panels/OuterCityPanel";
+import OuterCityMiniMap from "~/components/game/OuterCityMiniMap";
 
 // 建筑位置映射
 const BUILDING_POSITIONS: Record<string, { x: number; y: number }> = {
@@ -59,6 +62,8 @@ export default function GamePage() {
   const [showEconomyPanel, setShowEconomyPanel] = useState(false);
   const [showCombatPanel, setShowCombatPanel] = useState(false);
   const [combatLevel, setCombatLevel] = useState(1);
+  const [showInnerCityPanel, setShowInnerCityPanel] = useState(false);
+  const [showOuterCityPanel, setShowOuterCityPanel] = useState(false);
 
   const [exploreMessage, setExploreMessage] = useState<string | null>(null);
 
@@ -266,9 +271,15 @@ export default function GamePage() {
                   <ActionButton icon="⬆️" label="进阶" sublabel="职业成就" onClick={() => { setProgressHubTab("profession"); setShowProgressHub(true); }} />
                   <ActionButton icon="📊" label="经济" sublabel="资源总览" onClick={() => setShowEconomyPanel(true)} />
                   <ActionButton icon="👹" label="战斗" sublabel="挑战怪物" onClick={() => { setCombatLevel(1); setShowCombatPanel(true); }} />
+                  <ActionButton icon="🏙️" label="内城" sublabel="城市建设" onClick={() => setShowInnerCityPanel(true)} />
                   <ActionButton icon="📋" label="记录" sublabel="历史记录" onClick={() => { setLogHubTab("action"); setShowLogHub(true); }} />
                   <ActionButton icon="🎴" label="结算" sublabel="今日分数" onClick={() => { setLogHubTab("settlement"); setShowLogHub(true); }} highlight />
                 </div>
+              </DashboardCard>
+
+              {/* 外城探索小地图 */}
+              <DashboardCard title="外城探索" badge="派遣英雄">
+                <OuterCityMiniMap onOpenFull={() => setShowOuterCityPanel(true)} />
               </DashboardCard>
 
               {/* 角色列表 */}
@@ -440,6 +451,23 @@ export default function GamePage() {
           monsterLevel={combatLevel}
           onClose={() => setShowCombatPanel(false)}
         />
+      )}
+
+      {/* 内城面板 */}
+      {showInnerCityPanel && player && (
+        <InnerCityPanel
+          playerId={player.id}
+          onClose={() => setShowInnerCityPanel(false)}
+        />
+      )}
+
+      {/* 外城面板 */}
+      {showOuterCityPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="w-full max-w-5xl h-[80vh] bg-[#101014] border border-[#3a3a42] overflow-hidden">
+            <OuterCityPanel onClose={() => setShowOuterCityPanel(false)} />
+          </div>
+        </div>
       )}
     </div>
   );

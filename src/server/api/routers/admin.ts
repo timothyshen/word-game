@@ -5,7 +5,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
 const cardSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(["building", "recruit", "skill", "enhance", "item"]),
+  type: z.enum(["building", "recruit", "skill", "enhance", "item", "expansion"]),
   rarity: z.enum(["普通", "精良", "稀有", "史诗", "传说"]),
   description: z.string(),
   icon: z.string().default("🃏"),
