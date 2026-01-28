@@ -335,6 +335,551 @@ function WaterPuddle({ position }: { position: [number, number, number] }) {
   );
 }
 
+// ===== 基地城堡组件 =====
+
+// 火把闪烁光效
+function TorchLight({ position }: { position: [number, number, number] }) {
+  const lightRef = useRef<THREE.PointLight>(null);
+
+  useFrame((state) => {
+    if (lightRef.current) {
+      lightRef.current.intensity = 0.4 + Math.sin(state.clock.elapsedTime * 10 + position[0] * 5) * 0.15;
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* 火把支架 */}
+      <mesh position={[0, -0.02, 0]} castShadow>
+        <cylinderGeometry args={[0.008, 0.006, 0.04, 6]} />
+        <meshStandardMaterial color="#5a4030" roughness={0.9} />
+      </mesh>
+      {/* 火焰 */}
+      <mesh position={[0, 0.015, 0]}>
+        <sphereGeometry args={[0.012, 6, 6]} />
+        <meshStandardMaterial
+          color="#ff6600"
+          emissive="#ff4400"
+          emissiveIntensity={0.8}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+      <pointLight ref={lightRef} intensity={0.4} color="#ff6600" distance={0.5} />
+    </group>
+  );
+}
+
+// 烟雾效果
+function SmokeEffect({ position }: { position: [number, number, number] }) {
+  const smokeRefs = useRef<THREE.Mesh[]>([]);
+
+  useFrame((state) => {
+    smokeRefs.current.forEach((smoke, i) => {
+      if (smoke) {
+        const offset = i * 0.3;
+        const cycle = (state.clock.elapsedTime * 0.5 + offset) % 1;
+        smoke.position.y = cycle * 0.15;
+        const mat = smoke.material as THREE.MeshStandardMaterial;
+        mat.opacity = 0.3 * (1 - cycle);
+        smoke.scale.setScalar(0.8 + cycle * 0.5);
+      }
+    });
+  });
+
+  return (
+    <group position={position}>
+      {[0, 1, 2].map((i) => (
+        <mesh
+          key={i}
+          ref={(el) => { if (el) smokeRefs.current[i] = el; }}
+          position={[0, i * 0.05, 0]}
+        >
+          <sphereGeometry args={[0.015, 6, 6]} />
+          <meshStandardMaterial
+            color="#888888"
+            transparent
+            opacity={0.2}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// 旗帜效果
+function FlagEffect({ position, color = "#c9a227" }: { position: [number, number, number]; color?: string }) {
+  const flagRef = useRef<THREE.Group>(null);
+  const clothRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (flagRef.current) {
+      const time = state.clock.elapsedTime;
+      flagRef.current.rotation.z = Math.sin(time * 3) * 0.15;
+    }
+    if (clothRef.current) {
+      const time = state.clock.elapsedTime;
+      clothRef.current.position.x = 0.025 + Math.sin(time * 4) * 0.005;
+    }
+  });
+
+  return (
+    <group ref={flagRef} position={position}>
+      {/* 旗杆 */}
+      <mesh castShadow>
+        <cylinderGeometry args={[0.004, 0.004, 0.12, 6]} />
+        <meshStandardMaterial color="#5a4030" roughness={0.9} />
+      </mesh>
+      {/* 旗帜 */}
+      <mesh ref={clothRef} position={[0.025, 0.04, 0]} castShadow>
+        <planeGeometry args={[0.05, 0.035]} />
+        <meshStandardMaterial
+          color={color}
+          side={THREE.DoubleSide}
+          emissive={color}
+          emissiveIntensity={0.2}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// 角塔
+function CornerTower({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* 塔身 */}
+      <mesh position={[0, 0.12, 0]} castShadow>
+        <cylinderGeometry args={[0.04, 0.045, 0.24, 8]} />
+        <meshStandardMaterial color="#6b6b6b" roughness={0.85} />
+      </mesh>
+      {/* 塔顶石条装饰 */}
+      <mesh position={[0, 0.245, 0]} castShadow>
+        <cylinderGeometry args={[0.048, 0.04, 0.02, 8]} />
+        <meshStandardMaterial color="#5a5a5a" roughness={0.9} />
+      </mesh>
+      {/* 塔顶 */}
+      <mesh position={[0, 0.3, 0]} castShadow>
+        <coneGeometry args={[0.05, 0.08, 8]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.7} />
+      </mesh>
+      {/* 塔顶金球 */}
+      <mesh position={[0, 0.35, 0]} castShadow>
+        <sphereGeometry args={[0.012, 8, 8]} />
+        <meshStandardMaterial color="#c9a227" metalness={0.6} roughness={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+// 城墙段
+function WallSegment({ position, rotation = 0, length = 0.2 }: { position: [number, number, number]; rotation?: number; length?: number }) {
+  return (
+    <group position={position} rotation={[0, rotation, 0]}>
+      {/* 墙体 */}
+      <mesh position={[0, 0.06, 0]} castShadow>
+        <boxGeometry args={[length, 0.12, 0.03]} />
+        <meshStandardMaterial color="#6b6b6b" roughness={0.9} />
+      </mesh>
+      {/* 城垛 */}
+      {[-0.06, -0.02, 0.02, 0.06].map((x, i) => (
+        <mesh key={i} position={[x, 0.14, 0]} castShadow>
+          <boxGeometry args={[0.025, 0.04, 0.035]} />
+          <meshStandardMaterial color="#5a5a5a" roughness={0.9} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// 城门
+function GateStructure({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* 门框左 */}
+      <mesh position={[-0.04, 0.08, 0]} castShadow>
+        <boxGeometry args={[0.025, 0.16, 0.04]} />
+        <meshStandardMaterial color="#5a5a5a" roughness={0.9} />
+      </mesh>
+      {/* 门框右 */}
+      <mesh position={[0.04, 0.08, 0]} castShadow>
+        <boxGeometry args={[0.025, 0.16, 0.04]} />
+        <meshStandardMaterial color="#5a5a5a" roughness={0.9} />
+      </mesh>
+      {/* 门楣 */}
+      <mesh position={[0, 0.17, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.025, 0.045]} />
+        <meshStandardMaterial color="#5a5a5a" roughness={0.9} />
+      </mesh>
+      {/* 门洞 (深色) */}
+      <mesh position={[0, 0.06, -0.01]}>
+        <boxGeometry args={[0.05, 0.12, 0.02]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={1} />
+      </mesh>
+      {/* 门徽 */}
+      <mesh position={[0, 0.14, 0.025]} castShadow>
+        <circleGeometry args={[0.015, 8]} />
+        <meshStandardMaterial color="#c9a227" metalness={0.6} roughness={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+// 中央主楼
+function CentralKeep() {
+  return (
+    <group position={[0, 0, 0]}>
+      {/* 主楼底座 */}
+      <mesh position={[0, 0.1, 0]} castShadow>
+        <boxGeometry args={[0.16, 0.2, 0.16]} />
+        <meshStandardMaterial color="#7a6a5a" roughness={0.85} />
+      </mesh>
+      {/* 主楼上层 */}
+      <mesh position={[0, 0.24, 0]} castShadow>
+        <boxGeometry args={[0.12, 0.12, 0.12]} />
+        <meshStandardMaterial color="#8b7355" roughness={0.8} />
+      </mesh>
+      {/* 屋顶 */}
+      <mesh position={[0, 0.36, 0]} castShadow>
+        <coneGeometry args={[0.1, 0.1, 4]} />
+        <meshStandardMaterial color="#5a4a3a" roughness={0.7} />
+      </mesh>
+      {/* 屋顶尖顶 */}
+      <mesh position={[0, 0.43, 0]} castShadow>
+        <coneGeometry args={[0.02, 0.04, 4]} />
+        <meshStandardMaterial color="#c9a227" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* 窗户 - 正面 */}
+      <mesh position={[0, 0.24, 0.065]}>
+        <boxGeometry args={[0.025, 0.04, 0.01]} />
+        <meshStandardMaterial color="#ffd070" emissive="#ffd070" emissiveIntensity={0.5} />
+      </mesh>
+      {/* 窗户 - 侧面 */}
+      <mesh position={[0.065, 0.24, 0]}>
+        <boxGeometry args={[0.01, 0.04, 0.025]} />
+        <meshStandardMaterial color="#ffd070" emissive="#ffd070" emissiveIntensity={0.5} />
+      </mesh>
+      <mesh position={[-0.065, 0.24, 0]}>
+        <boxGeometry args={[0.01, 0.04, 0.025]} />
+        <meshStandardMaterial color="#ffd070" emissive="#ffd070" emissiveIntensity={0.5} />
+      </mesh>
+      {/* 底层窗户 */}
+      <mesh position={[0.04, 0.1, 0.085]}>
+        <boxGeometry args={[0.02, 0.03, 0.01]} />
+        <meshStandardMaterial color="#ffd070" emissive="#ffd070" emissiveIntensity={0.3} />
+      </mesh>
+      <mesh position={[-0.04, 0.1, 0.085]}>
+        <boxGeometry args={[0.02, 0.03, 0.01]} />
+        <meshStandardMaterial color="#ffd070" emissive="#ffd070" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+// 完整的基地城堡模型
+function BaseCastleModel() {
+  return (
+    <group>
+      {/* 城墙基座平台 */}
+      <mesh position={[0, 0.015, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.32, 0.35, 0.03, 8]} />
+        <meshStandardMaterial color="#5a5a5a" roughness={0.95} />
+      </mesh>
+
+      {/* 城墙段落 */}
+      <WallSegment position={[0, 0, 0.18]} rotation={0} />
+      <WallSegment position={[0, 0, -0.18]} rotation={Math.PI} />
+      <WallSegment position={[0.18, 0, 0]} rotation={Math.PI / 2} />
+      <WallSegment position={[-0.18, 0, 0]} rotation={-Math.PI / 2} />
+
+      {/* 四角塔楼 */}
+      <CornerTower position={[-0.15, 0, -0.15]} />
+      <CornerTower position={[0.15, 0, -0.15]} />
+      <CornerTower position={[-0.15, 0, 0.15]} />
+      <CornerTower position={[0.15, 0, 0.15]} />
+
+      {/* 中央主楼 */}
+      <CentralKeep />
+
+      {/* 城门 (正面) */}
+      <GateStructure position={[0, 0, 0.18]} />
+
+      {/* 主楼旗帜 */}
+      <FlagEffect position={[0, 0.47, 0]} color="#c9a227" />
+
+      {/* 塔楼旗帜 */}
+      <FlagEffect position={[-0.15, 0.38, -0.15]} color="#e74c3c" />
+      <FlagEffect position={[0.15, 0.38, -0.15]} color="#3498db" />
+
+      {/* 城门火把 */}
+      <TorchLight position={[-0.07, 0.12, 0.2]} />
+      <TorchLight position={[0.07, 0.12, 0.2]} />
+
+      {/* 主楼烟囱 */}
+      <SmokeEffect position={[0.05, 0.42, -0.03]} />
+
+      {/* 周围粒子效果 */}
+      <Sparkles count={20} scale={0.8} size={1.5} speed={0.2} color="#c9a227" position={[0, 0.3, 0]} />
+
+      {/* 底部光晕 */}
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.28, 0.36, 32]} />
+        <meshBasicMaterial color="#c9a227" transparent opacity={0.15} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+// ===== 神殿模型组件 =====
+
+// 神殿基座台阶
+function ShrineBase() {
+  return (
+    <group>
+      {/* 三层台阶 - 递减大小 */}
+      <mesh position={[0, 0.01, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.22, 0.02, 0.22]} />
+        <meshStandardMaterial color="#7a7a7a" roughness={0.95} />
+      </mesh>
+      <mesh position={[0, 0.03, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, 0.02, 0.18]} />
+        <meshStandardMaterial color="#8a8a8a" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.14, 0.02, 0.14]} />
+        <meshStandardMaterial color="#9a9a9a" roughness={0.85} />
+      </mesh>
+    </group>
+  );
+}
+
+// 神殿立柱
+function ShrinePillar({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* 柱础 */}
+      <mesh position={[0, 0.01, 0]} castShadow>
+        <boxGeometry args={[0.025, 0.02, 0.025]} />
+        <meshStandardMaterial color="#7a7a7a" roughness={0.9} />
+      </mesh>
+      {/* 柱身 */}
+      <mesh position={[0, 0.1, 0]} castShadow>
+        <cylinderGeometry args={[0.012, 0.015, 0.16, 8]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.85} />
+      </mesh>
+      {/* 柱头 */}
+      <mesh position={[0, 0.185, 0]} castShadow>
+        <boxGeometry args={[0.028, 0.015, 0.028]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.8} />
+      </mesh>
+    </group>
+  );
+}
+
+// 神殿屋顶
+function ShrineRoof() {
+  return (
+    <group position={[0, 0.22, 0]}>
+      {/* 屋顶主体 - 四角飞檐形状用多个组件模拟 */}
+      <mesh castShadow>
+        <boxGeometry args={[0.18, 0.015, 0.18]} />
+        <meshStandardMaterial color="#5a4a3a" roughness={0.8} />
+      </mesh>
+      {/* 屋顶上层 - 金字塔形 */}
+      <mesh position={[0, 0.025, 0]} castShadow>
+        <coneGeometry args={[0.1, 0.06, 4]} />
+        <meshStandardMaterial color="#5a4a3a" roughness={0.75} />
+      </mesh>
+      {/* 屋脊装饰 - 金色顶尖 */}
+      <mesh position={[0, 0.065, 0]} castShadow>
+        <sphereGeometry args={[0.012, 8, 8]} />
+        <meshStandardMaterial color="#c9a227" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* 飞檐边缘装饰 */}
+      {[
+        [0.09, 0, 0.09],
+        [-0.09, 0, 0.09],
+        [0.09, 0, -0.09],
+        [-0.09, 0, -0.09],
+      ].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]} castShadow>
+          <sphereGeometry args={[0.008, 6, 6]} />
+          <meshStandardMaterial color="#c9a227" metalness={0.5} roughness={0.4} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// 神殿祭坛
+function ShrineAltar({ shrineType = "wind" }: { shrineType?: string }) {
+  const altarRef = useRef<THREE.Mesh>(null);
+
+  // 根据神殿类型选择颜色
+  const defaultColor = { main: "#3498db", glow: "#5dade2" };
+  const colors: Record<string, { main: string; glow: string }> = {
+    wind: defaultColor,
+    attack: { main: "#e74c3c", glow: "#ec7063" },
+    defense: { main: "#27ae60", glow: "#58d68d" },
+    stamina: { main: "#f1c40f", glow: "#f7dc6f" },
+  };
+  const altarColor = colors[shrineType] ?? defaultColor;
+
+  useFrame((state) => {
+    if (altarRef.current) {
+      const mat = altarRef.current.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.2;
+    }
+  });
+
+  return (
+    <group position={[0, 0.08, 0]}>
+      {/* 祭坛基座 */}
+      <mesh position={[0, 0.015, 0]} castShadow>
+        <cylinderGeometry args={[0.03, 0.035, 0.03, 8]} />
+        <meshStandardMaterial color="#5a5a5a" roughness={0.9} />
+      </mesh>
+      {/* 神圣符文/光球 */}
+      <mesh ref={altarRef} position={[0, 0.055, 0]} castShadow>
+        <octahedronGeometry args={[0.025, 0]} />
+        <meshStandardMaterial
+          color={altarColor.main}
+          emissive={altarColor.glow}
+          emissiveIntensity={0.6}
+          roughness={0.2}
+          metalness={0.3}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+      {/* 祭坛光效 */}
+      <pointLight intensity={0.4} color={altarColor.glow} distance={0.8} position={[0, 0.06, 0]} />
+    </group>
+  );
+}
+
+// 风铃装饰
+function WindChimes({ position }: { position: [number, number, number] }) {
+  const chimeRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (chimeRef.current) {
+      chimeRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 3) * 0.1;
+      chimeRef.current.rotation.x = Math.cos(state.clock.elapsedTime * 2.5) * 0.05;
+    }
+  });
+
+  return (
+    <group ref={chimeRef} position={position}>
+      {/* 挂绳 */}
+      <mesh position={[0, -0.01, 0]} castShadow>
+        <cylinderGeometry args={[0.002, 0.002, 0.02, 4]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.9} />
+      </mesh>
+      {/* 风铃主体 */}
+      <mesh position={[0, -0.03, 0]} castShadow>
+        <coneGeometry args={[0.012, 0.025, 6]} />
+        <meshStandardMaterial color="#c9a227" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* 风铃舌 */}
+      <mesh position={[0, -0.05, 0]} castShadow>
+        <cylinderGeometry args={[0.003, 0.003, 0.015, 4]} />
+        <meshStandardMaterial color="#c9a227" metalness={0.6} roughness={0.4} />
+      </mesh>
+    </group>
+  );
+}
+
+// 神殿布帘
+function ShrineCloth({ position, color = "#c9a227" }: { position: [number, number, number]; color?: string }) {
+  const clothRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (clothRef.current) {
+      clothRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 2) * 0.15;
+      clothRef.current.position.x = position[0] + Math.sin(state.clock.elapsedTime * 2.5) * 0.003;
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* 挂杆 */}
+      <mesh position={[0, 0.02, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.003, 0.003, 0.04, 4]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.9} />
+      </mesh>
+      {/* 布帘 */}
+      <mesh ref={clothRef} position={[0, -0.02, 0]} castShadow>
+        <planeGeometry args={[0.035, 0.06]} />
+        <meshStandardMaterial
+          color={color}
+          side={THREE.DoubleSide}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// 完整神殿模型
+function ShrineModel({ shrineType = "wind" }: { shrineType?: string }) {
+  // 根据神殿类型选择布帘颜色
+  const clothColors: Record<string, string> = {
+    wind: "#3498db",
+    attack: "#e74c3c",
+    defense: "#27ae60",
+    stamina: "#f1c40f",
+  };
+  const clothColor = clothColors[shrineType] ?? "#c9a227";
+
+  return (
+    <group>
+      {/* 基座台阶 */}
+      <ShrineBase />
+
+      {/* 四根立柱 */}
+      <ShrinePillar position={[-0.055, 0.06, -0.055]} />
+      <ShrinePillar position={[0.055, 0.06, -0.055]} />
+      <ShrinePillar position={[-0.055, 0.06, 0.055]} />
+      <ShrinePillar position={[0.055, 0.06, 0.055]} />
+
+      {/* 屋顶 */}
+      <ShrineRoof />
+
+      {/* 中央祭坛 */}
+      <ShrineAltar shrineType={shrineType} />
+
+      {/* 风铃装饰 - 四角 */}
+      <WindChimes position={[0.09, 0.22, 0.09]} />
+      <WindChimes position={[-0.09, 0.22, 0.09]} />
+      <WindChimes position={[0.09, 0.22, -0.09]} />
+      <WindChimes position={[-0.09, 0.22, -0.09]} />
+
+      {/* 布帘装饰 - 两侧 */}
+      <ShrineCloth position={[0.08, 0.15, 0]} color={clothColor} />
+      <ShrineCloth position={[-0.08, 0.15, 0]} color={clothColor} />
+
+      {/* 神圣粒子效果 */}
+      <Sparkles
+        count={15}
+        scale={0.35}
+        size={1.5}
+        speed={0.3}
+        color={clothColor}
+        position={[0, 0.15, 0]}
+      />
+
+      {/* 底部光晕 */}
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.1, 0.16, 24]} />
+        <meshBasicMaterial color={clothColor} transparent opacity={0.2} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
 function TerrainDecorations({ biome, seed }: { biome: string; seed: number }) {
   const decorations = useMemo(() => {
     const rand = seededRandom(seed);
@@ -608,17 +1153,8 @@ function TerrainTile({
       )}
 
       {isCenter && !hasHero && explorationLevel === 2 && (
-        <group position={[0, tileThickness / 2 + 0.15, 0]}>
-          <mesh castShadow>
-            <boxGeometry args={[0.3, 0.4, 0.3]} />
-            <meshStandardMaterial color="#8b7355" />
-          </mesh>
-          <mesh position={[0, 0.25, 0]} castShadow>
-            <coneGeometry args={[0.25, 0.2, 4]} />
-            <meshStandardMaterial color="#c9a227" />
-          </mesh>
-          {/* 城门粒子效果 */}
-          <Sparkles count={15} scale={0.6} size={2} speed={0.3} color="#c9a227" />
+        <group position={[0, tileThickness / 2, 0]}>
+          <BaseCastleModel />
         </group>
       )}
 
@@ -653,6 +1189,12 @@ function POIMarker({ type }: { type: string }) {
     }
   });
 
+  // 神殿类型使用专属模型
+  if (type === "shrine") {
+    return <ShrineModel shrineType="wind" />;
+  }
+
+  // 其他类型使用八面体水晶
   return (
     <Float speed={2} rotationIntensity={0.1} floatIntensity={0.3}>
       <group ref={groupRef} position={[0, 0.25, 0]}>
