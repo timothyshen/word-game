@@ -709,12 +709,12 @@ export default function OuterCityFullMap() {
         </div>
       )}
 
-      {/* POI交互面板 */}
+      {/* POI交互面板 - 右侧位置 */}
       {currentPOI && !combat?.active && selectedHero && (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0a0a0c]/95 backdrop-blur border border-[#3a3a42] rounded-lg p-4 z-20 min-w-[280px]">
-          <div className="flex items-center justify-between gap-4">
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#0a0a0c]/95 backdrop-blur border border-[#3a3a42] rounded-lg p-4 z-20 w-64">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{currentPOI.icon}</span>
+              <span className="text-3xl">{currentPOI.icon}</span>
               <div>
                 <div className="text-sm font-bold text-[#e0dcd0]">{currentPOI.name}</div>
                 <div className="text-xs text-[#888]">
@@ -729,60 +729,62 @@ export default function OuterCityFullMap() {
               </div>
             </div>
 
-            {currentPOI.type === "resource" && (
-              <button
-                onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
-                disabled={harvestResource.isPending || currentPOI.resourceAmount <= 0}
-                className="px-4 py-2 text-sm bg-[#4a9] hover:bg-[#5ba] disabled:opacity-50 disabled:cursor-not-allowed rounded"
-              >
-                {harvestResource.isPending ? "..." : "采集"}
-              </button>
-            )}
-            {(currentPOI.type === "garrison" || currentPOI.type === "lair") && !currentPOI.isDefeated && (
-              <button
-                onClick={() => startCombat.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
-                disabled={startCombat.isPending}
-                className="px-4 py-2 text-sm bg-[#e74c3c] hover:bg-[#c0392b] disabled:opacity-50 rounded"
-              >
-                {startCombat.isPending ? "..." : "战斗"}
-              </button>
-            )}
-            {(currentPOI.type === "garrison" || currentPOI.type === "lair") && currentPOI.isDefeated && (
-              <span className="text-sm text-[#4a9]">已征服</span>
-            )}
-            {currentPOI.type === "settlement" && (
-              <span className="text-sm text-[#3498db]">交易中...</span>
-            )}
-            {currentPOI.type === "shrine" && (
-              <button
-                onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
-                disabled={harvestResource.isPending}
-                className="px-4 py-2 text-sm bg-[#f1c40f] hover:bg-[#f39c12] text-[#08080a] disabled:opacity-50 rounded"
-              >
-                {harvestResource.isPending ? "..." : "祈祷"}
-              </button>
-            )}
-            {currentPOI.type === "ruin" && !currentPOI.isDefeated && (
-              <button
-                onClick={() => startCombat.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
-                disabled={startCombat.isPending}
-                className="px-4 py-2 text-sm bg-[#95a5a6] hover:bg-[#7f8c8d] disabled:opacity-50 rounded"
-              >
-                {startCombat.isPending ? "..." : "探索"}
-              </button>
-            )}
-            {currentPOI.type === "ruin" && currentPOI.isDefeated && (
-              <span className="text-sm text-[#4a9]">已探索</span>
-            )}
-            {currentPOI.type === "caravan" && (
-              <button
-                onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
-                disabled={harvestResource.isPending}
-                className="px-4 py-2 text-sm bg-[#e67e22] hover:bg-[#d35400] disabled:opacity-50 rounded"
-              >
-                {harvestResource.isPending ? "..." : "交易"}
-              </button>
-            )}
+            <div className="flex justify-end">
+              {currentPOI.type === "resource" && (
+                <button
+                  onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                  disabled={harvestResource.isPending || currentPOI.resourceAmount <= 0}
+                  className="px-4 py-2 text-sm bg-[#4a9] hover:bg-[#5ba] disabled:opacity-50 disabled:cursor-not-allowed rounded w-full"
+                >
+                  {harvestResource.isPending ? "..." : "采集"}
+                </button>
+              )}
+              {(currentPOI.type === "garrison" || currentPOI.type === "lair") && !currentPOI.isDefeated && (
+                <button
+                  onClick={() => startCombat.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                  disabled={startCombat.isPending}
+                  className="px-4 py-2 text-sm bg-[#e74c3c] hover:bg-[#c0392b] disabled:opacity-50 rounded w-full"
+                >
+                  {startCombat.isPending ? "..." : "战斗"}
+                </button>
+              )}
+              {(currentPOI.type === "garrison" || currentPOI.type === "lair") && currentPOI.isDefeated && (
+                <span className="text-sm text-[#4a9] py-2">已征服</span>
+              )}
+              {currentPOI.type === "settlement" && (
+                <span className="text-sm text-[#3498db] py-2">交易中...</span>
+              )}
+              {currentPOI.type === "shrine" && (
+                <button
+                  onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                  disabled={harvestResource.isPending}
+                  className="px-4 py-2 text-sm bg-[#f1c40f] hover:bg-[#f39c12] text-[#08080a] disabled:opacity-50 rounded w-full"
+                >
+                  {harvestResource.isPending ? "..." : "祈祷"}
+                </button>
+              )}
+              {currentPOI.type === "ruin" && !currentPOI.isDefeated && (
+                <button
+                  onClick={() => startCombat.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                  disabled={startCombat.isPending}
+                  className="px-4 py-2 text-sm bg-[#95a5a6] hover:bg-[#7f8c8d] disabled:opacity-50 rounded w-full"
+                >
+                  {startCombat.isPending ? "..." : "探索"}
+                </button>
+              )}
+              {currentPOI.type === "ruin" && currentPOI.isDefeated && (
+                <span className="text-sm text-[#4a9] py-2">已探索</span>
+              )}
+              {currentPOI.type === "caravan" && (
+                <button
+                  onClick={() => harvestResource.mutate({ heroId: selectedHero.id, poiId: currentPOI.id })}
+                  disabled={harvestResource.isPending}
+                  className="px-4 py-2 text-sm bg-[#e67e22] hover:bg-[#d35400] disabled:opacity-50 rounded w-full"
+                >
+                  {harvestResource.isPending ? "..." : "交易"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -794,14 +796,14 @@ export default function OuterCityFullMap() {
         </div>
       )}
 
-      {/* 底部状态提示 */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+      {/* 底部状态提示 - 左侧位置，避开HUD */}
+      <div className="absolute bottom-20 left-64 z-10">
         {selectedHero ? (
-          <span className="px-4 py-2 bg-[#0a0a0c]/80 backdrop-blur rounded text-sm text-[#888]">
+          <span className="px-3 py-1.5 bg-[#0a0a0c]/80 backdrop-blur rounded text-xs text-[#888]">
             {selectedHero.character.character.name} ({selectedHero.positionX}, {selectedHero.positionY}) · 点击相邻格子移动
           </span>
         ) : (
-          <span className="px-4 py-2 bg-[#0a0a0c]/80 backdrop-blur rounded text-sm text-[#666]">
+          <span className="px-3 py-1.5 bg-[#0a0a0c]/80 backdrop-blur rounded text-xs text-[#666]">
             {status?.heroes?.length ? "选择英雄开始探索" : "派遣角色探索外城"}
           </span>
         )}
