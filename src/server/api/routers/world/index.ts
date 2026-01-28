@@ -5,10 +5,12 @@ import { heroesRouter } from "./heroes";
 import { mapRouter } from "./map";
 import { poiRouter } from "./poi";
 import { combatRouter } from "./combat";
+import { eventsRouter } from "./events";
 
 // 导出子路由供直接使用
-export { heroesRouter, mapRouter, poiRouter, combatRouter };
+export { heroesRouter, mapRouter, poiRouter, combatRouter, eventsRouter };
 export * from "./helpers";
+export * from "./events";
 
 // 合并为outerCityRouter，保持向后兼容
 export const outerCityRouter = createTRPCRouter({
@@ -30,4 +32,7 @@ export const outerCityRouter = createTRPCRouter({
   // 战斗系统
   startCombat: combatRouter.start,
   combatAction: combatRouter.action,
+
+  // 事件系统
+  handleEventChoice: eventsRouter.handleChoice,
 });

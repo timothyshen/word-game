@@ -1,28 +1,117 @@
 "use client";
 
-import { useState, useRef, Suspense } from "react";
+import React, { useState, useRef, Suspense, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Float, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { api } from "~/trpc/react";
 import { BIOME_COLORS, POI_COLORS } from "~/constants";
+import MapEventModal from "./MapEventModal";
+
+// 事件类型
+interface ExplorationEvent {
+  type: string;
+  title: string;
+  description: string;
+  options: Array<{
+    id: string;
+    text: string;
+    action: string;
+  }>;
+  rewards?: Record<string, number>;
+  monster?: {
+    name: string;
+    icon: string;
+    level: number;
+    hp: number;
+    attack: number;
+    defense: number;
+    rewards: {
+      exp: number;
+      gold: number;
+    };
+  };
+}
+
+// ===== 地形高度计算 =====
+
+function getTerrainHeight(x: number, y: number, biome: string): number {
+  const seed = x * 73856093 + y * 19349663;
+  const noise = ((Math.abs(seed) % 1000) / 1000);
+
+  const baseHeight: Record<string, number> = {
+    mountain: 0.25,
+    forest: 0.08,
+    grassland: 0.02,
+    swamp: -0.02,
+    desert: 0.05,
+  };
+
+  const variation: Record<string, number> = {
+    mountain: 0.15,
+    forest: 0.05,
+    grassland: 0.02,
+    swamp: 0.02,
+    desert: 0.08,
+  };
+
+  return (baseHeight[biome] ?? 0.05) + noise * (variation[biome] ?? 0.03);
+}
+
+// 种子随机函数
+function seededRandom(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
 
 // ===== 3D地形装饰组件 =====
 
-function TreeModel({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
+function TreeModel({ position, scale = 1, variant = 0 }: { position: [number, number, number]; scale?: number; variant?: number }) {
+  const treeRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (treeRef.current) {
+      const wind = Math.sin(state.clock.elapsedTime * 1.5 + position[0] * 2 + position[2]) * 0.02;
+      treeRef.current.rotation.z = wind;
+      treeRef.current.rotation.x = wind * 0.5;
+    }
+  });
+
+  // 根据 variant 选择不同树型
+  const treeColors = [
+    { trunk: "#4a3520", foliage: ["#2d5a27", "#3a6a37", "#4a7a47"] }, // 深绿松树
+    { trunk: "#5a4030", foliage: ["#3a7035", "#4a8045", "#5a9055"] }, // 橡树
+    { trunk: "#8a7a6a", foliage: ["#5a8a4a", "#6a9a5a", "#7aaa6a"] }, // 白桦
+  ];
+  const colors = treeColors[variant % 3]!;
+
   return (
-    <group position={position} scale={scale}>
-      <mesh position={[0, 0.1, 0]} castShadow>
-        <cylinderGeometry args={[0.02, 0.03, 0.2, 6]} />
-        <meshStandardMaterial color="#5a4030" roughness={0.9} />
+    <group ref={treeRef} position={position} scale={scale}>
+      {/* 树干 - 多段弯曲 */}
+      <mesh position={[0, 0.06, 0]} castShadow>
+        <cylinderGeometry args={[0.015, 0.025, 0.12, 6]} />
+        <meshStandardMaterial color={colors.trunk} roughness={0.95} />
       </mesh>
-      <mesh position={[0, 0.25, 0]} castShadow>
-        <coneGeometry args={[0.1, 0.2, 6]} />
-        <meshStandardMaterial color="#2d5a27" roughness={0.8} />
+      <mesh position={[0.005, 0.14, 0.003]} rotation={[0.05, 0, 0.03]} castShadow>
+        <cylinderGeometry args={[0.012, 0.018, 0.1, 6]} />
+        <meshStandardMaterial color={colors.trunk} roughness={0.95} />
       </mesh>
-      <mesh position={[0, 0.35, 0]} castShadow>
-        <coneGeometry args={[0.07, 0.15, 6]} />
-        <meshStandardMaterial color="#3a6a37" roughness={0.8} />
+
+      {/* 树冠 - 分层球形 */}
+      <mesh position={[0, 0.22, 0]} castShadow>
+        <sphereGeometry args={[0.09, 8, 6]} />
+        <meshStandardMaterial color={colors.foliage[0]} roughness={0.85} />
+      </mesh>
+      <mesh position={[0.02, 0.28, 0.01]} castShadow>
+        <sphereGeometry args={[0.07, 8, 6]} />
+        <meshStandardMaterial color={colors.foliage[1]} roughness={0.85} />
+      </mesh>
+      <mesh position={[-0.01, 0.33, -0.01]} castShadow>
+        <sphereGeometry args={[0.05, 8, 6]} />
+        <meshStandardMaterial color={colors.foliage[2]} roughness={0.85} />
       </mesh>
     </group>
   );
@@ -80,14 +169,144 @@ function ReedModel({ position, scale = 1 }: { position: [number, number, number]
 }
 
 function GrassModel({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
+  const grassRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (grassRef.current) {
+      const wind = Math.sin(state.clock.elapsedTime * 2.5 + position[0] * 3 + position[2] * 2) * 0.15;
+      grassRef.current.rotation.z = wind;
+    }
+  });
+
   return (
-    <group position={position} scale={scale}>
+    <group ref={grassRef} position={position} scale={scale}>
       {[-0.03, 0, 0.03].map((x, i) => (
         <mesh key={i} position={[x, 0.03, (i - 1) * 0.02]} castShadow>
           <coneGeometry args={[0.01, 0.06, 4]} />
-          <meshStandardMaterial color="#5a8a59" roughness={0.9} />
+          <meshStandardMaterial color={i === 1 ? "#5a8a59" : "#4a7a49"} roughness={0.9} />
         </mesh>
       ))}
+    </group>
+  );
+}
+
+// 新增：蘑菇模型
+function MushroomModel({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
+  return (
+    <group position={position} scale={scale}>
+      {/* 蘑菇柄 */}
+      <mesh position={[0, 0.02, 0]} castShadow>
+        <cylinderGeometry args={[0.008, 0.012, 0.04, 6]} />
+        <meshStandardMaterial color="#e8dcc8" roughness={0.8} />
+      </mesh>
+      {/* 蘑菇帽 */}
+      <mesh position={[0, 0.045, 0]} castShadow>
+        <sphereGeometry args={[0.025, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
+// 新增：灌木模型
+function BushModel({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
+  const bushRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (bushRef.current) {
+      const wind = Math.sin(state.clock.elapsedTime * 1.2 + position[0] * 2) * 0.01;
+      bushRef.current.rotation.z = wind;
+    }
+  });
+
+  return (
+    <group ref={bushRef} position={position} scale={scale}>
+      <mesh position={[0, 0.04, 0]} castShadow>
+        <sphereGeometry args={[0.05, 8, 6]} />
+        <meshStandardMaterial color="#3a5a35" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.03, 0.03, 0.02]} castShadow>
+        <sphereGeometry args={[0.035, 6, 5]} />
+        <meshStandardMaterial color="#4a6a45" roughness={0.9} />
+      </mesh>
+      <mesh position={[-0.025, 0.025, -0.02]} castShadow>
+        <sphereGeometry args={[0.03, 6, 5]} />
+        <meshStandardMaterial color="#3a5a35" roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+// 新增：野花模型
+function FlowerModel({ position, scale = 1, color = "#ff6b9d" }: { position: [number, number, number]; scale?: number; color?: string }) {
+  const flowerRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (flowerRef.current) {
+      const sway = Math.sin(state.clock.elapsedTime * 2 + position[0] * 5) * 0.1;
+      flowerRef.current.rotation.z = sway;
+    }
+  });
+
+  return (
+    <group ref={flowerRef} position={position} scale={scale}>
+      {/* 茎 */}
+      <mesh position={[0, 0.025, 0]} castShadow>
+        <cylinderGeometry args={[0.003, 0.004, 0.05, 4]} />
+        <meshStandardMaterial color="#4a7a45" roughness={0.8} />
+      </mesh>
+      {/* 花朵 */}
+      <mesh position={[0, 0.055, 0]} castShadow>
+        <sphereGeometry args={[0.012, 6, 6]} />
+        <meshStandardMaterial color={color} roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+// 新增：枯树模型 (沙漠用)
+function DeadTreeModel({ position, scale = 1 }: { position: [number, number, number]; scale?: number }) {
+  return (
+    <group position={position} scale={scale}>
+      {/* 主干 */}
+      <mesh position={[0, 0.1, 0]} rotation={[0.1, 0, 0.05]} castShadow>
+        <cylinderGeometry args={[0.015, 0.025, 0.2, 5]} />
+        <meshStandardMaterial color="#5a4a3a" roughness={0.95} />
+      </mesh>
+      {/* 枯枝 */}
+      <mesh position={[0.04, 0.15, 0]} rotation={[0, 0, -0.8]} castShadow>
+        <cylinderGeometry args={[0.005, 0.01, 0.08, 4]} />
+        <meshStandardMaterial color="#5a4a3a" roughness={0.95} />
+      </mesh>
+      <mesh position={[-0.03, 0.18, 0.02]} rotation={[0.2, 0, 0.6]} castShadow>
+        <cylinderGeometry args={[0.004, 0.008, 0.06, 4]} />
+        <meshStandardMaterial color="#5a4a3a" roughness={0.95} />
+      </mesh>
+    </group>
+  );
+}
+
+// 新增：睡莲模型
+function LilyPadModel({ position }: { position: [number, number, number] }) {
+  const lilyRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (lilyRef.current) {
+      lilyRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.8 + position[0]) * 0.003;
+    }
+  });
+
+  return (
+    <group ref={lilyRef} position={position}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} castShadow>
+        <circleGeometry args={[0.04, 12]} />
+        <meshStandardMaterial color="#2a6a35" roughness={0.7} side={THREE.DoubleSide} />
+      </mesh>
+      {/* 小花 */}
+      <mesh position={[0, 0.01, 0]}>
+        <sphereGeometry args={[0.008, 6, 6]} />
+        <meshStandardMaterial color="#ffaacc" roughness={0.6} />
+      </mesh>
     </group>
   );
 }
@@ -117,58 +336,197 @@ function WaterPuddle({ position }: { position: [number, number, number] }) {
 }
 
 function TerrainDecorations({ biome, seed }: { biome: string; seed: number }) {
-  const random = (n: number) => ((seed * 9301 + 49297) % 233280) / 233280 * n;
+  const decorations = useMemo(() => {
+    const rand = seededRandom(seed);
+    const items: React.ReactElement[] = [];
 
-  if (biome === "forest") {
-    return (
-      <>
-        <TreeModel position={[random(0.3) - 0.15, 0, random(0.3) - 0.15]} scale={0.8 + random(0.4)} />
-        {random(1) > 0.5 && (
-          <TreeModel position={[random(0.2) + 0.1, 0, random(0.2) - 0.3]} scale={0.6 + random(0.3)} />
-        )}
-      </>
-    );
-  }
+    if (biome === "forest") {
+      // 6-8 个装饰: 树木、灌木、蘑菇
+      const treeCount = 2 + Math.floor(rand() * 2);
+      for (let i = 0; i < treeCount; i++) {
+        items.push(
+          <TreeModel
+            key={`tree-${i}`}
+            position={[rand() * 0.6 - 0.3, 0, rand() * 0.6 - 0.3]}
+            scale={0.6 + rand() * 0.5}
+            variant={Math.floor(rand() * 3)}
+          />
+        );
+      }
+      // 灌木
+      if (rand() > 0.3) {
+        items.push(
+          <BushModel
+            key="bush-1"
+            position={[rand() * 0.4 - 0.2, 0, rand() * 0.4 - 0.2]}
+            scale={0.8 + rand() * 0.4}
+          />
+        );
+      }
+      if (rand() > 0.5) {
+        items.push(
+          <BushModel
+            key="bush-2"
+            position={[rand() * 0.4 + 0.1, 0, rand() * 0.4 - 0.3]}
+            scale={0.6 + rand() * 0.3}
+          />
+        );
+      }
+      // 蘑菇
+      const mushroomCount = Math.floor(rand() * 3);
+      for (let i = 0; i < mushroomCount; i++) {
+        items.push(
+          <MushroomModel
+            key={`mushroom-${i}`}
+            position={[rand() * 0.5 - 0.25, 0, rand() * 0.5 - 0.25]}
+            scale={0.8 + rand() * 0.6}
+          />
+        );
+      }
+    }
 
-  if (biome === "mountain") {
-    return (
-      <>
-        <RockModel position={[random(0.2) - 0.1, 0.05, random(0.2) - 0.1]} scale={1 + random(0.5)} />
-        <RockModel position={[random(0.2) + 0.1, 0.03, random(0.2) - 0.2]} scale={0.6 + random(0.3)} />
-      </>
-    );
-  }
+    if (biome === "mountain") {
+      // 4-6 个装饰: 岩石、碎石
+      const rockCount = 3 + Math.floor(rand() * 3);
+      for (let i = 0; i < rockCount; i++) {
+        items.push(
+          <RockModel
+            key={`rock-${i}`}
+            position={[rand() * 0.5 - 0.25, 0.03 + rand() * 0.05, rand() * 0.5 - 0.25]}
+            scale={0.4 + rand() * 0.8}
+          />
+        );
+      }
+    }
 
-  if (biome === "desert") {
-    return random(1) > 0.4 ? (
-      <CactusModel position={[random(0.3) - 0.15, 0, random(0.3) - 0.15]} scale={0.8 + random(0.4)} />
-    ) : null;
-  }
+    if (biome === "desert") {
+      // 3-5 个装饰: 仙人掌、枯树、岩石
+      if (rand() > 0.3) {
+        items.push(
+          <CactusModel
+            key="cactus-1"
+            position={[rand() * 0.4 - 0.2, 0, rand() * 0.4 - 0.2]}
+            scale={0.8 + rand() * 0.5}
+          />
+        );
+      }
+      if (rand() > 0.5) {
+        items.push(
+          <CactusModel
+            key="cactus-2"
+            position={[rand() * 0.3 + 0.1, 0, rand() * 0.3 - 0.2]}
+            scale={0.5 + rand() * 0.4}
+          />
+        );
+      }
+      if (rand() > 0.6) {
+        items.push(
+          <DeadTreeModel
+            key="deadtree"
+            position={[rand() * 0.4 - 0.2, 0, rand() * 0.4 - 0.2]}
+            scale={0.7 + rand() * 0.4}
+          />
+        );
+      }
+      // 小石头
+      const smallRockCount = Math.floor(rand() * 3);
+      for (let i = 0; i < smallRockCount; i++) {
+        items.push(
+          <RockModel
+            key={`rock-${i}`}
+            position={[rand() * 0.5 - 0.25, 0.02, rand() * 0.5 - 0.25]}
+            scale={0.3 + rand() * 0.3}
+          />
+        );
+      }
+    }
 
-  if (biome === "swamp") {
-    return (
-      <>
-        <WaterPuddle position={[random(0.2) - 0.1, 0.06, random(0.2) - 0.1]} />
-        <ReedModel position={[random(0.2) + 0.1, 0, random(0.2) - 0.2]} scale={0.8 + random(0.3)} />
-      </>
-    );
-  }
+    if (biome === "swamp") {
+      // 5-7 个装饰: 水洼、芦苇、睡莲
+      items.push(
+        <WaterPuddle
+          key="water"
+          position={[rand() * 0.3 - 0.15, 0.05, rand() * 0.3 - 0.15]}
+        />
+      );
+      // 芦苇
+      const reedCount = 2 + Math.floor(rand() * 3);
+      for (let i = 0; i < reedCount; i++) {
+        items.push(
+          <ReedModel
+            key={`reed-${i}`}
+            position={[rand() * 0.5 - 0.25, 0, rand() * 0.5 - 0.25]}
+            scale={0.7 + rand() * 0.4}
+          />
+        );
+      }
+      // 睡莲
+      if (rand() > 0.4) {
+        items.push(
+          <LilyPadModel
+            key="lily-1"
+            position={[rand() * 0.2 - 0.1, 0.06, rand() * 0.2 - 0.1]}
+          />
+        );
+      }
+      if (rand() > 0.6) {
+        items.push(
+          <LilyPadModel
+            key="lily-2"
+            position={[rand() * 0.2 + 0.05, 0.06, rand() * 0.2 - 0.15]}
+          />
+        );
+      }
+    }
 
-  if (biome === "grassland") {
-    return random(1) > 0.5 ? (
-      <>
-        <GrassModel position={[random(0.3) - 0.15, 0, random(0.3) - 0.15]} />
-        <GrassModel position={[random(0.2) + 0.1, 0, random(0.2) - 0.2]} />
-      </>
-    ) : null;
-  }
+    if (biome === "grassland") {
+      // 4-6 个装饰: 草丛、野花、小石头
+      const grassCount = 3 + Math.floor(rand() * 2);
+      for (let i = 0; i < grassCount; i++) {
+        items.push(
+          <GrassModel
+            key={`grass-${i}`}
+            position={[rand() * 0.6 - 0.3, 0, rand() * 0.6 - 0.3]}
+            scale={0.8 + rand() * 0.4}
+          />
+        );
+      }
+      // 野花
+      const flowerColors = ["#ff6b9d", "#ffaa55", "#aa88ff", "#77ccff", "#ffff77"];
+      const flowerCount = Math.floor(rand() * 3);
+      for (let i = 0; i < flowerCount; i++) {
+        items.push(
+          <FlowerModel
+            key={`flower-${i}`}
+            position={[rand() * 0.5 - 0.25, 0, rand() * 0.5 - 0.25]}
+            scale={0.8 + rand() * 0.4}
+            color={flowerColors[Math.floor(rand() * flowerColors.length)]}
+          />
+        );
+      }
+      // 偶尔有小灌木
+      if (rand() > 0.7) {
+        items.push(
+          <BushModel
+            key="bush"
+            position={[rand() * 0.4 - 0.2, 0, rand() * 0.4 - 0.2]}
+            scale={0.5 + rand() * 0.3}
+          />
+        );
+      }
+    }
 
-  return null;
+    return items;
+  }, [biome, seed]);
+
+  return <>{decorations}</>;
 }
 
 // 3D 地形瓦片
 function TerrainTile({
   position,
+  worldX,
+  worldY,
   biome,
   explorationLevel,
   hasHero,
@@ -179,6 +537,8 @@ function TerrainTile({
   onClick,
 }: {
   position: [number, number, number];
+  worldX: number;
+  worldY: number;
   biome: string;
   explorationLevel: number;
   hasHero: boolean;
@@ -194,6 +554,11 @@ function TerrainTile({
   const color = BIOME_COLORS[biome] ?? "#333";
   const opacity = explorationLevel === 2 ? 1 : explorationLevel === 1 ? 0.4 : 0.1;
 
+  // 计算地形高度
+  const height = explorationLevel === 2 ? getTerrainHeight(worldX, worldY, biome) : 0;
+  // 山地使用更厚的瓦片
+  const tileThickness = biome === "mountain" ? 0.15 + height * 0.3 : 0.1;
+
   useFrame((state) => {
     if (meshRef.current && canMove) {
       const mat = meshRef.current.material as THREE.MeshStandardMaterial;
@@ -202,15 +567,16 @@ function TerrainTile({
   });
 
   return (
-    <group position={position}>
+    <group position={[position[0], height, position[2]]}>
       <mesh
         ref={meshRef}
         receiveShadow
+        castShadow
         onClick={onClick}
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
       >
-        <boxGeometry args={[0.95, 0.1, 0.95]} />
+        <boxGeometry args={[0.95, tileThickness, 0.95]} />
         <meshStandardMaterial
           color={color}
           transparent
@@ -220,6 +586,20 @@ function TerrainTile({
         />
       </mesh>
 
+      {/* 沼泽添加水面层 */}
+      {biome === "swamp" && explorationLevel === 2 && (
+        <mesh position={[0, tileThickness / 2 + 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[0.9, 0.9]} />
+          <meshStandardMaterial
+            color="#2a4a5a"
+            transparent
+            opacity={0.4}
+            roughness={0.1}
+            metalness={0.3}
+          />
+        </mesh>
+      )}
+
       {explorationLevel === 1 && (
         <mesh position={[0, 0.15, 0]}>
           <boxGeometry args={[0.9, 0.2, 0.9]} />
@@ -228,7 +608,7 @@ function TerrainTile({
       )}
 
       {isCenter && !hasHero && explorationLevel === 2 && (
-        <group position={[0, 0.2, 0]}>
+        <group position={[0, tileThickness / 2 + 0.15, 0]}>
           <mesh castShadow>
             <boxGeometry args={[0.3, 0.4, 0.3]} />
             <meshStandardMaterial color="#8b7355" />
@@ -237,33 +617,66 @@ function TerrainTile({
             <coneGeometry args={[0.25, 0.2, 4]} />
             <meshStandardMaterial color="#c9a227" />
           </mesh>
+          {/* 城门粒子效果 */}
+          <Sparkles count={15} scale={0.6} size={2} speed={0.3} color="#c9a227" />
         </group>
       )}
 
       {explorationLevel === 2 && !hasPOI && !hasHero && !isCenter && (
-        <TerrainDecorations biome={biome} seed={position[0] * 100 + position[2]} />
+        <group position={[0, tileThickness / 2, 0]}>
+          <TerrainDecorations biome={biome} seed={worldX * 100 + worldY} />
+        </group>
       )}
 
       {hasPOI && !hasHero && explorationLevel === 2 && (
-        <POIMarker type={poiType ?? "resource"} />
+        <group position={[0, tileThickness / 2, 0]}>
+          <POIMarker type={poiType ?? "resource"} />
+        </group>
       )}
 
-      {hasHero && <HeroMarker />}
+      {hasHero && (
+        <group position={[0, tileThickness / 2, 0]}>
+          <HeroMarker />
+        </group>
+      )}
     </group>
   );
 }
 
 function POIMarker({ type }: { type: string }) {
   const color = POI_COLORS[type] ?? "#888";
+  const groupRef = useRef<THREE.Group>(null);
+
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y = state.clock.elapsedTime * 0.5;
+    }
+  });
 
   return (
-    <group position={[0, 0.2, 0]}>
-      <mesh castShadow>
-        <cylinderGeometry args={[0.15, 0.15, 0.3, 8]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.3} />
-      </mesh>
-      <pointLight intensity={0.3} color={color} distance={1.5} />
-    </group>
+    <Float speed={2} rotationIntensity={0.1} floatIntensity={0.3}>
+      <group ref={groupRef} position={[0, 0.25, 0]}>
+        {/* 八面体水晶 */}
+        <mesh castShadow>
+          <octahedronGeometry args={[0.1, 0]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={0.5}
+            roughness={0.2}
+            metalness={0.5}
+          />
+        </mesh>
+        {/* 底座光环 */}
+        <mesh position={[0, -0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.08, 0.14, 24]} />
+          <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+        </mesh>
+        {/* 粒子效果 */}
+        <Sparkles count={12} scale={0.4} size={2} speed={0.4} color={color} />
+        <pointLight intensity={0.5} color={color} distance={2} />
+      </group>
+    </Float>
   );
 }
 
@@ -316,6 +729,7 @@ export default function OuterCityFullMap() {
   const [combat, setCombat] = useState<CombatState | null>(null);
   const [actionLog, setActionLog] = useState<string | null>(null);
   const [showHeroSidebar, setShowHeroSidebar] = useState(true);
+  const [currentEvent, setCurrentEvent] = useState<ExplorationEvent | null>(null);
 
   const utils = api.useUtils();
 
@@ -342,9 +756,13 @@ export default function OuterCityFullMap() {
   });
 
   const moveHero = api.outerCity.moveHero.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       void utils.outerCity.getStatus.invalidate();
       void utils.outerCity.getVisibleMap.invalidate();
+      // 检查是否触发了随机事件
+      if (data.event) {
+        setCurrentEvent(data.event as ExplorationEvent);
+      }
     },
   });
 
@@ -482,15 +900,38 @@ export default function OuterCityFullMap() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#2a3a4e] to-[#1a1a2e]">
         <Canvas camera={{ position: [8, 8, 8], fov: 45 }} shadows>
           <Suspense fallback={null}>
-            <fog attach="fog" args={["#1a1a2e", 8, 20]} />
-            <ambientLight intensity={0.5} />
-            <hemisphereLight color="#ffe4c4" groundColor="#4a6a4a" intensity={0.6} />
+            <fog attach="fog" args={["#1a2a2e", 6, 18]} />
+
+            {/* 环境光 */}
+            <ambientLight intensity={0.4} />
+
+            {/* 天空/地面半球光 */}
+            <hemisphereLight color="#ffeedd" groundColor="#334455" intensity={0.7} />
+
+            {/* 主光源 - 暖色阳光 */}
             <directionalLight
-              position={[5, 10, 5]}
-              intensity={1.5}
+              position={[8, 12, 6]}
+              intensity={1.8}
+              color="#fff5e0"
               castShadow
-              shadow-mapSize-width={1024}
-              shadow-mapSize-height={1024}
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-camera-far={30}
+              shadow-bias={-0.0001}
+            />
+
+            {/* 补光 - 冷色 */}
+            <directionalLight
+              position={[-5, 8, -4]}
+              intensity={0.4}
+              color="#aaccff"
+            />
+
+            {/* 轮廓光 */}
+            <directionalLight
+              position={[0, 5, -10]}
+              intensity={0.3}
+              color="#ffddcc"
             />
 
             <FogBoundary radius={mapRadius + 1} />
@@ -499,6 +940,8 @@ export default function OuterCityFullMap() {
               <TerrainTile
                 key={`${tile.x}-${tile.y}`}
                 position={[tile.x - centerX, 0, tile.y - centerY]}
+                worldX={tile.x}
+                worldY={tile.y}
                 biome={tile.biome}
                 explorationLevel={tile.explorationLevel}
                 hasHero={tile.hasHero}
@@ -808,6 +1251,20 @@ export default function OuterCityFullMap() {
           </span>
         )}
       </div>
+
+      {/* 随机事件弹窗 */}
+      {currentEvent && selectedHero && (
+        <MapEventModal
+          event={currentEvent}
+          heroId={selectedHero.id}
+          onClose={() => setCurrentEvent(null)}
+          onResult={(message) => {
+            setActionLog(message);
+            setTimeout(() => setActionLog(null), 3000);
+            void utils.outerCity.getStatus.invalidate();
+          }}
+        />
+      )}
     </div>
   );
 }

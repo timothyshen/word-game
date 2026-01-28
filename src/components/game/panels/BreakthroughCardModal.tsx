@@ -85,7 +85,7 @@ export default function BreakthroughCardModal({
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold">{character.name}</span>
+                  <span className="font-bold text-white">{character.name}</span>
                   <span
                     className="text-xs px-2 py-0.5"
                     style={{ backgroundColor: RARITY_COLORS[character.rarity], color: "#000" }}

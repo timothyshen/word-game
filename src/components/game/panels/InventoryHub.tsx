@@ -102,7 +102,7 @@ function BackpackTab() {
                   <div className="flex items-start gap-2">
                     <div className="text-2xl">{pc.card.icon}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 text-white">
                         <span className="font-bold text-sm truncate">{pc.card.name}</span>
                         <span className="text-xs">x{pc.quantity}</span>
                       </div>
@@ -198,7 +198,7 @@ function AltarTab() {
                   <div className="flex items-center gap-3">
                     <div className="text-3xl">{altar.icon}</div>
                     <div>
-                      <div className="font-bold">{altar.name}</div>
+                      <div className="font-bold text-white">{altar.name}</div>
                       <div className="text-xs text-[#888]">{altar.description}</div>
                     </div>
                   </div>
@@ -320,7 +320,7 @@ function ShopTab() {
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">{item.icon}</div>
                     <div>
-                      <div className="font-bold">{item.name}</div>
+                      <div className="font-bold text-white">{item.name}</div>
                       <div className="text-xs text-[#888]">
                         {item.currency === "crystals" ? "💎" : "🪙"} {item.price}
                       </div>
@@ -349,7 +349,7 @@ function ShopTab() {
                       <div className="flex items-center gap-3">
                         <div className="text-2xl">{pc.card.icon}</div>
                         <div>
-                          <div className="font-bold">{pc.card.name}</div>
+                          <div className="font-bold text-white">{pc.card.name}</div>
                           <div className="text-xs text-[#888]">x{pc.quantity}</div>
                         </div>
                       </div>

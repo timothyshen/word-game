@@ -37,7 +37,7 @@ export default function HubPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-4xl h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-6xl h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 头部 */}

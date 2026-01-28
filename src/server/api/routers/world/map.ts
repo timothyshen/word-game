@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { generateRandomEvent, type ExplorationEvent } from "./events";
 
 export const mapRouter = createTRPCRouter({
   // 获取外城状态
@@ -173,7 +174,52 @@ export const mapRouter = createTRPCRouter({
         }
       }
 
-      return { success: true, newPosition: { x: input.targetX, y: input.targetY } };
+      // 检查目标位置是否有POI
+      const poi = await ctx.db.outerCityPOI.findFirst({
+        where: {
+          positionX: input.targetX,
+          positionY: input.targetY,
+        },
+      });
+
+      // 如果有POI，不触发随机事件
+      if (poi) {
+        return {
+          success: true,
+          newPosition: { x: input.targetX, y: input.targetY },
+          event: null,
+        };
+      }
+
+      // 检查是否是新发现的区域
+      const existingArea = await ctx.db.exploredArea.findUnique({
+        where: {
+          playerId_worldId_positionX_positionY: {
+            playerId: player.id,
+            worldId: "main",
+            positionX: input.targetX,
+            positionY: input.targetY,
+          },
+        },
+      });
+
+      // 事件触发概率: 新区域50%, 已探索30%
+      const eventChance = !existingArea || existingArea.explorationLevel < 2 ? 0.5 : 0.3;
+      const shouldTriggerEvent = Math.random() < eventChance;
+
+      let event: ExplorationEvent | null = null;
+      if (shouldTriggerEvent) {
+        // 根据距离计算区域等级
+        const distance = Math.sqrt(input.targetX ** 2 + input.targetY ** 2);
+        const areaLevel = Math.max(1, Math.floor(distance / 3));
+        event = generateRandomEvent(areaLevel);
+      }
+
+      return {
+        success: true,
+        newPosition: { x: input.targetX, y: input.targetY },
+        event,
+      };
     }),
 
   // 获取可见地图

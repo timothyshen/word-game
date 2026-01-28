@@ -290,11 +290,6 @@ export default function GamePage() {
         <AdventureHub
           onClose={() => setShowAdventureHub(false)}
           initialTab={adventureHubTab}
-          onStartCombat={(level) => {
-            setShowAdventureHub(false);
-            setCombatLevel(level);
-            setShowCombatPanel(true);
-          }}
         />
       )}
 

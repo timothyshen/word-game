@@ -1,4 +1,4 @@
-// 冒险Hub - 整合探索、Boss、传送、剧情
+// 冒险Hub - Boss、传送、剧情（探索已整合到外城地图）
 
 import { useState } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
@@ -8,21 +8,13 @@ import HubPanel, { type HubTab } from "./HubPanel";
 interface AdventureHubProps {
   onClose: () => void;
   initialTab?: string;
-  onStartCombat?: (level: number) => void;
 }
 
 export default function AdventureHub({
   onClose,
-  initialTab = "exploration",
-  onStartCombat,
+  initialTab = "boss",
 }: AdventureHubProps) {
   const tabs: HubTab[] = [
-    {
-      id: "exploration",
-      label: "野外探索",
-      icon: "🗺️",
-      content: <ExplorationTab onStartCombat={onStartCombat} />,
-    },
     {
       id: "boss",
       label: "首领挑战",
@@ -51,151 +43,6 @@ export default function AdventureHub({
       defaultTab={initialTab}
       onClose={onClose}
     />
-  );
-}
-
-// 探索标签页
-function ExplorationTab({ onStartCombat }: { onStartCombat?: (level: number) => void }) {
-  const { data: player } = api.player.getStatus.useQuery();
-  const { data: areas } = api.exploration.getExploredAreas.useQuery({ worldId: "main" });
-  const { data: facilities } = api.exploration.getWildernessFacilities.useQuery({ worldId: "main" });
-
-  const utils = api.useUtils();
-
-  const exploreMutation = api.exploration.exploreArea.useMutation({
-    onSuccess: () => {
-      void utils.exploration.getExploredAreas.invalidate();
-      void utils.exploration.getWildernessFacilities.invalidate();
-      void utils.player.getStatus.invalidate();
-    },
-  });
-
-  const [selectedPos, setSelectedPos] = useState<{ x: number; y: number } | null>(null);
-
-  // 生成探索网格
-  const gridSize = 5;
-  const exploredSet = new Set(areas?.map((a) => `${a.positionX},${a.positionY}`) ?? []);
-
-  return (
-    <div className="h-full flex flex-col">
-      {/* 体力显示 */}
-      <div className="flex-shrink-0 p-3 bg-[#0a0a0c] border-b border-[#2a2a30]">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-[#888]">体力</span>
-          <span className="text-[#4a9]">
-            ⚡ {player?.stamina ?? 0}/{player?.maxStamina ?? 100}
-          </span>
-        </div>
-      </div>
-
-      <ScrollArea className="flex-1">
-        <div className="p-4">
-          {/* 探索网格 */}
-          <div className="mb-4">
-            <div className="text-sm text-[#c9a227] mb-2">▸ 世界地图</div>
-            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}>
-              {Array.from({ length: gridSize * gridSize }).map((_, i) => {
-                const x = i % gridSize;
-                const y = Math.floor(i / gridSize);
-                const key = `${x},${y}`;
-                const isExplored = exploredSet.has(key);
-                const isSelected = selectedPos?.x === x && selectedPos?.y === y;
-                const area = areas?.find((a) => a.positionX === x && a.positionY === y);
-
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedPos({ x, y })}
-                    className={`aspect-square flex items-center justify-center text-xs border transition-colors ${
-                      isSelected
-                        ? "border-[#c9a227] bg-[#1a1810]"
-                        : isExplored
-                        ? "border-[#4a9] bg-[#1a3a1a]/30"
-                        : "border-[#2a2a30] bg-[#1a1a20] hover:bg-[#222228]"
-                    }`}
-                  >
-                    {isExplored ? "✓" : "?"}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 选中区域操作 */}
-          {selectedPos && (
-            <div className="p-3 bg-[#1a1a20] border border-[#2a2a30] mb-4">
-              <div className="text-sm mb-2">
-                坐标: ({selectedPos.x}, {selectedPos.y})
-                {exploredSet.has(`${selectedPos.x},${selectedPos.y}`) && (
-                  <span className="text-[#4a9] ml-2">已探索</span>
-                )}
-              </div>
-              {!exploredSet.has(`${selectedPos.x},${selectedPos.y}`) && (
-                <button
-                  onClick={() =>
-                    exploreMutation.mutate({
-                      worldId: "main",
-                      positionX: selectedPos.x,
-                      positionY: selectedPos.y,
-                    })
-                  }
-                  disabled={exploreMutation.isPending || (player?.stamina ?? 0) < 15}
-                  className="w-full py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50"
-                >
-                  {exploreMutation.isPending ? "探索中..." : "探索 (15体力)"}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* 已发现设施 */}
-          {facilities && facilities.length > 0 && (
-            <div>
-              <div className="text-sm text-[#c9a227] mb-2">▸ 已发现设施</div>
-              <div className="space-y-2">
-                {facilities.map((f) => (
-                  <div
-                    key={f.id}
-                    className="flex items-center justify-between p-3 bg-[#1a1a20] border border-[#2a2a30]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">{f.icon}</div>
-                      <div>
-                        <div className="font-bold text-sm">{f.name}</div>
-                        <div className="text-xs text-[#888]">{f.description}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 快速战斗入口 */}
-          {onStartCombat && (
-            <div className="mt-4 p-3 bg-[#1a1a20] border border-[#2a2a30]">
-              <div className="text-sm text-[#c9a227] mb-2">▸ 快速战斗</div>
-              <button
-                onClick={() => onStartCombat(1)}
-                className="w-full py-2 bg-[#e74c3c] text-white font-bold hover:bg-[#c0392b]"
-              >
-                👹 挑战怪物
-              </button>
-            </div>
-          )}
-
-          {/* 操作反馈 */}
-          {exploreMutation.isSuccess && exploreMutation.data && (
-            <div className="mt-4 p-3 bg-[#1a3a1a] border border-[#4a9]/30 text-sm text-[#4a9]">
-              🗺️ 发现了 {exploreMutation.data.areaName}
-              {exploreMutation.data.facilityFound && (
-                <span> 并找到了 {exploreMutation.data.facilityFound.name}!</span>
-              )}
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
   );
 }
 

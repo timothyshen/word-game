@@ -42,7 +42,7 @@ export default function CharacterListTab({
                 </div>
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold">{char.character.name}</span>
+                    <span className="font-bold text-white">{char.character.name}</span>
                     <span className="text-xs px-1.5 py-0.5 bg-[#2a2a30] text-[#c9a227]">
                       {char.tier}阶
                     </span>

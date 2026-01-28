@@ -147,7 +147,7 @@ export default function CombatPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#e74c3c] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#101014] border-2 border-[#e74c3c] p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}

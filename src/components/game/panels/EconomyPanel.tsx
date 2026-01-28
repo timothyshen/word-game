@@ -46,7 +46,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 固定头部 */}

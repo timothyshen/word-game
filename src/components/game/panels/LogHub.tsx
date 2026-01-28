@@ -71,7 +71,7 @@ export default function LogHub({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-5xl h-[85vh] flex gap-0 overflow-hidden rounded-lg"
+        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-6xl h-[85vh] flex gap-0 overflow-hidden rounded-lg"
         showCloseButton={false}
       >
         {/* Left Sidebar */}

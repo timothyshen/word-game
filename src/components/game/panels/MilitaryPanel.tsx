@@ -115,7 +115,7 @@ export default function MilitaryPanel({ onClose }: MilitaryPanelProps) {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-sm">{char.character.name}</span>
+                              <span className="font-bold text-sm text-white">{char.character.name}</span>
                               <span className="text-xs text-[#888]">{char.character.baseClass} Lv.{char.level}</span>
                             </div>
                             <div className="text-xs text-[#666]">
@@ -167,7 +167,7 @@ export default function MilitaryPanel({ onClose }: MilitaryPanelProps) {
                           {b.building.icon}
                         </div>
                         <div>
-                          <span className="font-bold text-sm">{b.building.name}</span>
+                          <span className="font-bold text-sm text-white">{b.building.name}</span>
                           <span className="text-xs px-1.5 py-0.5 ml-2 bg-[#c9a227] text-[#000]">
                             Lv.{b.level}
                           </span>
