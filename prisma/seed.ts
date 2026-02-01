@@ -425,7 +425,7 @@ async function main() {
       name: "领地扩张令",
       type: "expansion",
       rarity: "稀有",
-      description: "扩展内城网格面积，解锁更多建造空间",
+      description: "扩展内城领地范围，获得更多建造空间",
       icon: "🗺️",
       effects: JSON.stringify({ type: "area", amount: 1 }),
     },
@@ -433,7 +433,7 @@ async function main() {
       name: "高级扩张令",
       type: "expansion",
       rarity: "史诗",
-      description: "大幅扩展内城网格面积",
+      description: "大幅扩展内城领地范围",
       icon: "🌍",
       effects: JSON.stringify({ type: "area", amount: 2 }),
     },
@@ -441,9 +441,9 @@ async function main() {
       name: "空间扩张符",
       type: "expansion",
       rarity: "稀有",
-      description: "增加内城空间容量，允许建造更高的建筑",
+      description: "扩展内城领地范围",
       icon: "📐",
-      effects: JSON.stringify({ type: "space", amount: 5 }),
+      effects: JSON.stringify({ type: "area", amount: 1 }),
     },
   ];
 
@@ -550,6 +550,98 @@ async function main() {
       });
     }
     console.log(`Gave ${cardsToGive.length} card types to test player`);
+
+    // ===== 给测试玩家招募角色 =====
+    const swordsman = await prisma.character.findFirst({ where: { name: "流浪剑士" } });
+    const farmer = await prisma.character.findFirst({ where: { name: "村民" } });
+
+    const recruitedChars: string[] = [];
+
+    if (swordsman) {
+      const pc = await prisma.playerCharacter.create({
+        data: {
+          playerId: testPlayerRecord.id,
+          characterId: swordsman.id,
+          level: 3,
+          exp: 200,
+          hp: swordsman.baseHp,
+          maxHp: swordsman.baseHp,
+          mp: swordsman.baseMp,
+          maxMp: swordsman.baseMp,
+          attack: swordsman.baseAttack,
+          defense: swordsman.baseDefense,
+          speed: swordsman.baseSpeed,
+          luck: swordsman.baseLuck,
+          status: "idle",
+        },
+      });
+      recruitedChars.push(pc.id);
+    }
+
+    if (farmer) {
+      const pc = await prisma.playerCharacter.create({
+        data: {
+          playerId: testPlayerRecord.id,
+          characterId: farmer.id,
+          level: 2,
+          exp: 80,
+          hp: farmer.baseHp,
+          maxHp: farmer.baseHp,
+          mp: farmer.baseMp,
+          maxMp: farmer.baseMp,
+          attack: farmer.baseAttack,
+          defense: farmer.baseDefense,
+          speed: farmer.baseSpeed,
+          luck: farmer.baseLuck,
+          status: "idle",
+        },
+      });
+      recruitedChars.push(pc.id);
+    }
+    console.log(`Recruited ${recruitedChars.length} characters for test player`);
+
+    // ===== 派遣英雄到外城 =====
+    if (recruitedChars[0]) {
+      await prisma.heroInstance.create({
+        data: {
+          playerId: testPlayerRecord.id,
+          characterId: recruitedChars[0],
+          positionX: 0,
+          positionY: 0,
+          status: "idle",
+          stamina: 100,
+        },
+      });
+      console.log("Deployed hero to outer city");
+    }
+
+    // ===== 初始探索区域 =====
+    const exploredTiles = [
+      { x: 0, y: 0, name: "城门", biome: "grassland", level: 2 },
+      { x: 1, y: 0, name: "东部草原", biome: "grassland", level: 2 },
+      { x: -1, y: 0, name: "西部林地", biome: "forest", level: 2 },
+      { x: 0, y: 1, name: "北部平原", biome: "grassland", level: 2 },
+      { x: 0, y: -1, name: "南部丘陵", biome: "mountain", level: 2 },
+      { x: 1, y: 1, name: "东北荒地", biome: "desert", level: 1 },
+      { x: -1, y: -1, name: "西南沼泽", biome: "swamp", level: 1 },
+      { x: 2, y: 0, name: "远东", biome: "grassland", level: 1 },
+      { x: -1, y: 2, name: "西北林", biome: "forest", level: 1 },
+    ];
+
+    for (const tile of exploredTiles) {
+      await prisma.exploredArea.create({
+        data: {
+          playerId: testPlayerRecord.id,
+          worldId: "main",
+          positionX: tile.x,
+          positionY: tile.y,
+          name: tile.name,
+          biome: tile.biome,
+          explorationLevel: tile.level,
+        },
+      });
+    }
+    console.log(`Created ${exploredTiles.length} explored areas for test player`);
   }
 
   // ===== 外城兴趣点 =====

@@ -225,7 +225,7 @@ export function TerrainTile({
   const [hovered, setHovered] = useState(false);
 
   const color = BIOME_COLORS[biome] ?? "#333";
-  const opacity = explorationLevel === 2 ? 1 : explorationLevel === 1 ? 0.4 : 0.1;
+  const opacity = explorationLevel === 2 ? 1 : explorationLevel === 1 ? 0.55 : 0.2;
 
   const height = explorationLevel === 2 ? getTerrainHeight(worldX, worldY, biome) : 0;
   const tileThickness = biome === "mountain" ? 0.15 + height * 0.3 : 0.1;
@@ -252,8 +252,8 @@ export function TerrainTile({
           color={color}
           transparent
           opacity={opacity}
-          emissive={canMove ? "#c9a227" : hovered ? "#4a9" : "#000"}
-          emissiveIntensity={canMove ? 0.3 : hovered ? 0.1 : 0}
+          emissive={canMove ? "#c9a227" : isCenter && hovered ? "#c9a227" : hovered ? "#4a9" : "#000"}
+          emissiveIntensity={canMove ? 0.3 : isCenter && hovered ? 0.2 : hovered ? 0.1 : 0}
         />
       </mesh>
 
@@ -261,7 +261,7 @@ export function TerrainTile({
         <mesh position={[0, tileThickness / 2 + 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[0.9, 0.9]} />
           <meshStandardMaterial
-            color="#2a4a5a"
+            color="#3a6a7a"
             transparent
             opacity={0.4}
             roughness={0.1}
@@ -273,11 +273,11 @@ export function TerrainTile({
       {explorationLevel === 1 && (
         <mesh position={[0, 0.15, 0]}>
           <boxGeometry args={[0.9, 0.2, 0.9]} />
-          <meshStandardMaterial color="#1a1a2e" transparent opacity={0.6} />
+          <meshStandardMaterial color="#2a3a4e" transparent opacity={0.45} />
         </mesh>
       )}
 
-      {isCenter && !hasHero && explorationLevel === 2 && (
+      {isCenter && explorationLevel === 2 && (
         <group position={[0, tileThickness / 2, 0]}>
           <BaseCastleModel />
         </group>
@@ -289,7 +289,7 @@ export function TerrainTile({
         </group>
       )}
 
-      {hasPOI && !hasHero && explorationLevel === 2 && (
+      {hasPOI && explorationLevel === 2 && !isCenter && (
         <group position={[0, tileThickness / 2, 0]}>
           <POIMarker type={poiType ?? "resource"} />
         </group>

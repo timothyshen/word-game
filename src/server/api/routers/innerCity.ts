@@ -1,60 +1,15 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-
-// 根据 gridRadius 生成格子坐标
-// gridRadius=1 -> 3x3 (-1 to 1)
-// gridRadius=2 -> 5x5 (-2 to 2)
-function getGridPositions(radius: number): Array<{ x: number; y: number }> {
-  const positions: Array<{ x: number; y: number }> = [];
-  for (let x = -radius; x <= radius; x++) {
-    for (let y = -radius; y <= radius; y++) {
-      positions.push({ x, y });
-    }
-  }
-  return positions;
-}
-
-// 检查位置是否在当前网格范围内
-function isInGrid(x: number, y: number, radius: number): boolean {
-  return Math.abs(x) <= radius && Math.abs(y) <= radius;
-}
-
-// 获取边界外可扩张的位置
-function getExpandablePositions(
-  radius: number,
-  existingTiles: Array<{ positionX: number; positionY: number }>
-): Array<{ x: number; y: number }> {
-  const newRadius = radius + 1;
-  const expandable: Array<{ x: number; y: number }> = [];
-
-  // 新的边界格子
-  for (let x = -newRadius; x <= newRadius; x++) {
-    for (let y = -newRadius; y <= newRadius; y++) {
-      // 只要在新半径边界上
-      if (Math.abs(x) === newRadius || Math.abs(y) === newRadius) {
-        // 检查是否与已有格子相邻
-        const adjacent = [
-          { x: x - 1, y },
-          { x: x + 1, y },
-          { x, y: y - 1 },
-          { x, y: y + 1 },
-        ];
-        const hasAdjacentTile = adjacent.some(
-          (pos) =>
-            existingTiles.some(
-              (t) => t.positionX === pos.x && t.positionY === pos.y
-            )
-        );
-        if (hasAdjacentTile) {
-          expandable.push({ x, y });
-        }
-      }
-    }
-  }
-
-  return expandable;
-}
+import {
+  getBuildingRadius,
+  getBuildingSize,
+  wouldRadiusGrow,
+  canPlaceBuilding,
+  canUpgradeBuilding,
+  snapToGrid,
+  type BuildingForCollision,
+} from "~/shared/building-radius";
 
 export const innerCityRouter = createTRPCRouter({
   // 获取内城整体状态
@@ -66,53 +21,43 @@ export const innerCityRouter = createTRPCRouter({
       throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
     }
 
-    // 获取内城配置
     const config = await ctx.db.innerCityConfig.findUnique({
       where: { playerId: player.id },
     });
 
-    // 如果没有配置，说明未初始化
     if (!config) {
       return {
         initialized: false,
-        gridRadius: 0,
-        gridSize: 0,
-        tileCount: 0,
+        territoryWidth: 0,
+        territoryHeight: 0,
+        cornerRadius: 0,
         buildingCount: 0,
-        spaceCapacity: 0,
-        spaceUsed: 0,
+        territoryArea: 0,
       };
     }
 
-    // 获取格子和建筑数量
-    const tileCount = await ctx.db.innerCityTile.count({
+    const buildingCount = await ctx.db.innerCityBuilding.count({
       where: { playerId: player.id },
     });
 
-    const buildings = await ctx.db.innerCityBuilding.findMany({
-      where: { playerId: player.id },
-      include: { template: true },
-    });
-
-    // 计算空间使用（建筑高度总和）
-    const spaceUsed = buildings.reduce((sum, b) => {
-      // 高度 = 基础高度(1) + (等级-1) * 0.5
-      return sum + 1 + (b.level - 1) * 0.5;
-    }, 0);
+    // 圆角矩形近似面积
+    const w = config.territoryWidth * 2;
+    const h = config.territoryHeight * 2;
+    const r = config.cornerRadius;
+    const territoryArea = w * h - (4 - Math.PI) * r * r;
 
     return {
       initialized: true,
-      gridRadius: config.gridRadius,
-      gridSize: (config.gridRadius * 2 + 1) ** 2,
-      tileCount,
-      buildingCount: buildings.length,
-      spaceCapacity: config.spaceCapacity,
-      spaceUsed: Math.round(spaceUsed * 10) / 10,
+      territoryWidth: config.territoryWidth,
+      territoryHeight: config.territoryHeight,
+      cornerRadius: config.cornerRadius,
+      buildingCount,
+      territoryArea: Math.round(territoryArea),
     };
   }),
 
-  // 获取网格信息（所有格子和建筑）
-  getGrid: protectedProcedure.query(async ({ ctx }) => {
+  // 获取内城数据（领地 + 建筑）
+  getCity: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
     const player = await ctx.db.player.findUnique({ where: { userId } });
@@ -125,13 +70,11 @@ export const innerCityRouter = createTRPCRouter({
     });
 
     if (!config) {
-      return { tiles: [], buildings: [], gridRadius: 0 };
+      return {
+        buildings: [],
+        territory: { halfW: 0, halfH: 0, cornerR: 0 },
+      };
     }
-
-    const tiles = await ctx.db.innerCityTile.findMany({
-      where: { playerId: player.id },
-      orderBy: [{ positionY: "asc" }, { positionX: "asc" }],
-    });
 
     const buildings = await ctx.db.innerCityBuilding.findMany({
       where: { playerId: player.id },
@@ -139,96 +82,32 @@ export const innerCityRouter = createTRPCRouter({
     });
 
     return {
-      tiles: tiles.map((t) => ({
-        x: t.positionX,
-        y: t.positionY,
-        unlocked: t.unlocked,
-      })),
-      buildings: buildings.map((b) => ({
-        id: b.id,
-        x: b.positionX,
-        y: b.positionY,
-        level: b.level,
-        templateId: b.templateId,
-        name: b.template.name,
-        icon: b.template.icon,
-        slot: b.template.slot,
-      })),
-      gridRadius: config.gridRadius,
+      territory: {
+        halfW: config.territoryWidth,
+        halfH: config.territoryHeight,
+        cornerR: config.cornerRadius,
+      },
+      buildings: buildings.map((b) => {
+        const size = getBuildingSize(b.template.name, b.level);
+        return {
+          id: b.id,
+          x: b.positionX,
+          y: b.positionY,
+          level: b.level,
+          radius: size.radius,
+          visualW: size.visualW,
+          visualH: size.visualH,
+          height: size.height,
+          templateId: b.templateId,
+          name: b.template.name,
+          icon: b.template.icon,
+          slot: b.template.slot,
+        };
+      }),
     };
   }),
 
-  // 获取可放置建筑的位置
-  getAvailable: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.session.user.id;
-
-    const player = await ctx.db.player.findUnique({ where: { userId } });
-    if (!player) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
-    }
-
-    const config = await ctx.db.innerCityConfig.findUnique({
-      where: { playerId: player.id },
-    });
-
-    if (!config) {
-      return { available: [] };
-    }
-
-    // 获取所有已解锁的格子
-    const tiles = await ctx.db.innerCityTile.findMany({
-      where: { playerId: player.id, unlocked: true },
-    });
-
-    // 获取所有已放置建筑的位置
-    const buildings = await ctx.db.innerCityBuilding.findMany({
-      where: { playerId: player.id },
-      select: { positionX: true, positionY: true },
-    });
-
-    const buildingPositions = new Set(
-      buildings.map((b) => `${b.positionX},${b.positionY}`)
-    );
-
-    // 可放置 = 已解锁且无建筑
-    const available = tiles
-      .filter((t) => !buildingPositions.has(`${t.positionX},${t.positionY}`))
-      .map((t) => ({ x: t.positionX, y: t.positionY }));
-
-    return { available };
-  }),
-
-  // 获取可扩张的位置
-  getExpandable: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.session.user.id;
-
-    const player = await ctx.db.player.findUnique({ where: { userId } });
-    if (!player) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
-    }
-
-    const config = await ctx.db.innerCityConfig.findUnique({
-      where: { playerId: player.id },
-    });
-
-    if (!config) {
-      return { expandable: [], currentRadius: 0 };
-    }
-
-    const tiles = await ctx.db.innerCityTile.findMany({
-      where: { playerId: player.id },
-    });
-
-    const expandable = getExpandablePositions(config.gridRadius, tiles);
-
-    return {
-      expandable,
-      currentRadius: config.gridRadius,
-      nextRadius: config.gridRadius + 1,
-    };
-  }),
-
-  // 初始化内城（首次进入时调用）
+  // 初始化内城
   initialize: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
@@ -237,7 +116,6 @@ export const innerCityRouter = createTRPCRouter({
       throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
     }
 
-    // 检查是否已初始化
     const existingConfig = await ctx.db.innerCityConfig.findUnique({
       where: { playerId: player.id },
     });
@@ -246,27 +124,17 @@ export const innerCityRouter = createTRPCRouter({
       throw new TRPCError({ code: "BAD_REQUEST", message: "内城已初始化" });
     }
 
-    // 创建配置
+    // 创建领地配置
     await ctx.db.innerCityConfig.create({
       data: {
         playerId: player.id,
-        gridRadius: 1, // 3x3
-        spaceCapacity: 20,
+        territoryWidth: 4.0,
+        territoryHeight: 4.0,
+        cornerRadius: 1.5,
       },
     });
 
-    // 创建 3x3 格子
-    const positions = getGridPositions(1);
-    await ctx.db.innerCityTile.createMany({
-      data: positions.map((pos) => ({
-        playerId: player.id,
-        positionX: pos.x,
-        positionY: pos.y,
-        unlocked: true,
-      })),
-    });
-
-    // 在中心(0,0)放置主城堡
+    // 在中心放置主城堡
     const castle = await ctx.db.building.findFirst({
       where: { name: "主城堡" },
     });
@@ -286,7 +154,7 @@ export const innerCityRouter = createTRPCRouter({
     return {
       success: true,
       message: "内城初始化完成",
-      gridRadius: 1,
+      territory: { halfW: 4.0, halfH: 4.0, cornerR: 1.5 },
     };
   }),
 
@@ -315,41 +183,6 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "内城未初始化" });
       }
 
-      // 检查位置是否在网格范围内
-      if (!isInGrid(input.positionX, input.positionY, config.gridRadius)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "位置超出网格范围" });
-      }
-
-      // 检查格子是否已解锁
-      const tile = await ctx.db.innerCityTile.findUnique({
-        where: {
-          playerId_positionX_positionY: {
-            playerId: player.id,
-            positionX: input.positionX,
-            positionY: input.positionY,
-          },
-        },
-      });
-
-      if (!tile || !tile.unlocked) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "该格子未解锁" });
-      }
-
-      // 检查是否已有建筑
-      const existingBuilding = await ctx.db.innerCityBuilding.findUnique({
-        where: {
-          playerId_positionX_positionY: {
-            playerId: player.id,
-            positionX: input.positionX,
-            positionY: input.positionY,
-          },
-        },
-      });
-
-      if (existingBuilding) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "该位置已有建筑" });
-      }
-
       // 获取卡牌
       const playerCard = await ctx.db.playerCard.findFirst({
         where: { playerId: player.id, cardId: input.cardId, quantity: { gt: 0 } },
@@ -360,7 +193,6 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "卡牌不存在或数量不足" });
       }
 
-      // 验证是建筑卡
       if (playerCard.card.type !== "building") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "只能使用建筑卡" });
       }
@@ -377,7 +209,6 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "卡牌缺少建筑ID" });
       }
 
-      // 获取建筑模板
       const buildingTemplate = await ctx.db.building.findUnique({
         where: { id: effects.buildingId },
       });
@@ -386,13 +217,43 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "建筑模板不存在" });
       }
 
+      // 吸附到 0.5 网格
+      const x = snapToGrid(input.positionX);
+      const y = snapToGrid(input.positionY);
+
+      const buildingRadius = getBuildingRadius(buildingTemplate.name, 1);
+
+      // 加载现有建筑进行碰撞检测
+      const existingRaw = await ctx.db.innerCityBuilding.findMany({
+        where: { playerId: player.id },
+        include: { template: true },
+      });
+      const existingForCollision: BuildingForCollision[] = existingRaw.map((b) => ({
+        x: b.positionX,
+        y: b.positionY,
+        radius: getBuildingRadius(b.template.name, b.level),
+      }));
+
+      const territory = {
+        halfW: config.territoryWidth,
+        halfH: config.territoryHeight,
+        cornerR: config.cornerRadius,
+      };
+
+      if (!canPlaceBuilding(x, y, buildingRadius, existingForCollision, territory)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "无法在此位置放置建筑：超出领地范围或与其他建筑冲突",
+        });
+      }
+
       // 创建建筑
       const building = await ctx.db.innerCityBuilding.create({
         data: {
           playerId: player.id,
           templateId: buildingTemplate.id,
-          positionX: input.positionX,
-          positionY: input.positionY,
+          positionX: x,
+          positionY: y,
           level: 1,
         },
         include: { template: true },
@@ -424,12 +285,12 @@ export const innerCityRouter = createTRPCRouter({
         },
       });
 
-      // 更新当日分数
       await ctx.db.player.update({
         where: { id: player.id },
         data: { currentDayScore: player.currentDayScore + 50 },
       });
 
+      const size = getBuildingSize(building.template.name, 1);
       return {
         success: true,
         building: {
@@ -437,21 +298,17 @@ export const innerCityRouter = createTRPCRouter({
           name: building.template.name,
           icon: building.template.icon,
           level: building.level,
-          x: building.positionX,
-          y: building.positionY,
+          x,
+          y,
+          radius: size.radius,
         },
         message: `成功建造 ${buildingTemplate.name}`,
       };
     }),
 
-  // 扩张面积（使用扩张卡）
-  expandArea: protectedProcedure
-    .input(
-      z.object({
-        cardId: z.string(),
-        positions: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
-      })
-    )
+  // 扩张领地（使用扩张卡）
+  expandTerritory: protectedProcedure
+    .input(z.object({ cardId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
 
@@ -478,12 +335,10 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "卡牌不存在或数量不足" });
       }
 
-      // 验证是扩张卡
       if (playerCard.card.type !== "expansion") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "只能使用扩张卡" });
       }
 
-      // 解析卡牌效果
       let effects: { type?: string; amount?: number };
       try {
         effects = JSON.parse(playerCard.card.effects) as { type?: string; amount?: number };
@@ -491,86 +346,22 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "卡牌效果解析失败" });
       }
 
-      // 处理空间扩张卡
-      if (effects.type === "space") {
-        const amount = effects.amount ?? 10;
-
-        await ctx.db.innerCityConfig.update({
-          where: { playerId: player.id },
-          data: { spaceCapacity: config.spaceCapacity + amount },
-        });
-
-        // 消耗卡牌
-        if (playerCard.quantity > 1) {
-          await ctx.db.playerCard.update({
-            where: { id: playerCard.id },
-            data: { quantity: playerCard.quantity - 1 },
-          });
-        } else {
-          await ctx.db.playerCard.delete({ where: { id: playerCard.id } });
-        }
-
-        return {
-          success: true,
-          newCapacity: config.spaceCapacity + amount,
-          message: `空间容量增加 ${amount}，当前容量: ${config.spaceCapacity + amount}`,
-        };
-      }
-
-      // 处理面积扩张卡
-      if (effects.type !== "area") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "未知的扩张卡类型" });
-      }
-
       const amount = effects.amount ?? 1;
+      const widthIncrement = amount * 1.5;
+      const cornerIncrement = amount * 0.5;
 
-      // 获取现有格子
-      const existingTiles = await ctx.db.innerCityTile.findMany({
+      const newWidth = config.territoryWidth + widthIncrement;
+      const newHeight = config.territoryHeight + widthIncrement;
+      const newCorner = config.cornerRadius + cornerIncrement;
+
+      await ctx.db.innerCityConfig.update({
         where: { playerId: player.id },
+        data: {
+          territoryWidth: newWidth,
+          territoryHeight: newHeight,
+          cornerRadius: newCorner,
+        },
       });
-
-      // 获取可扩张位置
-      const expandable = getExpandablePositions(config.gridRadius, existingTiles);
-
-      if (expandable.length === 0) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "没有可扩张的位置" });
-      }
-
-      // 确定要解锁的位置
-      let positionsToUnlock: Array<{ x: number; y: number }>;
-      if (input.positions && input.positions.length > 0) {
-        // 验证指定的位置是否有效
-        positionsToUnlock = input.positions.filter((pos) =>
-          expandable.some((e) => e.x === pos.x && e.y === pos.y)
-        );
-        if (positionsToUnlock.length === 0) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "指定的位置无法扩张" });
-        }
-      } else {
-        // 默认扩张 amount 个格子
-        positionsToUnlock = expandable.slice(0, amount);
-      }
-
-      // 创建新格子
-      await ctx.db.innerCityTile.createMany({
-        data: positionsToUnlock.map((pos) => ({
-          playerId: player.id,
-          positionX: pos.x,
-          positionY: pos.y,
-          unlocked: true,
-        })),
-      });
-
-      // 更新 gridRadius（如果需要）
-      const maxDistance = Math.max(
-        ...positionsToUnlock.map((p) => Math.max(Math.abs(p.x), Math.abs(p.y)))
-      );
-      if (maxDistance > config.gridRadius) {
-        await ctx.db.innerCityConfig.update({
-          where: { playerId: player.id },
-          data: { gridRadius: maxDistance },
-        });
-      }
 
       // 消耗卡牌
       if (playerCard.quantity > 1) {
@@ -584,9 +375,8 @@ export const innerCityRouter = createTRPCRouter({
 
       return {
         success: true,
-        newTiles: positionsToUnlock,
-        newGridRadius: Math.max(config.gridRadius, maxDistance),
-        message: `成功扩张 ${positionsToUnlock.length} 个格子`,
+        territory: { halfW: newWidth, halfH: newHeight, cornerR: newCorner },
+        message: `领地扩张完成！新范围: ${(newWidth * 2).toFixed(1)} x ${(newHeight * 2).toFixed(1)}`,
       };
     }),
 
@@ -614,6 +404,43 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: "建筑已达最高等级" });
       }
 
+      // 检查碰撞半径是否会增长
+      if (wouldRadiusGrow(building.template.name, building.level)) {
+        const config = await ctx.db.innerCityConfig.findUnique({
+          where: { playerId: player.id },
+        });
+
+        if (!config) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "内城未初始化" });
+        }
+
+        const newRadius = getBuildingRadius(building.template.name, building.level + 1);
+
+        const allBuildings = await ctx.db.innerCityBuilding.findMany({
+          where: { playerId: player.id },
+          include: { template: true },
+        });
+        const allForCollision = allBuildings.map((b) => ({
+          id: b.id,
+          x: b.positionX,
+          y: b.positionY,
+          radius: getBuildingRadius(b.template.name, b.level),
+        }));
+
+        const territory = {
+          halfW: config.territoryWidth,
+          halfH: config.territoryHeight,
+          cornerR: config.cornerRadius,
+        };
+
+        if (!canUpgradeBuilding(building.id, building.positionX, building.positionY, newRadius, allForCollision, territory)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "升级后建筑体积增大，与周围建筑冲突或超出领地范围",
+          });
+        }
+      }
+
       // 计算升级费用
       const upgradeCost = {
         gold: 100 * building.level,
@@ -621,7 +448,6 @@ export const innerCityRouter = createTRPCRouter({
         stone: 30 * building.level,
       };
 
-      // 检查资源
       if (player.gold < upgradeCost.gold) {
         throw new TRPCError({ code: "BAD_REQUEST", message: `金币不足，需要 ${upgradeCost.gold}` });
       }
@@ -632,7 +458,6 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "BAD_REQUEST", message: `石材不足，需要 ${upgradeCost.stone}` });
       }
 
-      // 扣除资源并升级
       await ctx.db.player.update({
         where: { id: player.id },
         data: {
@@ -648,12 +473,14 @@ export const innerCityRouter = createTRPCRouter({
         include: { template: true },
       });
 
+      const newSize = getBuildingSize(updatedBuilding.template.name, updatedBuilding.level);
       return {
         success: true,
         building: {
           id: updatedBuilding.id,
           name: updatedBuilding.template.name,
           level: updatedBuilding.level,
+          radius: newSize.radius,
         },
         cost: upgradeCost,
         message: `${building.template.name} 升级到 ${updatedBuilding.level} 级`,
@@ -680,12 +507,10 @@ export const innerCityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "建筑不存在" });
       }
 
-      // 主城堡不能拆除
       if (building.template.name === "主城堡") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "主城堡不能拆除" });
       }
 
-      // 返还部分资源（50%）
       const refund = {
         gold: Math.floor(50 * building.level * 0.5),
         wood: Math.floor(25 * building.level * 0.5),
@@ -701,7 +526,6 @@ export const innerCityRouter = createTRPCRouter({
         },
       });
 
-      // 删除建筑
       await ctx.db.innerCityBuilding.delete({ where: { id: building.id } });
 
       return {

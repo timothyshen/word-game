@@ -12,7 +12,7 @@ import HeroSidebar from "./HeroSidebar";
 import CombatOverlay from "./CombatOverlay";
 import POIInteractionPanel from "./POIInteractionPanel";
 
-export default function OuterCityFullMap() {
+export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?: () => void }) {
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
   const [combat, setCombat] = useState<CombatState | null>(null);
   const [actionLog, setActionLog] = useState<string | null>(null);
@@ -105,6 +105,12 @@ export default function OuterCityFullMap() {
   }, [status?.heroes]);
 
   const handleTileClick = (x: number, y: number) => {
+    // 点击主城切换内城
+    if (x === 0 && y === 0 && onOpenInnerCity) {
+      onOpenInnerCity();
+      return;
+    }
+
     if (!selectedHero || combat?.active) return;
 
     const dx = Math.abs(x - selectedHero.positionX);
@@ -179,13 +185,13 @@ export default function OuterCityFullMap() {
   return (
     <div className="relative w-full h-full">
       {/* 3D Map Canvas */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#2a3a4e] to-[#1a1a2e]">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#4a6a8e] to-[#2a3a4e]">
         <Canvas camera={{ position: [8, 8, 8], fov: 45 }} shadows>
           <Suspense fallback={null}>
-            <fog attach="fog" args={["#1a2a2e", 6, 18]} />
+            <fog attach="fog" args={["#3a5a6e", 8, 22]} />
 
-            <ambientLight intensity={0.4} />
-            <hemisphereLight color="#ffeedd" groundColor="#334455" intensity={0.7} />
+            <ambientLight intensity={0.65} />
+            <hemisphereLight color="#ffeedd" groundColor="#556677" intensity={0.9} />
             <directionalLight
               position={[8, 12, 6]}
               intensity={1.8}

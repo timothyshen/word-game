@@ -156,7 +156,6 @@ model Player {
     totalGoldEarned      Int @default(0)
 
     // 内城系统
-    innerCityTiles       InnerCityTile[]
     innerCityBuildings   InnerCityBuilding[]
     innerCityConfig      InnerCityConfig?
 
@@ -797,23 +796,7 @@ model Adventure {
 
 // ===== 内城系统 =====
 
-// 内城格子
-model InnerCityTile {
-    id        String   @id @default(cuid())
-    playerId  String
-    player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-
-    positionX Int      // 以0,0为中心
-    positionY Int
-    unlocked  Boolean  @default(true)
-
-    createdAt DateTime @default(now())
-
-    @@unique([playerId, positionX, positionY])
-    @@index([playerId])
-}
-
-// 内城建筑
+// 内城建筑（自由放置，连续坐标）
 model InnerCityBuilding {
     id         String   @id @default(cuid())
     playerId   String
@@ -822,28 +805,28 @@ model InnerCityBuilding {
     templateId String
     template   Building @relation(fields: [templateId], references: [id])
 
-    positionX  Int
-    positionY  Int
+    positionX  Float
+    positionY  Float
     level      Int      @default(1)
 
     createdAt  DateTime @default(now())
     updatedAt  DateTime @updatedAt
 
-    @@unique([playerId, positionX, positionY])
     @@index([playerId])
 }
 
-// 内城配置
+// 内城配置（圆角矩形领地）
 model InnerCityConfig {
-    id            String @id @default(cuid())
-    playerId      String @unique
-    player        Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    id              String @id @default(cuid())
+    playerId        String @unique
+    player          Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
-    gridRadius    Int    @default(1)  // 1=3x3, 2=5x5, 3=7x7
-    spaceCapacity Int    @default(20) // 总高度容量
+    territoryWidth  Float  @default(4.0)  // 半宽
+    territoryHeight Float  @default(4.0)  // 半高
+    cornerRadius    Float  @default(1.5)  // 圆角半径
 
-    createdAt     DateTime @default(now())
-    updatedAt     DateTime @updatedAt
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 }
 
 // ===== 外城探索系统 =====

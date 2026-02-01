@@ -32,11 +32,11 @@ export const GRADE_COLORS: Record<string, string> = {
  * 用于外城地图
  */
 export const BIOME_COLORS: Record<string, string> = {
-  grassland: "#4a7c59",
-  forest: "#2d5a27",
-  mountain: "#6b6b6b",
-  desert: "#c9a227",
-  swamp: "#3d5a47",
+  grassland: "#5a9a6a",
+  forest: "#3d7a37",
+  mountain: "#8a8a8a",
+  desert: "#d4b44a",
+  swamp: "#4d7a5a",
 };
 
 /**

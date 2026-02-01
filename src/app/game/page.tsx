@@ -101,7 +101,7 @@ export default function GamePage() {
     <div className="h-screen bg-[#050810] text-[#e0dcd0] overflow-hidden">
       {/* 全屏Three.js地图 */}
       <div className="absolute inset-0">
-        <OuterCityFullMap />
+        <OuterCityFullMap onOpenInnerCity={() => setShowInnerCityPanel(true)} />
       </div>
 
       {/* Cinematic HUD Overlay */}
