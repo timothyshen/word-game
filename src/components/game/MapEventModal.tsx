@@ -4,31 +4,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
-
-// 事件类型
-interface ExplorationEvent {
-  type: string;
-  title: string;
-  description: string;
-  options: Array<{
-    id: string;
-    text: string;
-    action: string;
-  }>;
-  rewards?: Record<string, number>;
-  monster?: {
-    name: string;
-    icon: string;
-    level: number;
-    hp: number;
-    attack: number;
-    defense: number;
-    rewards: {
-      exp: number;
-      gold: number;
-    };
-  };
-}
+import type { ExplorationEvent } from "~/types/outer-city";
 
 interface MapEventModalProps {
   event: ExplorationEvent;

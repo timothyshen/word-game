@@ -322,19 +322,7 @@ interface OuterCityMiniMapProps {
   onOpenFull?: () => void;
 }
 
-// 战斗状态类型
-interface CombatState {
-  active: boolean;
-  poiId: string;
-  heroHp: number;
-  heroMaxHp: number;
-  enemyHp: number;
-  enemyMaxHp: number;
-  enemyName: string;
-  enemyIcon: string;
-  turn: number;
-  logs: string[];
-}
+import type { CombatState } from "~/types/outer-city";
 
 export default function OuterCityMiniMap({ onOpenFull }: OuterCityMiniMapProps) {
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);

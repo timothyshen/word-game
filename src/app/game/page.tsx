@@ -6,7 +6,7 @@ import Link from "next/link";
 import { api } from "~/trpc/react";
 
 // 导入游戏组件
-import OuterCityFullMap from "~/components/game/OuterCityFullMap";
+import OuterCityFullMap from "~/components/game/outer-city";
 import {
   CharacterHub,
   InventoryHub,
