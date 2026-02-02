@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { BuildingEffects, BuildingProduction, StatKey } from "~/shared/effects";
+import type { BuildingEffects, StatKey } from "~/shared/effects";
 import { StatModifierEditor } from "./StatModifierEditor";
 import { STAT_OPTIONS, inputCls, selectCls, removeBtnCls, addBtnCls } from "./shared";
 
@@ -44,6 +44,47 @@ export function BuildingEffectEditor({ name, defaultValue }: { name: string; def
       <div>
         <label className="block text-xs text-[#888] mb-1">属性加成</label>
         <StatModifierEditor value={effects.statBonuses ?? []} onChange={mods => update({ statBonuses: mods })} />
+      </div>
+
+      {/* 解锁标记 */}
+      <div>
+        <label className="block text-xs text-[#888] mb-1">解锁标记</label>
+        <div className="space-y-2">
+          {(effects.unlocks ?? []).map((flag, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <input value={flag} onChange={e => {
+                const next = [...(effects.unlocks ?? [])];
+                next[i] = e.target.value;
+                update({ unlocks: next });
+              }} placeholder="标记名 (如: crafting_basic)" className={inputCls + " flex-1"} />
+              <button type="button" onClick={() => update({ unlocks: (effects.unlocks ?? []).filter((_, j) => j !== i) })} className={removeBtnCls}>×</button>
+            </div>
+          ))}
+          <button type="button" onClick={() => update({ unlocks: [...(effects.unlocks ?? []), ""] })} className={addBtnCls}>+ 添加解锁</button>
+        </div>
+      </div>
+
+      {/* 容量 */}
+      <div>
+        <label className="block text-xs text-[#888] mb-1">容量</label>
+        <div className="space-y-2">
+          {(effects.capacity ?? []).map((cap, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <input value={cap.type} onChange={e => {
+                const next = [...(effects.capacity ?? [])];
+                next[i] = { ...next[i]!, type: e.target.value };
+                update({ capacity: next });
+              }} placeholder="类型 (如: worker, storage)" className={inputCls + " flex-1"} />
+              <input type="number" value={cap.amount} onChange={e => {
+                const next = [...(effects.capacity ?? [])];
+                next[i] = { ...next[i]!, amount: Number(e.target.value) };
+                update({ capacity: next });
+              }} className={inputCls + " w-20"} min={1} />
+              <button type="button" onClick={() => update({ capacity: (effects.capacity ?? []).filter((_, j) => j !== i) })} className={removeBtnCls}>×</button>
+            </div>
+          ))}
+          <button type="button" onClick={() => update({ capacity: [...(effects.capacity ?? []), { type: "", amount: 1 }] })} className={addBtnCls}>+ 添加容量</button>
+        </div>
       </div>
 
       {/* 数值设置 */}

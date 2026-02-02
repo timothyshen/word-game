@@ -95,11 +95,11 @@ async function main() {
       type: "production",
       category: "farming",
       cooldown: 0,
-      effects: JSON.stringify([{ type: "special", action: "productionBoost", params: { amount: 0.3 } }]),
+      effects: JSON.stringify([{ type: "special", action: "productionBoost", params: { percentage: 0.3 } }]),
       levelData: JSON.stringify([
-        { level: 1, effects: [{ type: "special", action: "productionBoost", params: { amount: 0.3 } }], mpCost: 0, cooldown: 0 },
-        { level: 2, effects: [{ type: "special", action: "productionBoost", params: { amount: 0.4 } }], mpCost: 0, cooldown: 0 },
-        { level: 3, effects: [{ type: "special", action: "productionBoost", params: { amount: 0.5 } }], mpCost: 0, cooldown: 0 },
+        { level: 1, effects: [{ type: "special", action: "productionBoost", params: { percentage: 0.3 } }], mpCost: 0, cooldown: 0 },
+        { level: 2, effects: [{ type: "special", action: "productionBoost", params: { percentage: 0.4 } }], mpCost: 0, cooldown: 0 },
+        { level: 3, effects: [{ type: "special", action: "productionBoost", params: { percentage: 0.5 } }], mpCost: 0, cooldown: 0 },
       ]),
     },
     {
@@ -109,11 +109,11 @@ async function main() {
       type: "production",
       category: "crafting",
       cooldown: 0,
-      effects: JSON.stringify([{ type: "special", action: "qualityBoost", params: { amount: 0.2 } }]),
+      effects: JSON.stringify([{ type: "special", action: "qualityBoost", params: { percentage: 0.2 } }]),
       levelData: JSON.stringify([
-        { level: 1, effects: [{ type: "special", action: "qualityBoost", params: { amount: 0.2 } }], mpCost: 0, cooldown: 0 },
-        { level: 2, effects: [{ type: "special", action: "qualityBoost", params: { amount: 0.3 } }], mpCost: 0, cooldown: 0 },
-        { level: 3, effects: [{ type: "special", action: "qualityBoost", params: { amount: 0.4 } }], mpCost: 0, cooldown: 0 },
+        { level: 1, effects: [{ type: "special", action: "qualityBoost", params: { percentage: 0.2 } }], mpCost: 0, cooldown: 0 },
+        { level: 2, effects: [{ type: "special", action: "qualityBoost", params: { percentage: 0.3 } }], mpCost: 0, cooldown: 0 },
+        { level: 3, effects: [{ type: "special", action: "qualityBoost", params: { percentage: 0.4 } }], mpCost: 0, cooldown: 0 },
       ]),
     },
     {

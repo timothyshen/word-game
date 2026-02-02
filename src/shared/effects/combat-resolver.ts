@@ -36,7 +36,10 @@ export function resolveSkillEffect(
     case "flee":
       return resolveFlee(effect);
     case "special":
-      return { logs: [`${attacker.name} 使用了特殊技能 ${effect.action}`] };
+      return {
+        logs: [`${attacker.name} 使用了特殊技能 ${effect.action}`],
+        specialAction: { action: effect.action, params: effect.params },
+      };
   }
 }
 
@@ -46,15 +49,27 @@ function resolveDamage(
   defender: CombatUnit,
 ): CombatResult {
   const attackStat = effect.damageType === "magic"
-    ? attacker.intellect * 2.5
-    : attacker.attack;
+    ? getBuffedStat(attacker, "intellect") * 2.5
+    : getBuffedStat(attacker, "attack");
   const defenseStat = effect.damageType === "magic"
-    ? defender.defense * 0.5
-    : defender.defense;
+    ? getBuffedStat(defender, "defense") * 0.5
+    : getBuffedStat(defender, "defense");
 
-  const critChance = 0.1 + (attacker.luck * 0.005);
+  // Use critRate/critDamage from buffs (falling back to base formula)
+  const baseCritChance = 0.1 + (attacker.luck * 0.005);
+  const critChance = baseCritChance + getBuffedStat(attacker, "critRate") - ((attacker as unknown as Record<string, number>).critRate ?? 0);
   const isCrit = Math.random() < critChance;
-  const damage = calculateDamage(attackStat, defenseStat, effect.multiplier, isCrit);
+  const critDmgBase = 1.5;
+  const critDmgBonus = getBuffedStat(attacker, "critDamage") - ((attacker as unknown as Record<string, number>).critDamage ?? 0);
+  const critMultiplier = critDmgBase + critDmgBonus;
+
+  let damage = calculateDamage(attackStat, defenseStat, effect.multiplier, isCrit, critMultiplier);
+
+  // Apply defender's damageReduction
+  const dmgReduction = getBuffedStat(defender, "damageReduction");
+  if (dmgReduction > 0) {
+    damage = Math.max(1, Math.floor(damage * (1 - Math.min(dmgReduction, 0.9))));
+  }
 
   defender.hp -= damage;
 
@@ -64,6 +79,14 @@ function resolveDamage(
   logs.push(
     `${attacker.name} 造成了 ${damage} 点${typeLabel}${elementLabel}伤害${isCrit ? "（暴击！）" : ""}`,
   );
+
+  // Apply lifesteal
+  const lifesteal = getBuffedStat(attacker, "lifesteal");
+  if (lifesteal > 0) {
+    const stolen = Math.floor(damage * Math.min(lifesteal, 1));
+    attacker.hp = Math.min(attacker.maxHp, attacker.hp + stolen);
+    if (stolen > 0) logs.push(`${attacker.name} 吸取了 ${stolen} 点生命值`);
+  }
 
   return { logs, damageDealt: damage };
 }
@@ -133,7 +156,7 @@ export function tickBuffs(unit: CombatUnit): string[] {
   const removed: string[] = [];
   unit.buffs = unit.buffs.filter((b) => {
     b.turnsRemaining--;
-    if (b.turnsRemaining <= 0) {
+    if (b.turnsRemaining < 0) {
       removed.push(b.name);
       return false;
     }

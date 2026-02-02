@@ -33,3 +33,4 @@ export const inputCls = "w-full p-1.5 bg-[#1a1a20] border border-[#2a2a30] focus
 export const selectCls = "p-1.5 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none text-sm";
 export const removeBtnCls = "px-2 py-1 text-xs bg-[#e74c3c]/20 hover:bg-[#e74c3c]/40 text-[#e74c3c] shrink-0";
 export const addBtnCls = "px-3 py-1.5 text-sm bg-[#2a2a30] hover:bg-[#3a3a40] text-[#c9a227] border border-dashed border-[#2a2a30] w-full";
+export const paramBtnCls = "px-2 py-1 text-xs bg-[#2a2a30] hover:bg-[#3a3a40] text-[#c9a227] border border-dashed border-[#2a2a30] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a2a30]";

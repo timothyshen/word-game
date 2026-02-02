@@ -104,11 +104,11 @@ export async function resolveCardEffect(
     case "unlock":
       return resolveUnlockCard(effect, ctx);
     case "building":
-      return { success: true, message: "建筑卡牌效果", data: { buildingId: effect.buildingId } };
+      return resolveBuildingCard(effect, ctx);
     case "recruit":
-      return { success: true, message: "招募卡牌效果", data: { characterId: effect.characterId } };
+      return resolveRecruitCard(effect, ctx);
     case "skill":
-      return { success: true, message: "技能卡牌效果", data: { skillId: effect.skillId } };
+      return resolveSkillCard(effect, ctx);
   }
 }
 
@@ -151,4 +151,57 @@ async function resolveUnlockCard(
 ): Promise<CardResult> {
   await ctx.db.upsertFlag(ctx.playerId, effect.flagName);
   return { success: true, message: `解锁了 ${effect.flagName}` };
+}
+
+async function resolveBuildingCard(
+  effect: Extract<CardEffect, { type: "building" }>,
+  ctx: CardContext,
+): Promise<CardResult> {
+  const building = await ctx.db.getBuilding(effect.buildingId);
+  if (!building) return { success: false, message: "建筑模板不存在" };
+  // Building cards unlock flags — the actual building creation is handled by the building system
+  await ctx.db.upsertFlag(ctx.playerId, `building_unlocked_${effect.buildingId}`);
+  return { success: true, message: `解锁了建筑：${building.name}`, data: { buildingId: effect.buildingId, buildingName: building.name } };
+}
+
+async function resolveRecruitCard(
+  effect: Extract<CardEffect, { type: "recruit" }>,
+  ctx: CardContext,
+): Promise<CardResult> {
+  const template = await ctx.db.getCharacterTemplate(effect.characterId);
+  if (!template) return { success: false, message: "角色模板不存在" };
+
+  const charId = await ctx.db.createPlayerCharacter({
+    playerId: ctx.playerId,
+    characterId: template.id,
+    name: template.name,
+    rarity: template.rarity,
+    level: 1,
+    hp: template.baseHp,
+    maxHp: template.baseHp,
+    mp: template.baseMp,
+    maxMp: template.baseMp,
+    attack: template.baseAttack,
+    defense: template.baseDefense,
+    speed: template.baseSpeed,
+    luck: template.baseLuck,
+  });
+
+  return { success: true, message: `招募了${template.name}`, data: { characterId: charId, characterName: template.name } };
+}
+
+async function resolveSkillCard(
+  effect: Extract<CardEffect, { type: "skill" }>,
+  ctx: CardContext,
+): Promise<CardResult> {
+  const template = await ctx.db.getSkillTemplate(effect.skillId);
+  if (!template) return { success: false, message: "技能模板不存在" };
+
+  const skillId = await ctx.db.createPlayerSkill({
+    playerId: ctx.playerId,
+    skillId: template.id,
+    level: 1,
+  });
+
+  return { success: true, message: `学会了${template.name}`, data: { skillId, skillName: template.name } };
 }

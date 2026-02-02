@@ -3,7 +3,13 @@
 import { useState } from "react";
 import type { SkillEffect, StatKey } from "~/shared/effects";
 import { StatModifierEditor } from "./StatModifierEditor";
-import { selectCls, inputCls, removeBtnCls, addBtnCls } from "./shared";
+import { selectCls, inputCls, removeBtnCls, addBtnCls, paramBtnCls } from "./shared";
+
+const PARAM_KEYS = [
+  { value: "percentage", label: "概率 (%)" },
+  { value: "amount", label: "数量" },
+  { value: "duration", label: "持续回合" },
+];
 
 const EFFECT_TYPES = [
   { value: "damage", label: "伤害" },
@@ -59,7 +65,7 @@ export function SkillEffectEditor({ value, onChange }: Props) {
             </div>
           )}
           {eff.type === "heal" && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <select value={eff.healType} onChange={e => update(i, { ...eff, healType: e.target.value as "hp" | "mp" })} className={selectCls}>
                 <option value="hp">HP</option>
                 <option value="mp">MP</option>
@@ -68,7 +74,12 @@ export function SkillEffectEditor({ value, onChange }: Props) {
                 <option value="self">自身</option>
                 <option value="ally">队友</option>
               </select>
-              <input type="number" value={eff.amount} onChange={e => update(i, { ...eff, amount: Number(e.target.value) })} className={inputCls + " w-20"} />
+              <input type="number" value={eff.amount} onChange={e => update(i, { ...eff, amount: Number(e.target.value) })} step={eff.isPercent ? 0.05 : 1} min={0} max={eff.isPercent ? 1 : undefined} className={inputCls + " w-20"} />
+              {eff.isPercent && <span className="text-xs text-[#888] shrink-0">{(eff.amount * 100).toFixed(0)}%</span>}
+              <label className="flex items-center gap-1 text-xs text-[#888] shrink-0 cursor-pointer">
+                <input type="checkbox" checked={!!eff.isPercent} onChange={e => update(i, { ...eff, isPercent: e.target.checked || undefined, amount: e.target.checked ? 0.3 : 30 })} className="accent-[#c9a227]" />
+                百分比
+              </label>
             </div>
           )}
           {eff.type === "buff" && (
@@ -94,20 +105,36 @@ export function SkillEffectEditor({ value, onChange }: Props) {
                 <span className="text-xs text-[#666]">参数</span>
                 {Object.entries(eff.params).map(([key, val]) => (
                   <div key={key} className="flex gap-2 items-center">
-                    <input value={key} onChange={e => {
+                    <select value={PARAM_KEYS.some(p => p.value === key) ? key : "__custom"} onChange={e => {
+                      const newKey = e.target.value === "__custom" ? key : e.target.value;
+                      if (newKey === key) return;
                       const { [key]: _, ...rest } = eff.params;
-                      update(i, { ...eff, params: { ...rest, [e.target.value]: val } });
-                    }} placeholder="键" className={inputCls + " w-28"} />
+                      update(i, { ...eff, params: { ...rest, [newKey]: val } });
+                    }} className={selectCls + " w-28"}>
+                      {PARAM_KEYS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      {!PARAM_KEYS.some(p => p.value === key) && <option value="__custom">{key || "自定义"}</option>}
+                    </select>
+                    {!PARAM_KEYS.some(p => p.value === key) && (
+                      <input value={key} onChange={e => {
+                        const { [key]: _, ...rest } = eff.params;
+                        update(i, { ...eff, params: { ...rest, [e.target.value]: val } });
+                      }} placeholder="自定义键名" className={inputCls + " w-24"} />
+                    )}
                     <input type="number" value={val} onChange={e => {
                       update(i, { ...eff, params: { ...eff.params, [key]: Number(e.target.value) } });
-                    }} step="any" className={inputCls + " w-24"} />
+                    }} step={key === "percentage" ? 0.05 : "any"} min={key === "percentage" ? 0 : undefined} max={key === "percentage" ? 1 : undefined} className={inputCls + " w-24"} />
+                    {key === "percentage" && <span className="text-xs text-[#888] self-center">{(val * 100).toFixed(0)}%</span>}
                     <button type="button" onClick={() => {
                       const { [key]: _, ...rest } = eff.params;
                       update(i, { ...eff, params: rest });
                     }} className={removeBtnCls}>×</button>
                   </div>
                 ))}
-                <button type="button" onClick={() => update(i, { ...eff, params: { ...eff.params, amount: 0 } })} className={addBtnCls}>+ 添加参数</button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { if (!("percentage" in eff.params)) update(i, { ...eff, params: { ...eff.params, percentage: 0.2 } }); }} className={paramBtnCls} disabled={"percentage" in eff.params}>+ 概率 (percentage)</button>
+                  <button type="button" onClick={() => { if (!("amount" in eff.params)) update(i, { ...eff, params: { ...eff.params, amount: 0 } }); }} className={paramBtnCls} disabled={"amount" in eff.params}>+ 数量 (amount)</button>
+                  <button type="button" onClick={() => update(i, { ...eff, params: { ...eff.params, [`param${Object.keys(eff.params).length}`]: 0 } })} className={paramBtnCls}>+ 自定义</button>
+                </div>
               </div>
             </div>
           )}

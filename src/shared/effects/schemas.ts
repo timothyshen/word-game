@@ -26,7 +26,7 @@ export const statModifierSchema = z.object({
 const resourceRewardSchema = z.object({
   type: z.literal("resource"),
   stat: statKeySchema,
-  amount: z.number(),
+  amount: z.number().min(0),
 });
 
 const cardRewardSchema = z.object({
@@ -103,7 +103,7 @@ export const conditionSchema = z.discriminatedUnion("type", [
 const damageEffectSchema = z.object({
   type: z.literal("damage"),
   damageType: z.enum(["physical", "magic"]),
-  multiplier: z.number(),
+  multiplier: z.number().positive(),
   element: z.string().optional(),
 });
 
@@ -119,7 +119,7 @@ const buffEffectSchema = z.object({
   type: z.literal("buff"),
   target: z.enum(["self", "enemy"]),
   modifiers: z.array(statModifierSchema),
-  duration: z.number(),
+  duration: z.number().int().positive(),
 });
 
 const fleeEffectSchema = z.object({
@@ -153,12 +153,12 @@ export const skillLevelEntrySchema = z.object({
 const buildingCardSchema = z.object({ type: z.literal("building"), buildingId: z.string() });
 const recruitCardSchema = z.object({ type: z.literal("recruit"), characterId: z.string() });
 const skillCardSchema = z.object({ type: z.literal("skill"), skillId: z.string() });
-const healCardSchema = z.object({ type: z.literal("heal"), healType: z.enum(["hp", "mp"]), amount: z.number() });
-const buffCardSchema = z.object({ type: z.literal("buff"), modifiers: z.array(statModifierSchema), duration: z.number() });
-const escapeCardSchema = z.object({ type: z.literal("escape"), successRate: z.number() });
-const enhanceCardSchema = z.object({ type: z.literal("enhance"), targetType: z.enum(["equipment", "skill"]), amount: z.number() });
-const expCardSchema = z.object({ type: z.literal("exp"), amount: z.number() });
-const expansionCardSchema = z.object({ type: z.literal("expansion"), amount: z.number() });
+const healCardSchema = z.object({ type: z.literal("heal"), healType: z.enum(["hp", "mp"]), amount: z.number().positive() });
+const buffCardSchema = z.object({ type: z.literal("buff"), modifiers: z.array(statModifierSchema), duration: z.number().int().positive() });
+const escapeCardSchema = z.object({ type: z.literal("escape"), successRate: z.number().min(0).max(1) });
+const enhanceCardSchema = z.object({ type: z.literal("enhance"), targetType: z.enum(["equipment", "skill"]), amount: z.number().positive() });
+const expCardSchema = z.object({ type: z.literal("exp"), amount: z.number().positive() });
+const expansionCardSchema = z.object({ type: z.literal("expansion"), amount: z.number().int().positive() });
 const unlockCardSchema = z.object({ type: z.literal("unlock"), flagName: z.string() });
 
 export const cardEffectSchema = z.discriminatedUnion("type", [
@@ -178,7 +178,7 @@ export const cardEffectSchema = z.discriminatedUnion("type", [
 
 const buildingProductionSchema = z.object({
   stat: statKeySchema,
-  amountPerHour: z.number(),
+  amountPerHour: z.number().positive(),
 });
 
 const buildingCapacitySchema = z.object({
@@ -271,6 +271,19 @@ function safeParse<T>(json: string, schema: z.ZodType<T>, fallback: T): T {
   }
 }
 
+function safeParseNullable<T>(json: string, schema: z.ZodType<T>): T | null {
+  try {
+    const parsed: unknown = JSON.parse(json);
+    const result = schema.safeParse(parsed);
+    if (result.success) return result.data;
+    console.warn("[effects] Parse validation failed:", result.error.format());
+    return null;
+  } catch {
+    console.warn("[effects] JSON parse failed for:", json.slice(0, 100));
+    return null;
+  }
+}
+
 export function parseStatModifiers(json: string): StatModifier[] {
   return safeParse(json, z.array(statModifierSchema), []);
 }
@@ -292,7 +305,7 @@ export function parseSkillLevelData(json: string): SkillLevelEntry[] {
 }
 
 export function parseCardEffect(json: string): CardEffect | null {
-  return safeParse(json, cardEffectSchema, null as unknown as CardEffect) ?? null;
+  return safeParseNullable(json, cardEffectSchema);
 }
 
 export function parseBuildingEffects(json: string): BuildingEffects {
@@ -300,7 +313,7 @@ export function parseBuildingEffects(json: string): BuildingEffects {
 }
 
 export function parseMonsterConfig(json: string): MonsterConfig | null {
-  return safeParse(json, monsterConfigSchema, null as unknown as MonsterConfig) ?? null;
+  return safeParseNullable(json, monsterConfigSchema);
 }
 
 export function parseStoryChoices(json: string): StoryChoice[] {

@@ -33,11 +33,14 @@ export function SkillLevelEditor({ name, defaultValue }: { name: string; default
   return (
     <div className="space-y-3">
       <input type="hidden" name={name} value={JSON.stringify(levels)} />
-      {levels.map((entry, i) => (
-        <div key={i} className="border border-[#2a2a30] p-3 space-y-2">
+      {levels.map((entry, i) => {
+        const isDuplicate = levels.some((l, j) => j !== i && l.level === entry.level);
+        return (
+        <div key={i} className={"border p-3 space-y-2 " + (isDuplicate ? "border-[#e74c3c]" : "border-[#2a2a30]")}>
           <div className="flex gap-2 items-center">
             <span className="text-xs text-[#888]">等级</span>
-            <input type="number" value={entry.level} onChange={e => update(i, { ...entry, level: Number(e.target.value) })} className={inputCls + " w-16"} min={1} />
+            <input type="number" value={entry.level} onChange={e => update(i, { ...entry, level: Number(e.target.value) })} className={inputCls + " w-16" + (isDuplicate ? " !border-[#e74c3c]" : "")} min={1} />
+            {isDuplicate && <span className="text-xs text-[#e74c3c] shrink-0">等级重复</span>}
             <span className="text-xs text-[#888]">MP消耗</span>
             <input type="number" value={entry.mpCost} onChange={e => update(i, { ...entry, mpCost: Number(e.target.value) })} className={inputCls + " w-16"} min={0} />
             <span className="text-xs text-[#888]">冷却</span>
@@ -46,7 +49,8 @@ export function SkillLevelEditor({ name, defaultValue }: { name: string; default
           </div>
           <SkillEffectEditor value={entry.effects} onChange={effs => update(i, { ...entry, effects: effs })} />
         </div>
-      ))}
+        );
+      })}
       <button type="button" onClick={add} className={addBtnCls}>+ 添加等级</button>
     </div>
   );

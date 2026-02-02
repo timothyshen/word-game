@@ -9,7 +9,7 @@ import {
   resolveRewards,
   buildResourceUpdate,
 } from "~/shared/effects";
-import type { RewardEntry } from "~/shared/effects";
+import type { RewardEntry, AdventureOutcome } from "~/shared/effects";
 
 // 随机事件类型
 type EventType = "resource" | "monster" | "merchant" | "treasure" | "trap" | "nothing";
@@ -21,8 +21,9 @@ interface ExplorationEvent {
   options: Array<{
     text: string;
     action: string;
-    cost?: { stamina?: number };
+    cost?: Record<string, number>;
     requirement?: { stat?: string; minValue?: number };
+    outcomes?: AdventureOutcome[];
   }>;
   rewards?: {
     gold?: number;
@@ -41,7 +42,7 @@ interface ExplorationEvent {
     rewards: {
       exp: number;
       gold: number;
-      cardChance: number;
+      cards?: Array<{ rarity: string; count: number }>;
     };
   };
 }
@@ -122,7 +123,9 @@ function generateMonsterEvent(level: number): ExplorationEvent {
       rewards: {
         exp: 20 * monsterLevel,
         gold: 10 * monsterLevel,
-        cardChance: 0.1 + monsterLevel * 0.05,
+        cards: Math.random() < (0.1 + monsterLevel * 0.05)
+          ? [{ rarity: "精良", count: 1 }]
+          : undefined,
       },
     },
   };
@@ -537,15 +540,21 @@ export const explorationRouter = createTRPCRouter({
           ? typedOptions.map(o => ({
               text: o.text,
               action: o.action,
-              cost: o.cost ? { stamina: o.cost.find(c => c.stat === "hp")?.amount } : undefined,
+              // A3: Map all cost entries, not just hp
+              cost: o.cost && o.cost.length > 0
+                ? Object.fromEntries(o.cost.map(c => [c.stat, c.amount]))
+                : undefined,
+              // A4: Pass first stat condition for legacy compat (full conditions checked in handleEventChoice)
               requirement: o.conditions?.[0]?.type === "stat"
                 ? { stat: (o.conditions[0] as { stat: string }).stat, minValue: (o.conditions[0] as { min: number }).min }
                 : undefined,
+              // A6: Preserve outcomes for handleEventChoice
+              outcomes: o.outcomes,
             }))
           : (JSON.parse(selectedAdventure.optionsJson) as Array<{
               text: string;
               action: string;
-              cost?: { stamina?: number };
+              cost?: Record<string, number>;
               requirement?: { stat?: string; minValue?: number };
             }>);
 
@@ -564,7 +573,7 @@ export const explorationRouter = createTRPCRouter({
         if (selectedAdventure.monsterJson) {
           const typedMonster = parseMonsterConfig(selectedAdventure.monsterJson);
           if (typedMonster) {
-            // Convert typed MonsterConfig to exploration event monster format
+            // A5: Convert typed MonsterConfig preserving full card reward data
             const monsterRewards = resolveRewards(typedMonster.rewards);
             monster = {
               name: typedMonster.name,
@@ -575,7 +584,7 @@ export const explorationRouter = createTRPCRouter({
               rewards: {
                 exp: monsterRewards.resourcesGranted.exp ?? 0,
                 gold: monsterRewards.resourcesGranted.gold ?? 0,
-                cardChance: monsterRewards.cardsGranted.length > 0 ? 0.5 : 0,
+                cards: monsterRewards.cardsGranted.length > 0 ? monsterRewards.cardsGranted : undefined,
               },
             };
           } else {
@@ -720,15 +729,20 @@ export const explorationRouter = createTRPCRouter({
                 },
               });
 
-              const cardDrop = Math.random() < rewards.cardChance;
-              // Grant dropped card to player
-              if (cardDrop) {
-                const dropCards = await ctx.db.card.findMany({ where: { rarity: "精良" } });
-                if (dropCards.length > 0) {
-                  const template = dropCards[Math.floor(Math.random() * dropCards.length)]!;
-                  await ctx.db.playerCard.create({
-                    data: { playerId: player.id, cardId: template.id },
-                  });
+              // A5: Grant card rewards using full rarity/count data
+              let cardDrop = false;
+              if (rewards.cards && rewards.cards.length > 0) {
+                for (const cardReward of rewards.cards) {
+                  const dropCards = await ctx.db.card.findMany({ where: { rarity: cardReward.rarity } });
+                  if (dropCards.length > 0) {
+                    for (let ci = 0; ci < cardReward.count; ci++) {
+                      const template = dropCards[Math.floor(Math.random() * dropCards.length)]!;
+                      await ctx.db.playerCard.create({
+                        data: { playerId: player.id, cardId: template.id },
+                      });
+                    }
+                    cardDrop = true;
+                  }
                 }
               }
 

@@ -194,6 +194,7 @@ export interface CombatResult {
   healAmount?: number;
   buffsApplied?: CombatBuff[];
   fled?: boolean;
+  specialAction?: { action: string; params: Record<string, number> };
 }
 
 // --- Stat Calculator Types ---
