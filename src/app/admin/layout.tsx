@@ -6,6 +6,12 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { href: "/admin", label: "概览", icon: "📊" },
   { href: "/admin/cards", label: "卡牌管理", icon: "🃏" },
+  { href: "/admin/buildings", label: "建筑管理", icon: "🏗️" },
+  { href: "/admin/characters", label: "角色管理", icon: "👥" },
+  { href: "/admin/skills", label: "技能管理", icon: "⚡" },
+  { href: "/admin/equipment", label: "装备管理", icon: "🗡️" },
+  { href: "/admin/professions", label: "职业管理", icon: "📋" },
+  { href: "/admin/pois", label: "兴趣点管理", icon: "📍" },
   { href: "/admin/stories", label: "剧情管理", icon: "📜" },
   { href: "/admin/adventures", label: "奇遇管理", icon: "🎲" },
 ];
