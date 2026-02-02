@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { CharacterTraitEditor } from "~/components/admin/effect-editors";
 
 const BASE_CLASSES = [
   { value: "战士", label: "战士" },
@@ -348,17 +349,8 @@ export default function CharactersPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">特性 (JSON数组)</label>
-                <textarea
-                  name="traits"
-                  defaultValue={editingCharacter.traits}
-                  rows={4}
-                  placeholder='["勇猛", "坚韧"]'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-[#666] mt-1">
-                  示例: {`["勇猛", "坚韧", "敏捷"]`}
-                </p>
+                <label className="block text-sm text-[#888] mb-1">特性</label>
+                <CharacterTraitEditor name="traits" defaultValue={editingCharacter.traits} />
               </div>
 
               <div className="flex gap-3 pt-4">

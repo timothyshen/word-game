@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import {
+  parseStoryChoices,
+  parseRewards,
+  resolveRewards,
+  buildResourceUpdate,
+} from "~/shared/effects";
+import type { RewardEntry } from "~/shared/effects";
 
 // 节点类型
 interface StoryNodeData {
@@ -15,17 +22,67 @@ interface StoryNodeData {
   rewardsJson: string | null;
 }
 
-interface ParsedChoice {
+/** Legacy choice format from existing seed data */
+interface LegacyChoice {
   text: string;
   nextNode: string;
   requirements?: Record<string, number>;
   rewards?: Record<string, number>;
 }
 
+/** Unified choice shape returned by parseNode */
+interface ParsedChoice {
+  text: string;
+  nextNode: string;
+  requirements?: Record<string, number>;
+  rewards?: Record<string, number>;
+  typedRewards?: RewardEntry[];
+}
+
+/**
+ * Parse choices — try typed StoryChoice[] first, fallback to legacy format.
+ * Returns a unified ParsedChoice[] for API compatibility.
+ */
+function parseChoices(json: string): ParsedChoice[] {
+  const typed = parseStoryChoices(json);
+  if (typed.length > 0) {
+    return typed.map(c => ({
+      text: c.text,
+      nextNode: c.nextNodeId,
+      typedRewards: c.rewards,
+    }));
+  }
+  // Legacy format: [{ text, nextNode, requirements?, rewards? }]
+  try {
+    return JSON.parse(json) as LegacyChoice[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Parse rewards JSON — try typed RewardEntry[] first, fallback to legacy Record<string,number>.
+ * Returns both shapes for API compat + internal typed processing.
+ */
+function parseRewardsCompat(json: string): { legacy: Record<string, number>; typed: RewardEntry[] } {
+  const typed = parseRewards(json);
+  if (typed.length > 0) {
+    const grant = resolveRewards(typed);
+    return { legacy: grant.resourcesGranted, typed };
+  }
+  // Legacy format: { gold: 100, exp: 50, ... }
+  try {
+    const legacy = JSON.parse(json) as Record<string, number>;
+    return { legacy, typed: [] };
+  } catch {
+    return { legacy: {}, typed: [] };
+  }
+}
+
 // 解析节点的选项和奖励
 function parseNode(node: StoryNodeData) {
-  const choices = node.choicesJson ? JSON.parse(node.choicesJson) as ParsedChoice[] : undefined;
-  const rewards = node.rewardsJson ? JSON.parse(node.rewardsJson) as Record<string, number> : undefined;
+  const choices = node.choicesJson ? parseChoices(node.choicesJson) : undefined;
+  const rewardsData = node.rewardsJson ? parseRewardsCompat(node.rewardsJson) : undefined;
   return {
     id: node.nodeId,
     title: node.title,
@@ -34,7 +91,7 @@ function parseNode(node: StoryNodeData) {
     speakerIcon: node.speakerIcon ?? undefined,
     nextNode: node.nextNodeId ?? undefined,
     choices,
-    rewards,
+    rewards: rewardsData?.legacy,
   };
 }
 
@@ -69,7 +126,7 @@ export const storyRouter = createTRPCRouter({
       description: chapter.description,
       isCompleted: completedStories.has(chapter.id),
       nodeCount: chapter.nodes.length,
-      rewards: JSON.parse(chapter.rewardsJson) as Record<string, number>,
+      rewards: parseRewardsCompat(chapter.rewardsJson).legacy,
     }));
   }),
 
@@ -213,27 +270,26 @@ export const storyRouter = createTRPCRouter({
       }
 
       // 发放奖励
-      const chapterRewards = JSON.parse(chapter.rewardsJson) as Record<string, number>;
+      const chapterRewardsData = parseRewardsCompat(chapter.rewardsJson);
       if (Object.keys(rewards).length > 0 || isCompleted) {
         const finalRewards = isCompleted
-          ? { ...rewards, ...chapterRewards }
+          ? { ...rewards, ...chapterRewardsData.legacy }
           : rewards;
 
-        await ctx.db.player.update({
-          where: { id: player.id },
-          data: {
-            gold: player.gold + (finalRewards.gold ?? 0),
-            crystals: player.crystals + (finalRewards.crystals ?? 0),
-            exp: player.exp + (finalRewards.exp ?? 0),
-          },
-        });
+        const resourceUpdate = buildResourceUpdate(finalRewards, player as unknown as Record<string, number>);
+        if (Object.keys(resourceUpdate).length > 0) {
+          await ctx.db.player.update({
+            where: { id: player.id },
+            data: resourceUpdate,
+          });
+        }
       }
 
       return {
         advanced: true,
         nextNode,
         isCompleted,
-        rewards: isCompleted ? chapterRewards : rewards,
+        rewards: isCompleted ? chapterRewardsData.legacy : rewards,
       };
     }),
 });

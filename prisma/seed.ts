@@ -42,7 +42,7 @@ async function main() {
   });
   console.log(`Created player for test user`);
 
-  // ===== 技能数据 =====
+  // ===== 技能数据 (typed SkillEffect[] + SkillLevelEntry[]) =====
   const skills = [
     {
       name: "剑气斩",
@@ -51,13 +51,13 @@ async function main() {
       type: "combat",
       category: "sword",
       cooldown: 2,
-      effects: JSON.stringify({ damage: 1.5, type: "physical" }),
+      effects: JSON.stringify([{ type: "damage", damageType: "physical", multiplier: 1.5 }]),
       levelData: JSON.stringify([
-        { level: 1, damage: 1.5 },
-        { level: 2, damage: 1.8 },
-        { level: 3, damage: 2.1 },
-        { level: 4, damage: 2.5 },
-        { level: 5, damage: 3.0 },
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 1.5 }], mpCost: 10, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 1.8 }], mpCost: 12, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 2.1 }], mpCost: 15, cooldown: 2 },
+        { level: 4, effects: [{ type: "damage", damageType: "physical", multiplier: 2.5 }], mpCost: 18, cooldown: 2 },
+        { level: 5, effects: [{ type: "damage", damageType: "physical", multiplier: 3.0 }], mpCost: 20, cooldown: 2 },
       ]),
     },
     {
@@ -67,11 +67,11 @@ async function main() {
       type: "combat",
       category: "shield",
       cooldown: 3,
-      effects: JSON.stringify({ defenseBoost: 0.5, duration: 2 }),
+      effects: JSON.stringify([{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }], duration: 2 }]),
       levelData: JSON.stringify([
-        { level: 1, defenseBoost: 0.5, duration: 2 },
-        { level: 2, defenseBoost: 0.6, duration: 2 },
-        { level: 3, defenseBoost: 0.7, duration: 3 },
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }], duration: 2 }], mpCost: 5, cooldown: 3 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.6, type: "percent" }], duration: 2 }], mpCost: 7, cooldown: 3 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.7, type: "percent" }], duration: 3 }], mpCost: 10, cooldown: 3 },
       ]),
     },
     {
@@ -81,11 +81,11 @@ async function main() {
       type: "combat",
       category: "fire",
       cooldown: 2,
-      effects: JSON.stringify({ damage: 1.2, type: "magic", element: "fire" }),
+      effects: JSON.stringify([{ type: "damage", damageType: "magic", multiplier: 1.2, element: "fire" }]),
       levelData: JSON.stringify([
-        { level: 1, damage: 1.2 },
-        { level: 2, damage: 1.5 },
-        { level: 3, damage: 1.8 },
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 1.2, element: "fire" }], mpCost: 15, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 1.5, element: "fire" }], mpCost: 18, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 1.8, element: "fire" }], mpCost: 22, cooldown: 2 },
       ]),
     },
     {
@@ -95,11 +95,11 @@ async function main() {
       type: "production",
       category: "farming",
       cooldown: 0,
-      effects: JSON.stringify({ productionBoost: 0.3, type: "farming" }),
+      effects: JSON.stringify([{ type: "special", action: "productionBoost", params: { amount: 0.3 } }]),
       levelData: JSON.stringify([
-        { level: 1, productionBoost: 0.3 },
-        { level: 2, productionBoost: 0.4 },
-        { level: 3, productionBoost: 0.5 },
+        { level: 1, effects: [{ type: "special", action: "productionBoost", params: { amount: 0.3 } }], mpCost: 0, cooldown: 0 },
+        { level: 2, effects: [{ type: "special", action: "productionBoost", params: { amount: 0.4 } }], mpCost: 0, cooldown: 0 },
+        { level: 3, effects: [{ type: "special", action: "productionBoost", params: { amount: 0.5 } }], mpCost: 0, cooldown: 0 },
       ]),
     },
     {
@@ -109,11 +109,11 @@ async function main() {
       type: "production",
       category: "crafting",
       cooldown: 0,
-      effects: JSON.stringify({ qualityBoost: 0.2, type: "crafting" }),
+      effects: JSON.stringify([{ type: "special", action: "qualityBoost", params: { amount: 0.2 } }]),
       levelData: JSON.stringify([
-        { level: 1, qualityBoost: 0.2 },
-        { level: 2, qualityBoost: 0.3 },
-        { level: 3, qualityBoost: 0.4 },
+        { level: 1, effects: [{ type: "special", action: "qualityBoost", params: { amount: 0.2 } }], mpCost: 0, cooldown: 0 },
+        { level: 2, effects: [{ type: "special", action: "qualityBoost", params: { amount: 0.3 } }], mpCost: 0, cooldown: 0 },
+        { level: 3, effects: [{ type: "special", action: "qualityBoost", params: { amount: 0.4 } }], mpCost: 0, cooldown: 0 },
       ]),
     },
     {
@@ -123,11 +123,11 @@ async function main() {
       type: "utility",
       category: "knowledge",
       cooldown: 1,
-      effects: JSON.stringify({ identify: true }),
+      effects: JSON.stringify([{ type: "special", action: "identify", params: { successRate: 0.7 } }]),
       levelData: JSON.stringify([
-        { level: 1, successRate: 0.7 },
-        { level: 2, successRate: 0.85 },
-        { level: 3, successRate: 1.0 },
+        { level: 1, effects: [{ type: "special", action: "identify", params: { successRate: 0.7 } }], mpCost: 5, cooldown: 1 },
+        { level: 2, effects: [{ type: "special", action: "identify", params: { successRate: 0.85 } }], mpCost: 5, cooldown: 1 },
+        { level: 3, effects: [{ type: "special", action: "identify", params: { successRate: 1.0 } }], mpCost: 5, cooldown: 1 },
       ]),
     },
   ];
@@ -141,7 +141,7 @@ async function main() {
   }
   console.log(`Created ${skills.length} skills`);
 
-  // ===== 建筑数据 =====
+  // ===== 建筑数据 (typed BuildingEffects) =====
   const buildings = [
     {
       name: "主城堡",
@@ -150,9 +150,8 @@ async function main() {
       description: "领地的核心建筑，决定领地等级上限和可建造数量",
       maxLevel: 10,
       baseEffects: JSON.stringify({
-        territoryLevel: 1,
-        buildingSlots: 3,
-        defense: 10,
+        statBonuses: [{ stat: "defense", value: 10, type: "flat" }],
+        capacity: [{ type: "buildingSlots", amount: 3 }],
       }),
     },
     {
@@ -162,8 +161,8 @@ async function main() {
       description: "生产粮食的基础设施，分配农夫可提高产量",
       maxLevel: 5,
       baseEffects: JSON.stringify({
-        dailyOutput: { food: 20 },
-        workerBonus: 0.5,
+        production: [{ stat: "food", amountPerHour: 20 }],
+        workerMultiplier: 1.5,
       }),
     },
     {
@@ -173,8 +172,8 @@ async function main() {
       description: "开采石材和矿石",
       maxLevel: 5,
       baseEffects: JSON.stringify({
-        dailyOutput: { stone: 15 },
-        workerBonus: 0.5,
+        production: [{ stat: "stone", amountPerHour: 15 }],
+        workerMultiplier: 1.5,
       }),
     },
     {
@@ -184,8 +183,8 @@ async function main() {
       description: "砍伐木材",
       maxLevel: 5,
       baseEffects: JSON.stringify({
-        dailyOutput: { wood: 20 },
-        workerBonus: 0.5,
+        production: [{ stat: "wood", amountPerHour: 20 }],
+        workerMultiplier: 1.5,
       }),
     },
     {
@@ -195,8 +194,7 @@ async function main() {
       description: "锻造武器装备，分配工匠可解锁高级配方",
       maxLevel: 5,
       baseEffects: JSON.stringify({
-        craftingEnabled: true,
-        recipes: ["iron_sword", "iron_shield"],
+        unlocks: ["crafting_basic", "iron_sword", "iron_shield"],
       }),
     },
     {
@@ -206,8 +204,7 @@ async function main() {
       description: "训练士兵和存放军备的场所",
       maxLevel: 5,
       baseEffects: JSON.stringify({
-        soldierCapacity: 10,
-        trainingSpeed: 1,
+        capacity: [{ type: "soldiers", amount: 10 }],
       }),
     },
     {
@@ -217,8 +214,8 @@ async function main() {
       description: "进行资源交易和商品买卖",
       maxLevel: 5,
       baseEffects: JSON.stringify({
-        tradeTax: 0.1,
-        dailyRefresh: 1,
+        unlocks: ["trading"],
+        production: [{ stat: "gold", amountPerHour: 10 }],
       }),
     },
     {
@@ -228,9 +225,7 @@ async function main() {
       description: "抽取、合成、献祭卡牌的神秘祭坛",
       maxLevel: 3,
       baseEffects: JSON.stringify({
-        drawEnabled: true,
-        combineEnabled: true,
-        sacrificeEnabled: true,
+        unlocks: ["card_draw", "card_combine", "card_sacrifice"],
       }),
     },
     {
@@ -240,8 +235,8 @@ async function main() {
       description: "连接诸天世界的神秘装置",
       maxLevel: 3,
       baseEffects: JSON.stringify({
-        worldAccess: 1,
-        teleportCost: 20,
+        unlocks: ["world_travel"],
+        capacity: [{ type: "worldAccess", amount: 1 }],
       }),
     },
   ];
@@ -255,7 +250,7 @@ async function main() {
   }
   console.log(`Created ${buildings.length} buildings`);
 
-  // ===== 角色模板 =====
+  // ===== 角色模板 (typed CharacterTrait[]) =====
   const characters = [
     {
       name: "流浪剑士",
@@ -270,7 +265,10 @@ async function main() {
       baseLuck: 8,
       baseHp: 100,
       baseMp: 20,
-      traits: JSON.stringify(["勇猛", "忠诚"]),
+      traits: JSON.stringify([
+        { name: "勇猛", modifiers: [{ stat: "attack", value: 3, type: "flat" }] },
+        { name: "忠诚", modifiers: [{ stat: "defense", value: 2, type: "flat" }] },
+      ]),
     },
     {
       name: "村民",
@@ -285,7 +283,10 @@ async function main() {
       baseLuck: 12,
       baseHp: 60,
       baseMp: 5,
-      traits: JSON.stringify(["勤劳", "朴实"]),
+      traits: JSON.stringify([
+        { name: "勤劳", modifiers: [{ stat: "food", value: 0.1, type: "percent" }] },
+        { name: "朴实", modifiers: [{ stat: "luck", value: 2, type: "flat" }] },
+      ]),
     },
     {
       name: "铁匠",
@@ -300,7 +301,10 @@ async function main() {
       baseLuck: 10,
       baseHp: 80,
       baseMp: 15,
-      traits: JSON.stringify(["专注", "完美主义"]),
+      traits: JSON.stringify([
+        { name: "专注", modifiers: [{ stat: "craftingQuality", value: 0.15, type: "percent" }] },
+        { name: "完美主义", modifiers: [{ stat: "defense", value: 3, type: "flat" }] },
+      ]),
     },
     {
       name: "年轻学者",
@@ -315,7 +319,10 @@ async function main() {
       baseLuck: 15,
       baseHp: 50,
       baseMp: 60,
-      traits: JSON.stringify(["博学", "好奇"]),
+      traits: JSON.stringify([
+        { name: "博学", modifiers: [{ stat: "intellect", value: 5, type: "flat" }] },
+        { name: "好奇", modifiers: [{ stat: "luck", value: 3, type: "flat" }] },
+      ]),
     },
   ];
 
@@ -335,14 +342,14 @@ async function main() {
   const allCharacters = await prisma.character.findMany();
 
   const cards = [
-    // 技能卡
+    // 技能卡 (typed CardEffect)
     ...allSkills.map(skill => ({
       name: `${skill.name}·技能书`,
       type: "skill",
       rarity: skill.type === "combat" ? "稀有" : "精良",
       description: `学习技能：${skill.name}`,
       icon: skill.icon,
-      effects: JSON.stringify({ skillId: skill.id }),
+      effects: JSON.stringify({ type: "skill", skillId: skill.id }),
     })),
     // 建筑卡
     ...allBuildings.filter(b => b.slot !== "core").map(building => ({
@@ -351,7 +358,7 @@ async function main() {
       rarity: building.slot === "special" ? "史诗" : "精良",
       description: `建造建筑：${building.name}`,
       icon: building.icon,
-      effects: JSON.stringify({ buildingId: building.id }),
+      effects: JSON.stringify({ type: "building", buildingId: building.id }),
     })),
     // 招募卡
     ...allCharacters.map(char => ({
@@ -360,7 +367,7 @@ async function main() {
       rarity: char.rarity,
       description: `招募角色：${char.name}`,
       icon: char.portrait,
-      effects: JSON.stringify({ characterId: char.id }),
+      effects: JSON.stringify({ type: "recruit", characterId: char.id }),
     })),
     // 道具卡
     {
@@ -369,7 +376,7 @@ async function main() {
       rarity: "普通",
       description: "恢复50点HP",
       icon: "🧪",
-      effects: JSON.stringify({ heal: 50, type: "hp" }),
+      effects: JSON.stringify({ type: "heal", healType: "hp", amount: 50 }),
     },
     {
       name: "魔力药水",
@@ -377,7 +384,7 @@ async function main() {
       rarity: "普通",
       description: "恢复30点MP",
       icon: "🔮",
-      effects: JSON.stringify({ heal: 30, type: "mp" }),
+      effects: JSON.stringify({ type: "heal", healType: "mp", amount: 30 }),
     },
     {
       name: "烟雾弹",
@@ -385,7 +392,7 @@ async function main() {
       rarity: "精良",
       description: "战斗中使用，100%逃跑成功",
       icon: "💨",
-      effects: JSON.stringify({ escape: true, successRate: 1.0 }),
+      effects: JSON.stringify({ type: "escape", successRate: 1.0 }),
     },
     {
       name: "力量药水",
@@ -393,7 +400,7 @@ async function main() {
       rarity: "精良",
       description: "攻击力+30%持续3回合",
       icon: "💪",
-      effects: JSON.stringify({ buff: "attack", value: 0.3, duration: 3 }),
+      effects: JSON.stringify({ type: "buff", modifiers: [{ stat: "attack", value: 0.3, type: "percent" }], duration: 3 }),
     },
     // 提升卡
     {
@@ -402,7 +409,7 @@ async function main() {
       rarity: "精良",
       description: "装备强化+1",
       icon: "💎",
-      effects: JSON.stringify({ enhance: 1, targetType: "equipment" }),
+      effects: JSON.stringify({ type: "enhance", targetType: "equipment", amount: 1 }),
     },
     {
       name: "技能升级卷轴",
@@ -410,7 +417,7 @@ async function main() {
       rarity: "稀有",
       description: "任意技能等级+1",
       icon: "📜",
-      effects: JSON.stringify({ skillLevelUp: 1 }),
+      effects: JSON.stringify({ type: "enhance", targetType: "skill", amount: 1 }),
     },
     {
       name: "经验书",
@@ -418,7 +425,7 @@ async function main() {
       rarity: "普通",
       description: "获得500经验值",
       icon: "📕",
-      effects: JSON.stringify({ exp: 500 }),
+      effects: JSON.stringify({ type: "exp", amount: 500 }),
     },
     // 扩张卡
     {
@@ -427,7 +434,7 @@ async function main() {
       rarity: "稀有",
       description: "扩展内城领地范围，获得更多建造空间",
       icon: "🗺️",
-      effects: JSON.stringify({ type: "area", amount: 1 }),
+      effects: JSON.stringify({ type: "expansion", amount: 1 }),
     },
     {
       name: "高级扩张令",
@@ -435,7 +442,7 @@ async function main() {
       rarity: "史诗",
       description: "大幅扩展内城领地范围",
       icon: "🌍",
-      effects: JSON.stringify({ type: "area", amount: 2 }),
+      effects: JSON.stringify({ type: "expansion", amount: 2 }),
     },
     {
       name: "空间扩张符",
@@ -443,7 +450,7 @@ async function main() {
       rarity: "稀有",
       description: "扩展内城领地范围",
       icon: "📐",
-      effects: JSON.stringify({ type: "area", amount: 1 }),
+      effects: JSON.stringify({ type: "expansion", amount: 1 }),
     },
   ];
 
@@ -456,55 +463,52 @@ async function main() {
   }
   console.log(`Created ${cards.length} cards`);
 
-  // ===== 职业数据 =====
+  // ===== 职业数据 (typed StatModifier[] + Condition[]) =====
   const professions = [
     {
       name: "剑客",
       description: "精通剑术的武者，近战攻击力卓越",
-      bonuses: JSON.stringify({
-        attackBoost: 0.2,
-        swordDamageBoost: 0.3,
-        critRate: 0.05,
-      }),
-      unlockConditions: JSON.stringify({
-        requiredSkills: [{ category: "sword", minLevel: 3 }],
-      }),
+      bonuses: JSON.stringify([
+        { stat: "attack", value: 0.2, type: "percent" },
+        { stat: "critRate", value: 0.05, type: "flat" },
+      ]),
+      unlockConditions: JSON.stringify([
+        { type: "skill", category: "sword", minLevel: 3 },
+      ]),
     },
     {
       name: "术士",
       description: "掌握神秘法术的施法者",
-      bonuses: JSON.stringify({
-        magicDamageBoost: 0.15,
-        maxMpBoost: 0.2,
-        castSpeedBoost: 0.1,
-      }),
-      unlockConditions: JSON.stringify({
-        requiredSkillCount: { type: "magic", count: 2 },
-      }),
+      bonuses: JSON.stringify([
+        { stat: "intellect", value: 0.15, type: "percent" },
+        { stat: "maxMp", value: 0.2, type: "percent" },
+      ]),
+      unlockConditions: JSON.stringify([
+        { type: "skillCount", skillType: "magic", count: 2 },
+      ]),
     },
     {
       name: "工匠大师",
       description: "锻造技艺登峰造极的匠人",
-      bonuses: JSON.stringify({
-        craftingQualityBoost: 1,
-        craftingSpeedBoost: 0.3,
-        materialSaving: 0.15,
-      }),
-      unlockConditions: JSON.stringify({
-        requiredSkills: [{ category: "crafting", minLevel: 5 }],
-      }),
+      bonuses: JSON.stringify([
+        { stat: "craftingQuality", value: 1, type: "flat" },
+        { stat: "productionSpeed", value: 0.3, type: "percent" },
+      ]),
+      unlockConditions: JSON.stringify([
+        { type: "skill", category: "crafting", minLevel: 5 },
+      ]),
     },
     {
       name: "守护者",
       description: "铜墙铁壁般的防御专家",
-      bonuses: JSON.stringify({
-        defenseBoost: 0.3,
-        maxHpBoost: 0.2,
-        damageReduction: 0.1,
-      }),
-      unlockConditions: JSON.stringify({
-        requiredSkills: [{ category: "shield", minLevel: 3 }],
-      }),
+      bonuses: JSON.stringify([
+        { stat: "defense", value: 0.3, type: "percent" },
+        { stat: "maxHp", value: 0.2, type: "percent" },
+        { stat: "damageReduction", value: 0.1, type: "flat" },
+      ]),
+      unlockConditions: JSON.stringify([
+        { type: "skill", category: "shield", minLevel: 3 },
+      ]),
     },
   ];
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { BuildingEffectEditor } from "~/components/admin/effect-editors";
 
 const BUILDING_SLOTS = [
   { value: "core", label: "核心" },
@@ -228,17 +229,8 @@ export default function BuildingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">基础效果 (JSON)</label>
-                <textarea
-                  name="baseEffects"
-                  defaultValue={editingBuilding.baseEffects}
-                  rows={4}
-                  placeholder='{"goldPerHour": 10, "foodPerHour": 5}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-[#666] mt-1">
-                  示例: {`{"goldPerHour": 10}`} | {`{"defenseBonus": 5}`}
-                </p>
+                <label className="block text-sm text-[#888] mb-1">基础效果</label>
+                <BuildingEffectEditor name="baseEffects" defaultValue={editingBuilding.baseEffects} />
               </div>
 
               <div className="flex gap-3 pt-4">

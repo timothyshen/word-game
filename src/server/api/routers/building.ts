@@ -2,53 +2,20 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { getCurrentGameDay } from "../utils";
+import {
+  parseBuildingEffects,
+  calculateBuildingOutput as calcOutput,
+  getUpgradeCost as calcUpgradeCost,
+} from "~/shared/effects";
 
-// 升级费用计算
-function getUpgradeCost(buildingSlot: string, currentLevel: number): { gold: number; wood: number; stone: number } {
-  const baseCosts: Record<string, { gold: number; wood: number; stone: number }> = {
-    core: { gold: 500, wood: 200, stone: 200 },
-    production: { gold: 100, wood: 50, stone: 30 },
-    military: { gold: 200, wood: 80, stone: 100 },
-    commerce: { gold: 300, wood: 40, stone: 20 },
-    special: { gold: 400, wood: 100, stone: 100 },
-  };
-
-  const base = baseCosts[buildingSlot] ?? baseCosts.production!;
-  const multiplier = currentLevel;
-
-  return {
-    gold: base!.gold * multiplier,
-    wood: base!.wood * multiplier,
-    stone: base!.stone * multiplier,
-  };
+function getUpgradeCost(baseEffectsJson: string, slot: string, currentLevel: number) {
+  const effects = parseBuildingEffects(baseEffectsJson);
+  return calcUpgradeCost(effects, slot, currentLevel);
 }
 
-// 计算建筑产出
-function calculateBuildingOutput(
-  buildingName: string,
-  level: number,
-  hasWorker: boolean,
-  workerSkillBonus: number = 0
-): Record<string, number> {
-  const baseOutputs: Record<string, Record<string, number>> = {
-    "农田": { food: 20 },
-    "矿场": { stone: 15 },
-    "伐木场": { wood: 20 },
-    "市场": { gold: 30 },
-  };
-
-  const base = baseOutputs[buildingName];
-  if (!base) return {};
-
-  const output: Record<string, number> = {};
-  const levelMultiplier = 1 + (level - 1) * 0.3; // 每级+30%
-  const workerMultiplier = hasWorker ? 1.5 + workerSkillBonus : 1;
-
-  for (const [resource, amount] of Object.entries(base)) {
-    output[resource] = Math.floor(amount * levelMultiplier * workerMultiplier);
-  }
-
-  return output;
+function calculateBuildingOutput(baseEffectsJson: string, level: number, hasWorker: boolean) {
+  const effects = parseBuildingEffects(baseEffectsJson);
+  return calcOutput(effects, level, hasWorker);
 }
 
 export const buildingRouter = createTRPCRouter({
@@ -69,9 +36,9 @@ export const buildingRouter = createTRPCRouter({
 
     return buildings.map(pb => ({
       ...pb,
-      upgradeCost: getUpgradeCost(pb.building.slot, pb.level),
+      upgradeCost: getUpgradeCost(pb.building.baseEffects, pb.building.slot, pb.level),
       canUpgrade: pb.level < pb.building.maxLevel,
-      dailyOutput: calculateBuildingOutput(pb.building.name, pb.level, !!pb.assignedCharId),
+      dailyOutput: calculateBuildingOutput(pb.building.baseEffects, pb.level, !!pb.assignedCharId),
     }));
   }),
 
@@ -106,9 +73,9 @@ export const buildingRouter = createTRPCRouter({
 
       return {
         ...building,
-        upgradeCost: getUpgradeCost(building.building.slot, building.level),
+        upgradeCost: getUpgradeCost(building.building.baseEffects, building.building.slot, building.level),
         canUpgrade: building.level < building.building.maxLevel,
-        dailyOutput: calculateBuildingOutput(building.building.name, building.level, !!building.assignedCharId),
+        dailyOutput: calculateBuildingOutput(building.building.baseEffects, building.level, !!building.assignedCharId),
         assignedCharacter,
       };
     }),
@@ -138,7 +105,7 @@ export const buildingRouter = createTRPCRouter({
       }
 
       // 检查资源
-      const cost = getUpgradeCost(playerBuilding.building.slot, playerBuilding.level);
+      const cost = getUpgradeCost(playerBuilding.building.baseEffects, playerBuilding.building.slot, playerBuilding.level);
 
       if (player.gold < cost.gold) {
         throw new TRPCError({ code: "BAD_REQUEST", message: `金币不足，需要 ${cost.gold}` });
@@ -192,7 +159,7 @@ export const buildingRouter = createTRPCRouter({
         buildingName: playerBuilding.building.name,
         newLevel,
         cost,
-        newOutput: calculateBuildingOutput(updated.building.name, newLevel, !!updated.assignedCharId),
+        newOutput: calculateBuildingOutput(updated.building.baseEffects, newLevel, !!updated.assignedCharId),
       };
     }),
 
@@ -310,7 +277,7 @@ export const buildingRouter = createTRPCRouter({
     }> = [];
 
     for (const pb of buildings) {
-      const output = calculateBuildingOutput(pb.building.name, pb.level, !!pb.assignedCharId);
+      const output = calculateBuildingOutput(pb.building.baseEffects, pb.level, !!pb.assignedCharId);
 
       if (Object.keys(output).length > 0) {
         breakdown.push({
@@ -371,7 +338,7 @@ export const buildingRouter = createTRPCRouter({
     };
 
     for (const pb of buildings) {
-      const output = calculateBuildingOutput(pb.building.name, pb.level, !!pb.assignedCharId);
+      const output = calculateBuildingOutput(pb.building.baseEffects, pb.level, !!pb.assignedCharId);
       for (const [resource, amount] of Object.entries(output)) {
         totalOutput[resource] = (totalOutput[resource] ?? 0) + amount;
       }

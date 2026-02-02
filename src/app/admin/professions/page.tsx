@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { StatModifierField, ConditionField } from "~/components/admin/effect-editors";
 
 interface ProfessionForm {
   id?: string;
@@ -167,25 +168,13 @@ export default function ProfessionsPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">加成 (JSON)</label>
-                <textarea
-                  name="bonuses"
-                  defaultValue={editingProfession.bonuses}
-                  rows={4}
-                  placeholder='{"attackBoost": 0.2, "critRate": 0.05}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
+                <label className="block text-sm text-[#888] mb-1">加成</label>
+                <StatModifierField name="bonuses" defaultValue={editingProfession.bonuses} />
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">解锁条件 (JSON)</label>
-                <textarea
-                  name="unlockConditions"
-                  defaultValue={editingProfession.unlockConditions}
-                  rows={4}
-                  placeholder='{"requiredSkills": [{"category": "sword", "minLevel": 3}]}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
+                <label className="block text-sm text-[#888] mb-1">解锁条件</label>
+                <ConditionField name="unlockConditions" defaultValue={editingProfession.unlockConditions} />
               </div>
 
               <div className="flex gap-3 pt-4">

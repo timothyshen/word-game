@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { StatModifierField } from "~/components/admin/effect-editors";
 
 const EQUIPMENT_SLOTS = [
   { value: "mainHand", label: "主手" },
@@ -349,17 +350,8 @@ export default function EquipmentPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">特殊效果 (JSON)</label>
-                <textarea
-                  name="specialEffects"
-                  defaultValue={editingEquipment.specialEffects}
-                  rows={4}
-                  placeholder='{"critRate": 0.1, "lifesteal": 0.05}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-[#666] mt-1">
-                  可选，装备的特殊效果JSON数据
-                </p>
+                <label className="block text-sm text-[#888] mb-1">特殊效果</label>
+                <StatModifierField name="specialEffects" defaultValue={editingEquipment.specialEffects} />
               </div>
 
               <div className="flex gap-3 pt-4">

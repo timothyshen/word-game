@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { RewardField, ConditionField, StoryChoiceEditor } from "~/components/admin/effect-editors";
 
 interface ChapterForm {
   id?: string;
@@ -406,28 +407,16 @@ export default function StoriesPage() {
 
               <div>
                 <label className="block text-sm text-[#888] mb-1">
-                  完成奖励 (JSON)
+                  完成奖励
                 </label>
-                <textarea
-                  name="rewardsJson"
-                  defaultValue={editingChapter.rewardsJson}
-                  rows={2}
-                  placeholder='{"gold": 100, "crystals": 5, "exp": 50}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
+                <RewardField name="rewardsJson" defaultValue={editingChapter.rewardsJson} />
               </div>
 
               <div>
                 <label className="block text-sm text-[#888] mb-1">
-                  解锁条件 (JSON)
+                  解锁条件
                 </label>
-                <textarea
-                  name="unlockJson"
-                  defaultValue={editingChapter.unlockJson}
-                  rows={2}
-                  placeholder='{"level": 5, "tier": 2}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
+                <ConditionField name="unlockJson" defaultValue={editingChapter.unlockJson} />
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -547,28 +536,16 @@ export default function StoriesPage() {
 
               <div>
                 <label className="block text-sm text-[#888] mb-1">
-                  选项 (JSON数组，与下一节点二选一)
+                  选项 (与下一节点二选一)
                 </label>
-                <textarea
-                  name="choicesJson"
-                  defaultValue={editingNode.choicesJson}
-                  rows={4}
-                  placeholder='[{"text": "选项1", "nextNodeId": "node_a", "rewards": {"gold": 50}}]'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
+                <StoryChoiceEditor name="choicesJson" defaultValue={editingNode.choicesJson ?? "[]"} />
               </div>
 
               <div>
                 <label className="block text-sm text-[#888] mb-1">
-                  节点奖励 (JSON)
+                  节点奖励
                 </label>
-                <textarea
-                  name="rewardsJson"
-                  defaultValue={editingNode.rewardsJson}
-                  rows={2}
-                  placeholder='{"gold": 50, "exp": 20}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
+                <RewardField name="rewardsJson" defaultValue={editingNode.rewardsJson ?? "[]"} />
               </div>
 
               <div className="flex gap-3 pt-4">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { SkillEffectField, SkillLevelEditor } from "~/components/admin/effect-editors";
 
 const SKILL_TYPES = [
   { value: "combat", label: "战斗" },
@@ -242,31 +243,13 @@ export default function SkillsPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">效果 (JSON)</label>
-                <textarea
-                  name="effects"
-                  defaultValue={editingSkill.effects}
-                  rows={4}
-                  placeholder='{"damage": 50, "type": "fire"}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-[#666] mt-1">
-                  技能效果的JSON数据
-                </p>
+                <label className="block text-sm text-[#888] mb-1">效果</label>
+                <SkillEffectField name="effects" defaultValue={editingSkill.effects} />
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">等级数据 (JSON数组)</label>
-                <textarea
-                  name="levelData"
-                  defaultValue={editingSkill.levelData}
-                  rows={4}
-                  placeholder='[{"level": 1, "damage": 50}, {"level": 2, "damage": 80}]'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-[#666] mt-1">
-                  每个等级的技能数据，JSON数组格式
-                </p>
+                <label className="block text-sm text-[#888] mb-1">等级数据</label>
+                <SkillLevelEditor name="levelData" defaultValue={editingSkill.levelData} />
               </div>
 
               <div className="flex gap-3 pt-4">

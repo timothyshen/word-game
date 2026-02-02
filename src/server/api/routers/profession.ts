@@ -1,6 +1,64 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import {
+  parseStatModifiers,
+  parseConditions,
+  checkConditions,
+} from "~/shared/effects";
+import type { Condition, StatModifier } from "~/shared/effects";
+import type { ConditionContext } from "~/shared/effects/condition-checker";
+
+/** Convert StatModifier[] to Record<string,number> for API compatibility */
+function modifiersToRecord(modifiers: StatModifier[]): Record<string, number> {
+  const r: Record<string, number> = {};
+  for (const m of modifiers) r[m.stat] = (r[m.stat] ?? 0) + m.value;
+  return r;
+}
+
+/** Parse bonuses — typed format first, fallback to legacy Record<string,number> */
+function parseBonuses(json: string): Record<string, number> {
+  const typed = parseStatModifiers(json);
+  if (typed.length > 0) return modifiersToRecord(typed);
+  try { return JSON.parse(json) as Record<string, number>; } catch { return {}; }
+}
+
+/** Parse conditions — typed Condition[] first, fallback to legacy { tier, level } */
+function parseUnlockConditions(json: string): Condition[] {
+  const typed = parseConditions(json);
+  if (typed.length > 0) return typed;
+  try {
+    const legacy = JSON.parse(json) as Record<string, unknown>;
+    const conds: Condition[] = [];
+    if (typeof legacy.tier === "number") conds.push({ type: "tier", min: legacy.tier });
+    if (typeof legacy.level === "number") conds.push({ type: "level", min: legacy.level });
+    return conds;
+  } catch { return []; }
+}
+
+/** Build a minimal ConditionContext for a player or character */
+function buildConditionContext(entity: {
+  level: number;
+  tier: number;
+  strength?: number;
+  agility?: number;
+  intellect?: number;
+  luck?: number;
+}): ConditionContext {
+  return {
+    level: entity.level,
+    tier: entity.tier,
+    stats: {
+      strength: entity.strength ?? 0,
+      agility: entity.agility ?? 0,
+      intellect: entity.intellect ?? 0,
+      luck: entity.luck ?? 0,
+    },
+    skills: [],
+    flags: [],
+    items: [],
+  };
+}
 
 export const professionRouter = createTRPCRouter({
   // 获取所有可用职业
@@ -11,8 +69,8 @@ export const professionRouter = createTRPCRouter({
       id: p.id,
       name: p.name,
       description: p.description,
-      bonuses: JSON.parse(p.bonuses) as Record<string, number>,
-      unlockConditions: JSON.parse(p.unlockConditions) as Record<string, unknown>,
+      bonuses: parseBonuses(p.bonuses),
+      unlockConditions: parseUnlockConditions(p.unlockConditions),
     }));
   }),
 
@@ -43,7 +101,7 @@ export const professionRouter = createTRPCRouter({
         id: player.profession.profession.id,
         name: player.profession.profession.name,
         description: player.profession.profession.description,
-        bonuses: JSON.parse(player.profession.profession.bonuses) as Record<string, number>,
+        bonuses: parseBonuses(player.profession.profession.bonuses),
         obtainedAt: player.profession.obtainedAt,
       },
     };
@@ -83,7 +141,7 @@ export const professionRouter = createTRPCRouter({
           id: character.profession.profession.id,
           name: character.profession.profession.name,
           description: character.profession.profession.description,
-          bonuses: JSON.parse(character.profession.profession.bonuses) as Record<string, number>,
+          bonuses: parseBonuses(character.profession.profession.bonuses),
           obtainedAt: character.profession.obtainedAt,
         } : null,
       };
@@ -117,19 +175,14 @@ export const professionRouter = createTRPCRouter({
       }
 
       // 检查解锁条件
-      const conditions = JSON.parse(profession.unlockConditions) as Record<string, unknown>;
+      const conditions = parseUnlockConditions(profession.unlockConditions);
+      const condCtx = buildConditionContext(player);
+      const check = checkConditions(conditions, condCtx);
 
-      if (conditions.tier && player.tier < (conditions.tier as number)) {
+      if (!check.met) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `需要达到${conditions.tier}阶才能学习该职业`,
-        });
-      }
-
-      if (conditions.level && player.level < (conditions.level as number)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `需要达到${conditions.level}级才能学习该职业`,
+          message: check.reason ?? "不满足解锁条件",
         });
       }
 
@@ -184,12 +237,14 @@ export const professionRouter = createTRPCRouter({
       }
 
       // 检查条件
-      const conditions = JSON.parse(profession.unlockConditions) as Record<string, unknown>;
+      const conditions = parseUnlockConditions(profession.unlockConditions);
+      const condCtx = buildConditionContext(character);
+      const check = checkConditions(conditions, condCtx);
 
-      if (conditions.tier && character.tier < (conditions.tier as number)) {
+      if (!check.met) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `角色需要达到${conditions.tier}阶`,
+          message: check.reason ?? "角色不满足解锁条件",
         });
       }
 

@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
+/** Validate that a string is parseable JSON */
+function isValidJson(s: string): boolean {
+  try { JSON.parse(s); return true; } catch { return false; }
+}
+
+const jsonString = (fallback = "{}") =>
+  z.string().default(fallback).refine(isValidJson, { message: "必须是合法的JSON格式" });
+
+const jsonStringOptional = () =>
+  z.string().optional().refine((s) => !s || isValidJson(s), { message: "必须是合法的JSON格式" });
+
 // ===== Card 相关 =====
 
 const cardSchema = z.object({
@@ -9,7 +20,7 @@ const cardSchema = z.object({
   rarity: z.enum(["普通", "精良", "稀有", "史诗", "传说"]),
   description: z.string(),
   icon: z.string().default("🃏"),
-  effects: z.string(), // JSON string
+  effects: jsonString("{}"),
 });
 
 // ===== Story 相关 =====
@@ -19,8 +30,8 @@ const storyChapterSchema = z.object({
   description: z.string(),
   order: z.number().default(0),
   isActive: z.boolean().default(true),
-  rewardsJson: z.string().default("{}"),
-  unlockJson: z.string().default("{}"),
+  rewardsJson: jsonString("{}"),
+  unlockJson: jsonString("{}"),
 });
 
 const storyNodeSchema = z.object({
@@ -32,8 +43,8 @@ const storyNodeSchema = z.object({
   speakerIcon: z.string().optional(),
   order: z.number().default(0),
   nextNodeId: z.string().optional(),
-  choicesJson: z.string().optional(),
-  rewardsJson: z.string().optional(),
+  choicesJson: jsonStringOptional(),
+  rewardsJson: jsonStringOptional(),
 });
 
 // ===== Building 相关 =====
@@ -44,7 +55,7 @@ const buildingSchema = z.object({
   icon: z.string(),
   description: z.string(),
   maxLevel: z.number().default(10),
-  baseEffects: z.string().default("{}"),
+  baseEffects: jsonString("{}"),
 });
 
 // ===== Character 相关 =====
@@ -62,7 +73,7 @@ const characterSchema = z.object({
   baseLuck: z.number(),
   baseHp: z.number(),
   baseMp: z.number(),
-  traits: z.string().default("[]"),
+  traits: jsonString("[]"),
 });
 
 // ===== Skill 相关 =====
@@ -73,9 +84,9 @@ const skillSchema = z.object({
   icon: z.string(),
   type: z.enum(["combat", "production", "utility"]),
   category: z.string(),
-  effects: z.string(),
+  effects: jsonString("{}"),
   cooldown: z.number().default(0),
-  levelData: z.string().default("[]"),
+  levelData: jsonString("[]"),
 });
 
 // ===== Equipment 相关 =====
@@ -92,7 +103,7 @@ const equipmentSchema = z.object({
   luckBonus: z.number().default(0),
   hpBonus: z.number().default(0),
   mpBonus: z.number().default(0),
-  specialEffects: z.string().optional(),
+  specialEffects: jsonStringOptional(),
   requiredLevel: z.number().default(1),
 });
 
@@ -101,8 +112,8 @@ const equipmentSchema = z.object({
 const professionSchema = z.object({
   name: z.string().min(1),
   description: z.string(),
-  bonuses: z.string().default("{}"),
-  unlockConditions: z.string().default("{}"),
+  bonuses: jsonString("{}"),
+  unlockConditions: jsonString("{}"),
 });
 
 // ===== OuterCityPOI 相关 =====
@@ -132,9 +143,9 @@ const adventureSchema = z.object({
   title: z.string().min(1),
   description: z.string(),
   icon: z.string().default("❓"),
-  optionsJson: z.string(),
-  rewardsJson: z.string().optional(),
-  monsterJson: z.string().optional(),
+  optionsJson: jsonString("[]"),
+  rewardsJson: jsonStringOptional(),
+  monsterJson: jsonStringOptional(),
 });
 
 export const adminRouter = createTRPCRouter({

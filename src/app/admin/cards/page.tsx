@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { CardEffectEditor } from "~/components/admin/effect-editors";
 
 const CARD_TYPES = [
   { value: "building", label: "建筑卡" },
@@ -243,17 +244,8 @@ export default function CardsPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">效果 (JSON)</label>
-                <textarea
-                  name="effects"
-                  defaultValue={editingCard.effects}
-                  rows={4}
-                  placeholder='{"buildingId": "farm", "level": 1}'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#c9a227] outline-none resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-[#666] mt-1">
-                  建筑卡: {`{"buildingId": "xxx"}`} | 招募卡: {`{"characterId": "xxx"}`}
-                </p>
+                <label className="block text-sm text-[#888] mb-1">效果</label>
+                <CardEffectEditor name="effects" defaultValue={editingCard.effects} />
               </div>
 
               <div className="flex gap-3 pt-4">

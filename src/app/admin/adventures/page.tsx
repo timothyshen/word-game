@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
+import { AdventureOptionEditor, RewardField, MonsterConfigEditor } from "~/components/admin/effect-editors";
 
 const ADVENTURE_TYPES = [
   { value: "resource", label: "资源点", icon: "💎" },
@@ -380,40 +381,19 @@ export default function AdventuresPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-[#888] mb-1">选项配置 (JSON数组)</label>
-                <textarea
-                  name="optionsJson"
-                  defaultValue={editingAdventure.optionsJson}
-                  rows={4}
-                  placeholder='[{"text": "开采", "action": "collect", "rewards": {"gold": 100}}]'
-                  className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#9b59b6] outline-none resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-[#666] mt-1">
-                  每个选项: {`{"text": "按钮文字", "action": "动作类型", "rewards": {...}}`}
-                </p>
+                <label className="block text-sm text-[#888] mb-1">选项配置</label>
+                <AdventureOptionEditor name="optionsJson" defaultValue={editingAdventure.optionsJson} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-[#888] mb-1">奖励配置 (JSON)</label>
-                  <textarea
-                    name="rewardsJson"
-                    defaultValue={editingAdventure.rewardsJson ?? "{}"}
-                    rows={3}
-                    placeholder='{"gold": 100, "items": ["item_1"]}'
-                    className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#9b59b6] outline-none resize-none font-mono text-sm"
-                  />
+                  <label className="block text-sm text-[#888] mb-1">奖励配置</label>
+                  <RewardField name="rewardsJson" defaultValue={editingAdventure.rewardsJson ?? "[]"} />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-[#888] mb-1">怪物配置 (JSON)</label>
-                  <textarea
-                    name="monsterJson"
-                    defaultValue={editingAdventure.monsterJson ?? "{}"}
-                    rows={3}
-                    placeholder='{"id": "wolf", "level": 5, "hp": 100}'
-                    className="w-full p-2 bg-[#1a1a20] border border-[#2a2a30] focus:border-[#9b59b6] outline-none resize-none font-mono text-sm"
-                  />
+                  <label className="block text-sm text-[#888] mb-1">怪物配置</label>
+                  <MonsterConfigEditor name="monsterJson" defaultValue={editingAdventure.monsterJson ?? "{}"} />
                 </div>
               </div>
 

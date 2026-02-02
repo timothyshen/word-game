@@ -2,6 +2,14 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { getCurrentGameDay } from "../utils";
+import {
+  parseAdventureOptions,
+  parseRewards,
+  parseMonsterConfig,
+  resolveRewards,
+  buildResourceUpdate,
+} from "~/shared/effects";
+import type { RewardEntry } from "~/shared/effects";
 
 // 随机事件类型
 type EventType = "resource" | "monster" | "merchant" | "treasure" | "trap" | "nothing";
@@ -523,26 +531,57 @@ export const explorationRouter = createTRPCRouter({
           }
         }
 
-        // 转换数据库奇遇为事件格式
-        const options = JSON.parse(selectedAdventure.optionsJson) as Array<{
-          text: string;
-          action: string;
-          cost?: { stamina?: number };
-          requirement?: { stat?: string; minValue?: number };
-        }>;
-        const rewards = selectedAdventure.rewardsJson
-          ? JSON.parse(selectedAdventure.rewardsJson) as Record<string, number>
-          : undefined;
-        const monster = selectedAdventure.monsterJson
-          ? JSON.parse(selectedAdventure.monsterJson) as {
-              name: string;
-              level: number;
-              hp: number;
-              attack: number;
-              defense: number;
-              rewards: { exp: number; gold: number; cardChance: number };
-            }
-          : undefined;
+        // 转换数据库奇遇为事件格式（typed parsers + legacy fallback）
+        const typedOptions = parseAdventureOptions(selectedAdventure.optionsJson);
+        const options = typedOptions.length > 0
+          ? typedOptions.map(o => ({
+              text: o.text,
+              action: o.action,
+              cost: o.cost ? { stamina: o.cost.find(c => c.stat === "hp")?.amount } : undefined,
+              requirement: o.conditions?.[0]?.type === "stat"
+                ? { stat: (o.conditions[0] as { stat: string }).stat, minValue: (o.conditions[0] as { min: number }).min }
+                : undefined,
+            }))
+          : (JSON.parse(selectedAdventure.optionsJson) as Array<{
+              text: string;
+              action: string;
+              cost?: { stamina?: number };
+              requirement?: { stat?: string; minValue?: number };
+            }>);
+
+        let rewards: Record<string, number> | undefined;
+        if (selectedAdventure.rewardsJson) {
+          const typedRewards = parseRewards(selectedAdventure.rewardsJson);
+          if (typedRewards.length > 0) {
+            const grant = resolveRewards(typedRewards);
+            rewards = grant.resourcesGranted;
+          } else {
+            rewards = JSON.parse(selectedAdventure.rewardsJson) as Record<string, number>;
+          }
+        }
+
+        let monster: ExplorationEvent["monster"];
+        if (selectedAdventure.monsterJson) {
+          const typedMonster = parseMonsterConfig(selectedAdventure.monsterJson);
+          if (typedMonster) {
+            // Convert typed MonsterConfig to exploration event monster format
+            const monsterRewards = resolveRewards(typedMonster.rewards);
+            monster = {
+              name: typedMonster.name,
+              level: typedMonster.level,
+              hp: typedMonster.hp,
+              attack: typedMonster.attack,
+              defense: typedMonster.defense,
+              rewards: {
+                exp: monsterRewards.resourcesGranted.exp ?? 0,
+                gold: monsterRewards.resourcesGranted.gold ?? 0,
+                cardChance: monsterRewards.cardsGranted.length > 0 ? 0.5 : 0,
+              },
+            };
+          } else {
+            monster = JSON.parse(selectedAdventure.monsterJson) as ExplorationEvent["monster"];
+          }
+        }
 
         event = {
           type: selectedAdventure.type as EventType,
@@ -597,19 +636,54 @@ export const explorationRouter = createTRPCRouter({
 
       const eventData = input.eventData ? JSON.parse(input.eventData) as ExplorationEvent : null;
 
+      /** Grant resource rewards + card rewards to player (player is validated non-null above) */
+      const playerId = player.id;
+      async function grantEventRewards(eventRewards: NonNullable<ExplorationEvent["rewards"]>) {
+        // Resource rewards
+        const resourceUpdate = buildResourceUpdate(
+          {
+            gold: eventRewards.gold ?? 0,
+            wood: eventRewards.wood ?? 0,
+            stone: eventRewards.stone ?? 0,
+            food: eventRewards.food ?? 0,
+            exp: eventRewards.exp ?? 0,
+          },
+          player as unknown as Record<string, number>,
+        );
+        if (Object.keys(resourceUpdate).length > 0) {
+          await ctx.db.player.update({
+            where: { id: playerId },
+            data: resourceUpdate,
+          });
+        }
+
+        // Card rewards (bugfix: previously card rewards were never granted)
+        if (eventRewards.cards && eventRewards.cards.length > 0) {
+          for (const cardReward of eventRewards.cards) {
+            // Find matching card templates by rarity
+            const cardTemplates = await ctx.db.card.findMany({
+              where: { rarity: cardReward.rarity },
+            });
+            if (cardTemplates.length > 0) {
+              for (let i = 0; i < cardReward.count; i++) {
+                const template = cardTemplates[Math.floor(Math.random() * cardTemplates.length)]!;
+                await ctx.db.playerCard.create({
+                  data: {
+                    playerId: playerId,
+                    cardId: template.id,
+                  },
+                });
+              }
+            }
+          }
+        }
+      }
+
       switch (input.action) {
         case "collect":
           // 采集资源
           if (eventData?.rewards) {
-            await ctx.db.player.update({
-              where: { id: player.id },
-              data: {
-                gold: player.gold + (eventData.rewards.gold ?? 0),
-                wood: player.wood + (eventData.rewards.wood ?? 0),
-                stone: player.stone + (eventData.rewards.stone ?? 0),
-                food: player.food + (eventData.rewards.food ?? 0),
-              },
-            });
+            await grantEventRewards(eventData.rewards);
             result.rewards = eventData.rewards;
             result.message = "成功采集了资源！";
           }
@@ -624,13 +698,16 @@ export const explorationRouter = createTRPCRouter({
 
             if (victory) {
               const rewards = eventData.monster.rewards;
-              await ctx.db.player.update({
-                where: { id: player.id },
-                data: {
-                  gold: player.gold + rewards.gold,
-                  exp: player.exp + rewards.exp,
-                },
-              });
+              const combatResourceUpdate = buildResourceUpdate(
+                { gold: rewards.gold, exp: rewards.exp },
+                player as unknown as Record<string, number>,
+              );
+              if (Object.keys(combatResourceUpdate).length > 0) {
+                await ctx.db.player.update({
+                  where: { id: player.id },
+                  data: combatResourceUpdate,
+                });
+              }
 
               // 记录战斗分数
               await ctx.db.actionLog.create({
@@ -643,6 +720,18 @@ export const explorationRouter = createTRPCRouter({
                 },
               });
 
+              const cardDrop = Math.random() < rewards.cardChance;
+              // Grant dropped card to player
+              if (cardDrop) {
+                const dropCards = await ctx.db.card.findMany({ where: { rarity: "精良" } });
+                if (dropCards.length > 0) {
+                  const template = dropCards[Math.floor(Math.random() * dropCards.length)]!;
+                  await ctx.db.playerCard.create({
+                    data: { playerId: player.id, cardId: template.id },
+                  });
+                }
+              }
+
               result.combat = {
                 victory: true,
                 playerDamage: Math.floor(eventData.monster.attack * 0.5),
@@ -650,7 +739,7 @@ export const explorationRouter = createTRPCRouter({
                 rewards: {
                   exp: rewards.exp,
                   gold: rewards.gold,
-                  cardDrop: Math.random() < rewards.cardChance,
+                  cardDrop,
                 },
               };
               result.message = `战斗胜利！击败了${eventData.monster.name}`;
@@ -678,12 +767,7 @@ export const explorationRouter = createTRPCRouter({
         case "open":
           // 打开宝箱
           if (eventData?.rewards) {
-            await ctx.db.player.update({
-              where: { id: player.id },
-              data: {
-                gold: player.gold + (eventData.rewards.gold ?? 0),
-              },
-            });
+            await grantEventRewards(eventData.rewards);
             result.rewards = eventData.rewards;
             result.message = "打开了宝箱，获得了宝贵的奖励！";
           }
