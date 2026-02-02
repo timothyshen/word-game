@@ -10,14 +10,15 @@ interface Props {
 }
 
 export function RewardEditor({ value, onChange }: Props) {
+  const items = value ?? [];
   const update = (idx: number, entry: RewardEntry) => {
-    const next = [...value];
+    const next = [...items];
     next[idx] = entry;
     onChange(next);
   };
 
-  const add = () => onChange([...value, { type: "resource", stat: "gold" as StatKey, amount: 0 }]);
-  const remove = (idx: number) => onChange(value.filter((_, i) => i !== idx));
+  const add = () => onChange([...items, { type: "resource", stat: "gold" as StatKey, amount: 0 }]);
+  const remove = (idx: number) => onChange(items.filter((_, i) => i !== idx));
 
   const changeType = (idx: number, newType: string) => {
     if (newType === "resource") update(idx, { type: "resource", stat: "gold" as StatKey, amount: 0 });
@@ -27,7 +28,7 @@ export function RewardEditor({ value, onChange }: Props) {
 
   return (
     <div className="space-y-2">
-      {value.map((r, i) => (
+      {items.map((r, i) => (
         <div key={i} className="flex gap-2 items-center flex-wrap">
           <select value={r.type} onChange={e => changeType(i, e.target.value)} className={selectCls + " w-24"}>
             <option value="resource">资源</option>
@@ -66,7 +67,10 @@ export function RewardEditor({ value, onChange }: Props) {
 
 export function RewardField({ name, defaultValue }: { name: string; defaultValue: string }) {
   const [items, setItems] = useState<RewardEntry[]>(() => {
-    try { return JSON.parse(defaultValue) as RewardEntry[]; } catch { return []; }
+    try {
+      const parsed = JSON.parse(defaultValue);
+      return Array.isArray(parsed) ? parsed as RewardEntry[] : [];
+    } catch { return []; }
   });
   return (
     <div>

@@ -30,21 +30,22 @@ interface Props {
 }
 
 export function SkillEffectEditor({ value, onChange }: Props) {
+  const items = value ?? [];
   const update = (idx: number, eff: SkillEffect) => {
-    const next = [...value];
+    const next = [...items];
     next[idx] = eff;
     onChange(next);
   };
 
   return (
     <div className="space-y-3">
-      {value.map((eff, i) => (
+      {items.map((eff, i) => (
         <div key={i} className="border border-[#2a2a30] p-3 space-y-2">
           <div className="flex gap-2 items-center">
             <select value={eff.type} onChange={e => update(i, defaultSkillEffect(e.target.value))} className={selectCls + " flex-1"}>
               {EFFECT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
-            <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))} className={removeBtnCls}>×</button>
+            <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} className={removeBtnCls}>×</button>
           </div>
 
           {eff.type === "damage" && (
@@ -87,20 +88,42 @@ export function SkillEffectEditor({ value, onChange }: Props) {
             <input type="number" value={eff.successRate} onChange={e => update(i, { ...eff, successRate: Number(e.target.value) })} placeholder="成功率 (0-1)" step="0.1" min={0} max={1} className={inputCls} />
           )}
           {eff.type === "special" && (
-            <div className="flex gap-2">
-              <input value={eff.action} onChange={e => update(i, { ...eff, action: e.target.value })} placeholder="动作名" className={inputCls + " flex-1"} />
+            <div className="space-y-2">
+              <input value={eff.action} onChange={e => update(i, { ...eff, action: e.target.value })} placeholder="动作名 (如: qualityBoost, productionBoost, identify)" className={inputCls} />
+              <div className="space-y-1">
+                <span className="text-xs text-[#666]">参数</span>
+                {Object.entries(eff.params).map(([key, val]) => (
+                  <div key={key} className="flex gap-2 items-center">
+                    <input value={key} onChange={e => {
+                      const { [key]: _, ...rest } = eff.params;
+                      update(i, { ...eff, params: { ...rest, [e.target.value]: val } });
+                    }} placeholder="键" className={inputCls + " w-28"} />
+                    <input type="number" value={val} onChange={e => {
+                      update(i, { ...eff, params: { ...eff.params, [key]: Number(e.target.value) } });
+                    }} step="any" className={inputCls + " w-24"} />
+                    <button type="button" onClick={() => {
+                      const { [key]: _, ...rest } = eff.params;
+                      update(i, { ...eff, params: rest });
+                    }} className={removeBtnCls}>×</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => update(i, { ...eff, params: { ...eff.params, amount: 0 } })} className={addBtnCls}>+ 添加参数</button>
+              </div>
             </div>
           )}
         </div>
       ))}
-      <button type="button" onClick={() => onChange([...value, defaultSkillEffect("damage")])} className={addBtnCls}>+ 添加效果</button>
+      <button type="button" onClick={() => onChange([...items, defaultSkillEffect("damage")])} className={addBtnCls}>+ 添加效果</button>
     </div>
   );
 }
 
 export function SkillEffectField({ name, defaultValue }: { name: string; defaultValue: string }) {
   const [items, setItems] = useState<SkillEffect[]>(() => {
-    try { return JSON.parse(defaultValue) as SkillEffect[]; } catch { return []; }
+    try {
+      const parsed = JSON.parse(defaultValue);
+      return Array.isArray(parsed) ? parsed as SkillEffect[] : [];
+    } catch { return []; }
   });
   return (
     <div>

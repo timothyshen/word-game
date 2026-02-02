@@ -33,15 +33,16 @@ function defaultCondition(type: string): Condition {
 }
 
 export function ConditionEditor({ value, onChange }: Props) {
+  const items = value ?? [];
   const update = (idx: number, cond: Condition) => {
-    const next = [...value];
+    const next = [...items];
     next[idx] = cond;
     onChange(next);
   };
 
   return (
     <div className="space-y-2">
-      {value.map((c, i) => (
+      {items.map((c, i) => (
         <div key={i} className="flex gap-2 items-center flex-wrap">
           <select value={c.type} onChange={e => update(i, defaultCondition(e.target.value))} className={selectCls + " w-28"}>
             {CONDITION_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -81,17 +82,20 @@ export function ConditionEditor({ value, onChange }: Props) {
           {c.type === "flag" && (
             <input value={c.flagName} onChange={e => update(i, { ...c, flagName: e.target.value })} placeholder="标记名称" className={inputCls + " flex-1"} />
           )}
-          <button type="button" onClick={() => onChange(value.filter((_, j) => j !== i))} className={removeBtnCls}>×</button>
+          <button type="button" onClick={() => onChange(items.filter((_, j) => j !== i))} className={removeBtnCls}>×</button>
         </div>
       ))}
-      <button type="button" onClick={() => onChange([...value, { type: "level", min: 1 }])} className={addBtnCls}>+ 添加条件</button>
+      <button type="button" onClick={() => onChange([...items, { type: "level", min: 1 }])} className={addBtnCls}>+ 添加条件</button>
     </div>
   );
 }
 
 export function ConditionField({ name, defaultValue }: { name: string; defaultValue: string }) {
   const [items, setItems] = useState<Condition[]>(() => {
-    try { return JSON.parse(defaultValue) as Condition[]; } catch { return []; }
+    try {
+      const parsed = JSON.parse(defaultValue);
+      return Array.isArray(parsed) ? parsed as Condition[] : [];
+    } catch { return []; }
   });
   return (
     <div>

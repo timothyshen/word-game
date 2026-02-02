@@ -7,7 +7,16 @@ import { inputCls, removeBtnCls, addBtnCls } from "./shared";
 
 export function SkillLevelEditor({ name, defaultValue }: { name: string; defaultValue: string }) {
   const [levels, setLevels] = useState<SkillLevelEntry[]>(() => {
-    try { return JSON.parse(defaultValue) as SkillLevelEntry[]; } catch { return []; }
+    try {
+      const parsed = JSON.parse(defaultValue);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((e: Record<string, unknown>) => ({
+        level: (e.level as number) ?? 1,
+        effects: Array.isArray(e.effects) ? e.effects : [],
+        mpCost: (e.mpCost as number) ?? 0,
+        cooldown: (e.cooldown as number) ?? 0,
+      })) as SkillLevelEntry[];
+    } catch { return []; }
   });
 
   const update = (idx: number, entry: SkillLevelEntry) => {

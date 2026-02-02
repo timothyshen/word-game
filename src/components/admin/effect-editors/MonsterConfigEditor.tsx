@@ -15,7 +15,8 @@ export function MonsterConfigEditor({ name, defaultValue }: { name: string; defa
   const [monster, setMonster] = useState<MonsterConfig>(() => {
     try {
       const p = JSON.parse(defaultValue) as MonsterConfig;
-      return p?.name ? p : defaultMonster;
+      if (!p?.name) return defaultMonster;
+      return { ...p, skills: p.skills ?? [], rewards: p.rewards ?? [] };
     } catch { return defaultMonster; }
   });
 
