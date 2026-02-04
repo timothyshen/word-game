@@ -2,8 +2,61 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { getCurrentGameDay } from "../utils";
-import { parseCardEffect } from "~/shared/effects";
-import type { CardEffect } from "~/shared/effects";
+import { parseCardEffect, resolveCardEffect } from "~/shared/effects";
+import type { CardEffect, CardDbAdapter, CardContext } from "~/shared/effects";
+import type { PrismaClient } from "../../../../generated/prisma";
+
+/** Create a CardDbAdapter from Prisma context for use with resolveCardEffect */
+function createCardDbAdapter(db: PrismaClient, playerId: string): CardDbAdapter {
+  return {
+    async getPlayer(id) {
+      const p = await db.player.findUnique({ where: { id } });
+      return p ? { id: p.id, exp: p.exp, gold: p.gold } : null;
+    },
+    async updatePlayer(id, data) {
+      await db.player.update({ where: { id }, data });
+    },
+    async getCharacter(id) {
+      const c = await db.playerCharacter.findUnique({ where: { id } });
+      return c ? { id: c.id, hp: c.hp, maxHp: c.maxHp, mp: c.mp, maxMp: c.maxMp } : null;
+    },
+    async updateCharacter(id, data) {
+      await db.playerCharacter.update({ where: { id }, data });
+    },
+    async getBuilding(id) {
+      const b = await db.building.findUnique({ where: { id } });
+      return b ? { id: b.id, name: b.name, slot: b.slot } : null;
+    },
+    async getCharacterTemplate(id) {
+      const t = await db.character.findUnique({ where: { id } });
+      return t ? {
+        id: t.id, name: t.name, rarity: t.rarity,
+        baseAttack: t.baseAttack, baseDefense: t.baseDefense,
+        baseSpeed: t.baseSpeed, baseLuck: t.baseLuck,
+        baseHp: t.baseHp, baseMp: t.baseMp,
+      } : null;
+    },
+    async getSkillTemplate(id) {
+      const s = await db.skill.findUnique({ where: { id } });
+      return s ? { id: s.id, name: s.name } : null;
+    },
+    async createPlayerCharacter(data) {
+      const pc = await db.playerCharacter.create({ data: data as Parameters<typeof db.playerCharacter.create>[0]["data"] });
+      return pc.id;
+    },
+    async createPlayerSkill(data) {
+      const ps = await db.playerSkill.create({ data: data as Parameters<typeof db.playerSkill.create>[0]["data"] });
+      return ps.id;
+    },
+    async upsertFlag(pid, flagName) {
+      await db.unlockFlag.upsert({
+        where: { playerId_flagName: { playerId: pid, flagName } },
+        update: {},
+        create: { playerId: pid, flagName },
+      });
+    },
+  };
+}
 
 export const cardRouter = createTRPCRouter({
   // 获取玩家所有卡牌
@@ -457,51 +510,20 @@ export const cardRouter = createTRPCRouter({
       const typedEffect = parseCardEffect(playerCard.card.effects);
       let result: Record<string, unknown> = {};
 
-      if (typedEffect?.type === "heal") {
-        // Typed heal effect
-        if (input.targetType === "character" && input.targetId) {
-          const character = await ctx.db.playerCharacter.findFirst({
-            where: { id: input.targetId, playerId: player.id },
-          });
-          if (!character) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
-          }
-
-          if (typedEffect.healType === "hp") {
-            const newHp = Math.min(character.hp + typedEffect.amount, character.maxHp);
-            await ctx.db.playerCharacter.update({
-              where: { id: character.id },
-              data: { hp: newHp },
-            });
-            result = { healed: typedEffect.amount, newHp };
-          } else {
-            const newMp = Math.min(character.mp + typedEffect.amount, character.maxMp);
-            await ctx.db.playerCharacter.update({
-              where: { id: character.id },
-              data: { mp: newMp },
-            });
-            result = { restored: typedEffect.amount, newMp };
-          }
-        } else {
-          result = { message: "需要指定目标角色" };
+      if (typedEffect) {
+        // Use the unified card resolver
+        const adapter = createCardDbAdapter(ctx.db, player.id);
+        const cardCtx: CardContext = {
+          playerId: player.id,
+          targetId: input.targetId,
+          targetType: input.targetType,
+          db: adapter,
+        };
+        const cardResult = await resolveCardEffect(typedEffect, cardCtx);
+        if (!cardResult.success) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: cardResult.message });
         }
-      } else if (typedEffect?.type === "buff") {
-        result = { message: "增益效果已应用", modifiers: typedEffect.modifiers, duration: typedEffect.duration };
-      } else if (typedEffect?.type === "escape") {
-        result = { message: "逃脱道具已激活", successRate: typedEffect.successRate };
-      } else if (typedEffect?.type === "exp") {
-        await ctx.db.player.update({
-          where: { id: player.id },
-          data: { exp: player.exp + typedEffect.amount },
-        });
-        result = { message: `获得了 ${typedEffect.amount} 经验值` };
-      } else if (typedEffect?.type === "unlock") {
-        await ctx.db.unlockFlag.upsert({
-          where: { playerId_flagName: { playerId: player.id, flagName: typedEffect.flagName } },
-          update: {},
-          create: { playerId: player.id, flagName: typedEffect.flagName },
-        });
-        result = { message: `解锁了 ${typedEffect.flagName}` };
+        result = { message: cardResult.message, ...cardResult.data };
       } else {
         // Legacy fallback for old-format effects
         const legacyEffects = JSON.parse(playerCard.card.effects) as Record<string, unknown>;

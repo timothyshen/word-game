@@ -29,10 +29,6 @@ export interface CardDbAdapter {
 
 export interface PlayerSnapshot {
   id: string;
-  hp: number;
-  maxHp: number;
-  mp: number;
-  maxMp: number;
   exp: number;
   gold: number;
   [key: string]: unknown;

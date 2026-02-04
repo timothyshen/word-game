@@ -501,6 +501,17 @@ export const combatRouter = createTRPCRouter({
         const result = resolveSkillEffect(effect, playerUnit, monsterUnit);
         newLogs.push(...result.logs);
 
+        // Handle special actions (production skills used in combat)
+        if (result.specialAction) {
+          const { action: specialType, params } = result.specialAction;
+          // Production skills don't have combat effects but we acknowledge them
+          if (specialType === "qualityBoost" || specialType === "productionBoost") {
+            const pct = params.percentage ?? params.amount ?? 0;
+            newLogs.push(`（生产技能效果：${specialType} +${Math.round(pct * 100)}%，战斗中不生效）`);
+          }
+          // Future: Add handlers for other special action types here
+        }
+
         if (result.fled !== undefined) {
           if (result.fled) {
             // Successful flee
@@ -622,6 +633,10 @@ export const combatRouter = createTRPCRouter({
           } else {
             const result = resolveSkillEffect(effect, mUnit, playerUnit);
             newLogs.push(...result.logs);
+            // Handle monster special actions if any
+            if (result.specialAction) {
+              newLogs.push(`${monster.name}使用了特殊能力：${result.specialAction.action}`);
+            }
           }
         }
 

@@ -14,6 +14,19 @@ import type { RewardEntry, AdventureOutcome } from "~/shared/effects";
 // 随机事件类型
 type EventType = "resource" | "monster" | "merchant" | "treasure" | "trap" | "nothing";
 
+/** Weighted random selection from outcomes array */
+function selectOutcome(outcomes: AdventureOutcome[]): AdventureOutcome | null {
+  if (outcomes.length === 0) return null;
+  const totalWeight = outcomes.reduce((sum, o) => sum + o.weight, 0);
+  if (totalWeight <= 0) return outcomes[0] ?? null;
+  let random = Math.random() * totalWeight;
+  for (const outcome of outcomes) {
+    random -= outcome.weight;
+    if (random <= 0) return outcome;
+  }
+  return outcomes[outcomes.length - 1] ?? null;
+}
+
 interface ExplorationEvent {
   type: EventType;
   title: string;
@@ -645,8 +658,39 @@ export const explorationRouter = createTRPCRouter({
 
       const eventData = input.eventData ? JSON.parse(input.eventData) as ExplorationEvent : null;
 
-      /** Grant resource rewards + card rewards to player (player is validated non-null above) */
       const playerId = player.id;
+
+      /** Grant RewardEntry[] rewards (from typed outcomes) */
+      async function grantOutcomeRewards(rewards: RewardEntry[]) {
+        const resolved = resolveRewards(rewards);
+        const resourceUpdate = buildResourceUpdate(
+          resolved.resourcesGranted,
+          player as unknown as Record<string, number>,
+        );
+        if (Object.keys(resourceUpdate).length > 0) {
+          await ctx.db.player.update({
+            where: { id: playerId },
+            data: resourceUpdate,
+          });
+        }
+        // Grant cards
+        for (const cardReward of resolved.cardsGranted) {
+          const cardTemplates = await ctx.db.card.findMany({
+            where: { rarity: cardReward.rarity },
+          });
+          if (cardTemplates.length > 0) {
+            for (let i = 0; i < cardReward.count; i++) {
+              const template = cardTemplates[Math.floor(Math.random() * cardTemplates.length)]!;
+              await ctx.db.playerCard.create({
+                data: { playerId: playerId, cardId: template.id },
+              });
+            }
+          }
+        }
+        return resolved;
+      }
+
+      /** Grant resource rewards + card rewards to player (player is validated non-null above) */
       async function grantEventRewards(eventRewards: NonNullable<ExplorationEvent["rewards"]>) {
         // Resource rewards
         const resourceUpdate = buildResourceUpdate(
@@ -688,6 +732,71 @@ export const explorationRouter = createTRPCRouter({
         }
       }
 
+      // A6: Check for typed outcomes and use them if available
+      if (eventData?.options) {
+        const selectedOption = eventData.options.find(o => o.action === input.action);
+        if (selectedOption?.outcomes && selectedOption.outcomes.length > 0) {
+          const outcome = selectOutcome(selectedOption.outcomes);
+          if (outcome) {
+            result.message = outcome.description;
+
+            // Apply outcome rewards if any
+            if (outcome.rewards && outcome.rewards.length > 0) {
+              const resolved = await grantOutcomeRewards(outcome.rewards);
+              result.rewards = { ...resolved.resourcesGranted };
+            }
+
+            // Apply outcome damage if any
+            if (outcome.damage && outcome.damage > 0) {
+              result.damage = outcome.damage;
+            }
+
+            // Handle outcome combat if any (starts a combat encounter)
+            if (outcome.combat) {
+              // Note: Full combat integration would start a CombatSession here
+              // For now, use simplified combat like the existing "fight" action
+              const playerPower = player.strength * 2 + player.agility;
+              const monsterPower = outcome.combat.attack + outcome.combat.defense;
+              const victory = playerPower > monsterPower * 0.8;
+
+              if (victory) {
+                const monsterResolved = resolveRewards(outcome.combat.rewards);
+                const combatUpdate = buildResourceUpdate(
+                  monsterResolved.resourcesGranted,
+                  player as unknown as Record<string, number>,
+                );
+                if (Object.keys(combatUpdate).length > 0) {
+                  await ctx.db.player.update({
+                    where: { id: playerId },
+                    data: combatUpdate,
+                  });
+                }
+                result.combat = {
+                  victory: true,
+                  playerDamage: Math.floor(outcome.combat.attack * 0.5),
+                  monsterDefeated: true,
+                  rewards: {
+                    exp: monsterResolved.resourcesGranted.exp ?? 0,
+                    gold: monsterResolved.resourcesGranted.gold ?? 0,
+                    cardDrop: monsterResolved.cardsGranted.length > 0,
+                  },
+                };
+              } else {
+                result.combat = {
+                  victory: false,
+                  playerDamage: outcome.combat.attack,
+                  monsterDefeated: false,
+                  rewards: { exp: 0, gold: 0, cardDrop: false },
+                };
+              }
+            }
+
+            return result;
+          }
+        }
+      }
+
+      // Legacy fallback: hardcoded action handlers
       switch (input.action) {
         case "collect":
           // 采集资源
