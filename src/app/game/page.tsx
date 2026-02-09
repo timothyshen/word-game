@@ -1,7 +1,7 @@
 "use client";
 
 // 游戏主页面 - Cinematic设计
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "~/trpc/react";
 
@@ -53,6 +53,18 @@ export default function GamePage() {
   const { data: levelUpInfo } = api.player.getLevelUpInfo.useQuery(undefined, {
     enabled: !!player,
   });
+
+  // 检查内城是否已初始化
+  const { data: innerCityStatus } = api.innerCity.getStatus.useQuery(undefined, {
+    enabled: !!player,
+  });
+
+  // 未初始化时自动打开内城面板
+  useEffect(() => {
+    if (innerCityStatus && !innerCityStatus.initialized) {
+      setShowInnerCityPanel(true);
+    }
+  }, [innerCityStatus]);
 
   const utils = api.useUtils();
 

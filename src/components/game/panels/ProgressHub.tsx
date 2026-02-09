@@ -228,7 +228,7 @@ function AchievementTab() {
       )}
 
       {/* 成就列表 */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar">
         <div className="p-4 space-y-3">
           {filteredAchievements.length === 0 ? (
             <div className="text-center py-12">
@@ -320,7 +320,7 @@ function AchievementTab() {
             ))
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

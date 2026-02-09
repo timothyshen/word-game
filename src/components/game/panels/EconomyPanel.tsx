@@ -6,7 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
 
 interface EconomyPanelProps {
@@ -46,7 +45,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 固定头部 */}
@@ -66,7 +65,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
         </DialogHeader>
 
         {/* 可滚动内容 */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar">
           <div className="text-[#e0dcd0]">
             {/* 当前资源 */}
             <div className="p-4 border-b border-[#2a2a30]">
@@ -206,7 +205,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
               </button>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

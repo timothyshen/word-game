@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
 
 interface AchievementPanelProps {
@@ -133,7 +132,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
         )}
 
         {/* 成就列表 */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar">
           <div className="p-4 space-y-3">
             {filteredAchievements.length === 0 ? (
               <div className="text-center py-12">
@@ -234,7 +233,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
               ))
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* 操作反馈 */}
         {claimMutation.isSuccess && (
