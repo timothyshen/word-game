@@ -272,8 +272,8 @@ export default function GamePage() {
           </button>
         </div>
 
-        {/* Login link */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto">
+        {/* Login link - 放在玩家信息下方 */}
+        <div className="absolute top-[72px] left-6 pointer-events-auto">
           <Link href="/login" className="text-xs text-[#3a4a5a] hover:text-[#c9a227] transition-colors">
             切换账号
           </Link>

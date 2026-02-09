@@ -1,0 +1,85 @@
+{
+  "hooks": [
+    {
+      "event": "PreToolUse",
+      "matcher": {
+        "tool": "Bash",
+        "command": "(pnpm run dev|npm run dev|yarn dev|bun run dev)"
+      },
+      "type": "message",
+      "message": "[Hook] Consider running dev server in tmux for better log access and session persistence."
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": {
+        "tool": "Write",
+        "file_path": "\\.(md|txt)$"
+      },
+      "type": "command",
+      "command": "node -e \"const f=process.env.CLAUDE_FILE_PATH||''; const allowed=['README','CLAUDE','ARCHITECTURE','CHANGELOG','CONTRIBUTING','LICENSE','REFACTORING']; if(f && !allowed.some(a=>f.toUpperCase().includes(a)) && !f.includes('/docs/') && !f.includes('/.claude/')) { console.error('[Hook] Blocked: Random doc files not allowed. Use existing docs or /docs/ folder.'); process.exit(1); }\"",
+      "description": "Block creation of random .md files outside allowed patterns"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": {
+        "tool": "Edit",
+        "file_path": "\\.(ts|tsx|js|jsx)$"
+      },
+      "type": "command",
+      "command": "npx prettier --write \"$CLAUDE_FILE_PATH\" 2>/dev/null || true",
+      "description": "Auto-format with Prettier after editing JS/TS files"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": {
+        "tool": "Edit",
+        "file_path": "\\.(ts|tsx)$"
+      },
+      "type": "message",
+      "message": "[Hook] TypeScript file edited. Run `pnpm run typecheck` to verify types."
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": {
+        "tool": "Edit",
+        "file_path": "\\.(ts|tsx|js|jsx)$"
+      },
+      "type": "command",
+      "command": "grep -n 'console\\.log' \"$CLAUDE_FILE_PATH\" 2>/dev/null | head -3 | while read line; do echo \"[Hook] console.log found: $line\"; done || true",
+      "description": "Warn about console.log statements"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": {
+        "tool": "Bash",
+        "command": "git push"
+      },
+      "type": "message",
+      "message": "[Hook] About to push. Verify: tests pass, types check, no console.logs, commit message is clear."
+    },
+    {
+      "event": "SessionStart",
+      "type": "command",
+      "command": "node .claude/scripts/hooks/session-start.js 2>/dev/null || true",
+      "description": "Load previous session context"
+    },
+    {
+      "event": "SessionEnd",
+      "type": "command",
+      "command": "node .claude/scripts/hooks/session-end.js 2>/dev/null || true",
+      "description": "Save session state"
+    },
+    {
+      "event": "SessionEnd",
+      "type": "command",
+      "command": "node .claude/scripts/hooks/evaluate-session.js 2>/dev/null || true",
+      "description": "Extract patterns for continuous learning"
+    },
+    {
+      "event": "Stop",
+      "type": "command",
+      "command": "node .claude/scripts/hooks/check-console-log.js 2>/dev/null || true",
+      "description": "Check for console.log in modified files"
+    }
+  ]
+}

@@ -203,6 +203,7 @@ export function TerrainTile({
   biome,
   explorationLevel,
   hasHero,
+  isSelectedHero,
   hasPOI,
   poiType,
   isCenter,
@@ -215,6 +216,7 @@ export function TerrainTile({
   biome: string;
   explorationLevel: number;
   hasHero: boolean;
+  isSelectedHero?: boolean;
   hasPOI: boolean;
   poiType?: string;
   isCenter: boolean;
@@ -243,7 +245,7 @@ export function TerrainTile({
         ref={meshRef}
         receiveShadow
         castShadow
-        onClick={onClick}
+        onClick={(e) => { e.stopPropagation(); onClick?.(); }}
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
       >
@@ -297,7 +299,7 @@ export function TerrainTile({
 
       {hasHero && (
         <group position={[0, tileThickness / 2, 0]}>
-          <HeroMarker />
+          <HeroMarker isSelected={isSelectedHero} />
         </group>
       )}
     </group>

@@ -32,6 +32,10 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
         setCurrentEvent(data.event as ExplorationEvent);
       }
     },
+    onError: (error) => {
+      setActionLog(error.message);
+      setTimeout(() => setActionLog(null), 3000);
+    },
   });
 
   const startCombat = api.outerCity.startCombat.useMutation({
@@ -111,7 +115,17 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
       return;
     }
 
-    if (!selectedHero || combat?.active) return;
+    if (combat?.active) return;
+
+    // 点击地图上的英雄 → 选中该英雄
+    const heroOnTile = heroMap.get(`${x},${y}`);
+    if (heroOnTile) {
+      setSelectedHeroId(heroOnTile.id);
+      return;
+    }
+
+    // 已选中英雄 + 点击相邻格子 → 移动
+    if (!selectedHero) return;
 
     const dx = Math.abs(x - selectedHero.positionX);
     const dy = Math.abs(y - selectedHero.positionY);
@@ -149,6 +163,7 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
     biome: string;
     explorationLevel: number;
     hasHero: boolean;
+    isSelectedHero: boolean;
     hasPOI: boolean;
     poiType?: string;
     isCenter: boolean;
@@ -174,6 +189,7 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
         biome: area?.biome ?? "grassland",
         explorationLevel: area?.explorationLevel ?? 0,
         hasHero: !!hero,
+        isSelectedHero: !!hero && hero.id === selectedHeroId,
         hasPOI: !!poi,
         poiType: poi?.type,
         isCenter: x === 0 && y === 0,
@@ -185,7 +201,7 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
   return (
     <div className="relative w-full h-full">
       {/* 3D Map Canvas */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#4a6a8e] to-[#2a3a4e]">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#4a6a8e] to-[#2a3a4e]" onContextMenu={(e) => e.preventDefault()}>
         <Canvas camera={{ position: [8, 8, 8], fov: 45 }} shadows>
           <Suspense fallback={null}>
             <fog attach="fog" args={["#3a5a6e", 8, 22]} />
@@ -216,6 +232,7 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
                 biome={tile.biome}
                 explorationLevel={tile.explorationLevel}
                 hasHero={tile.hasHero}
+                isSelectedHero={tile.isSelectedHero}
                 hasPOI={tile.hasPOI}
                 poiType={tile.poiType}
                 isCenter={tile.isCenter}
@@ -225,13 +242,14 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
             ))}
 
             <OrbitControls
-              enablePan={false}
+              enablePan={true}
               enableZoom={true}
               enableRotate={true}
               minDistance={5}
               maxDistance={15}
               maxPolarAngle={Math.PI / 2.5}
               minPolarAngle={Math.PI / 6}
+              panSpeed={0.8}
             />
           </Suspense>
         </Canvas>
@@ -275,14 +293,14 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
       )}
 
       {/* Bottom Status */}
-      <div className="absolute bottom-20 left-64 z-10">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
         {selectedHero ? (
           <span className="px-3 py-1.5 bg-[#0a0a0c]/80 backdrop-blur rounded text-xs text-[#888]">
-            {selectedHero.character.character.name} ({selectedHero.positionX}, {selectedHero.positionY}) · 点击相邻格子移动
+            {selectedHero.character.character.name} ({selectedHero.positionX}, {selectedHero.positionY}) · ⚡{selectedHero.stamina}/100 · 点击相邻格子移动
           </span>
         ) : (
           <span className="px-3 py-1.5 bg-[#0a0a0c]/80 backdrop-blur rounded text-xs text-[#666]">
-            {status?.heroes?.length ? "选择英雄开始探索" : "派遣角色探索外城"}
+            {status?.heroes?.length ? "点击地图上的英雄开始探索" : "派遣角色探索外城"}
           </span>
         )}
       </div>

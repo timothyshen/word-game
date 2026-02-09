@@ -45,12 +45,16 @@ export function POIMarker({ type }: { type: string }) {
   );
 }
 
-export function HeroMarker() {
+export function HeroMarker({ isSelected }: { isSelected?: boolean }) {
   const ref = useRef<THREE.Group>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     if (ref.current) {
       ref.current.position.y = 0.3 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
+    }
+    if (ringRef.current) {
+      ringRef.current.rotation.z = state.clock.elapsedTime * 1.5;
     }
   });
 
@@ -58,9 +62,19 @@ export function HeroMarker() {
     <group ref={ref} position={[0, 0.3, 0]}>
       <mesh castShadow>
         <capsuleGeometry args={[0.1, 0.2, 4, 8]} />
-        <meshStandardMaterial color="#c9a227" emissive="#c9a227" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color={isSelected ? "#ffd700" : "#c9a227"}
+          emissive={isSelected ? "#ffd700" : "#c9a227"}
+          emissiveIntensity={isSelected ? 0.8 : 0.4}
+        />
       </mesh>
-      <pointLight intensity={0.5} color="#c9a227" distance={2} />
+      {isSelected && (
+        <mesh ref={ringRef} position={[0, -0.15, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.18, 0.24, 24]} />
+          <meshBasicMaterial color="#ffd700" transparent opacity={0.7} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      <pointLight intensity={isSelected ? 0.8 : 0.5} color="#c9a227" distance={2} />
     </group>
   );
 }
