@@ -45,6 +45,7 @@ export default function GamePage() {
 
   // HUD显示状态
   const [showHUD, setShowHUD] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
 
   // 获取玩家数据
   const { data: player, isLoading, error } = api.player.getStatus.useQuery();
@@ -65,6 +66,21 @@ export default function GamePage() {
       setShowInnerCityPanel(true);
     }
   }, [innerCityStatus]);
+
+  // ESC键打开/关闭菜单
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        // 如果有其他面板打开，先关闭它们
+        if (showCharacterHub || showInventoryHub || showAdventureHub || showProgressHub || showLogHub || showEconomyPanel || showCombatPanel || showInnerCityPanel) {
+          return; // 让面板自己处理 ESC
+        }
+        setShowMenu((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showCharacterHub, showInventoryHub, showAdventureHub, showProgressHub, showLogHub, showEconomyPanel, showCombatPanel, showInnerCityPanel]);
 
   const utils = api.useUtils();
 
@@ -272,13 +288,45 @@ export default function GamePage() {
           </button>
         </div>
 
-        {/* Login link - 放在玩家信息下方 */}
-        <div className="absolute top-[72px] left-6 pointer-events-auto">
-          <Link href="/login" className="text-xs text-[#3a4a5a] hover:text-[#c9a227] transition-colors">
-            切换账号
-          </Link>
-        </div>
       </div>
+
+      {/* ESC Menu */}
+      {showMenu && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#050810]/80 backdrop-blur-sm">
+          <div className="w-80 bg-[#0a0a15]/95 border border-[#2a3a4a] rounded-lg overflow-hidden">
+            <div className="px-6 py-5 border-b border-[#2a3a4a] text-center">
+              <h2 className="text-xl font-bold text-[#c9a227]">诸天领域</h2>
+              <p className="text-xs text-[#5a6a7a] mt-1">按 ESC 返回游戏</p>
+            </div>
+            <div className="p-4 flex flex-col gap-2">
+              <button
+                onClick={() => setShowMenu(false)}
+                className="w-full py-3 bg-[#c9a227]/10 border border-[#c9a227]/30 hover:border-[#c9a227] text-[#c9a227] rounded transition-colors text-sm font-medium"
+              >
+                继续游戏
+              </button>
+              <button
+                onClick={() => { setShowMenu(false); setShowInnerCityPanel(true); }}
+                className="w-full py-3 bg-[#1a1a25] border border-[#2a3a4a] hover:border-[#4a9eff] text-[#e0dcd0] rounded transition-colors text-sm"
+              >
+                🏙️ 内城管理
+              </button>
+              <Link
+                href="/login"
+                className="w-full py-3 bg-[#1a1a25] border border-[#2a3a4a] hover:border-[#4a9eff] text-[#e0dcd0] rounded transition-colors text-sm text-center block"
+              >
+                🔄 切换账号
+              </Link>
+              <Link
+                href="/"
+                className="w-full py-3 bg-[#1a1a25] border border-[#2a3a4a] hover:border-[#e74c3c] text-[#e0dcd0] rounded transition-colors text-sm text-center block"
+              >
+                🏠 返回主页
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 角色Hub */}
       {showCharacterHub && (
