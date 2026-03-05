@@ -4,3 +4,4 @@ export * from "./settlement.repo";
 export * from "./admin.repo";
 export * from "./card.repo";
 export * as innerCityRepo from "./innerCity.repo";
+export * as explorationRepo from "./exploration.repo";
