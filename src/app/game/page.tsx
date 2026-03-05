@@ -20,6 +20,8 @@ import {
 import { InnerCityPanel } from "~/components/game/panels/InnerCityPanel";
 import { useUnlocks } from "~/hooks/use-unlocks";
 import { UnlockToast } from "~/components/game/UnlockToast";
+import { HintBar } from "~/components/game/HintBar";
+import { GuidancePanel } from "~/components/game/panels/GuidancePanel";
 
 export default function GamePage() {
   // Hub弹窗状态
@@ -48,6 +50,7 @@ export default function GamePage() {
   // HUD显示状态
   const [showHUD, setShowHUD] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
+  const [showGuidancePanel, setShowGuidancePanel] = useState(false);
 
   // 获取玩家数据
   const { data: player, isLoading, error } = api.player.getStatus.useQuery();
@@ -75,7 +78,7 @@ export default function GamePage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         // 如果有其他面板打开，先关闭它们
-        if (showCharacterHub || showInventoryHub || showAdventureHub || showProgressHub || showLogHub || showEconomyPanel || showCombatPanel || showInnerCityPanel) {
+        if (showCharacterHub || showInventoryHub || showAdventureHub || showProgressHub || showLogHub || showEconomyPanel || showCombatPanel || showInnerCityPanel || showGuidancePanel) {
           return; // 让面板自己处理 ESC
         }
         setShowMenu((prev) => !prev);
@@ -83,7 +86,7 @@ export default function GamePage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showCharacterHub, showInventoryHub, showAdventureHub, showProgressHub, showLogHub, showEconomyPanel, showCombatPanel, showInnerCityPanel]);
+  }, [showCharacterHub, showInventoryHub, showAdventureHub, showProgressHub, showLogHub, showEconomyPanel, showCombatPanel, showInnerCityPanel, showGuidancePanel]);
 
   const utils = api.useUtils();
 
@@ -94,6 +97,23 @@ export default function GamePage() {
       void utils.player.getLevelUpInfo.invalidate();
     },
   });
+
+  const handleHintAction = (action: string) => {
+    if (action === "levelUp") {
+      levelUpMutation.mutate();
+      return;
+    }
+    const [hub, tab] = action.split(":");
+    switch (hub) {
+      case "logHub": setLogHubTab(tab ?? "settlement"); setShowLogHub(true); break;
+      case "adventureHub": setAdventureHubTab(tab ?? "exploration"); setShowAdventureHub(true); break;
+      case "inventoryHub": setInventoryHubTab(tab ?? "backpack"); setShowInventoryHub(true); break;
+      case "progressHub": setProgressHubTab(tab ?? "profession"); setShowProgressHub(true); break;
+      case "characterHub": setCharacterHubTab(tab ?? "list"); setShowCharacterHub(true); break;
+      case "innerCity": setShowInnerCityPanel(true); break;
+      case "combat": setCombatLevel(1); setShowCombatPanel(true); break;
+    }
+  };
 
   // 加载中
   if (isLoading) {
@@ -227,6 +247,19 @@ export default function GamePage() {
               </div>
               <span className="text-xs text-[#5a6a7a]">{player.stamina}/{player.maxStamina}</span>
             </div>
+          </div>
+        </div>
+
+        {/* Left-center: Hints */}
+        <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-auto">
+          <div className={`transition-all duration-500 delay-250 ${showHUD ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0"}`}>
+            {player.hints && (
+              <HintBar
+                hints={player.hints}
+                onHintClick={handleHintAction}
+                onShowAll={() => setShowGuidancePanel(true)}
+              />
+            )}
           </div>
         </div>
 
@@ -395,6 +428,15 @@ export default function GamePage() {
         <InnerCityPanel
           playerId={player.id}
           onClose={() => setShowInnerCityPanel(false)}
+        />
+      )}
+
+      {/* 引导面板 */}
+      {showGuidancePanel && player && (
+        <GuidancePanel
+          hints={player.hints}
+          onClose={() => setShowGuidancePanel(false)}
+          onHintClick={handleHintAction}
         />
       )}
 

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import * as playerService from "../../services/player.service";
+import { upsertUnlockFlag } from "../../repositories/card.repo";
+import { findPlayerByUserId } from "../../repositories/player.repo";
 
 export const playerRouter = createTRPCRouter({
   getOrCreate: protectedProcedure.query(async ({ ctx }) => {
@@ -50,5 +52,14 @@ export const playerRouter = createTRPCRouter({
     .input(z.object({ amount: z.number().min(1) }))
     .mutation(async ({ ctx, input }) => {
       return playerService.recordGoldEarned(ctx.db, ctx.session.user.id, input.amount);
+    }),
+
+  dismissTutorial: protectedProcedure
+    .input(z.object({ flag: z.string().regex(/^tutorial_\w+_read$/) }))
+    .mutation(async ({ ctx, input }) => {
+      const player = await findPlayerByUserId(ctx.db, ctx.session.user.id);
+      if (!player) return { success: false };
+      await upsertUnlockFlag(ctx.db, player.id, input.flag);
+      return { success: true };
     }),
 });

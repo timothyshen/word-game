@@ -21,6 +21,7 @@ import {
 } from "../repositories/player.repo";
 import { upsertUnlockFlag } from "../repositories/card.repo";
 import { getCurrentGameDay } from "../utils/game-time";
+import { computeHints } from "./hint.service";
 
 // ── Stamina ──
 
@@ -135,12 +136,15 @@ export async function getPlayerStatus(db: FullDbClient, userId: string) {
     player.stamina, player.maxStamina, player.staminaPerMin, player.lastStaminaUpdate,
   );
 
+  const currentGameDay = getCurrentGameDay();
+
   return {
     ...player,
     stamina,
     skillSlots: player.tier * 6,
-    currentGameDay: getCurrentGameDay(),
+    currentGameDay,
     unlockedSystems: player.unlockFlags.map(f => f.flagName),
+    hints: computeHints(player, currentGameDay),
   };
 }
 
