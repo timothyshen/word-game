@@ -1,0 +1,35 @@
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import * as buildingService from "../../services/building.service";
+
+export const buildingRouter = createTRPCRouter({
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    return buildingService.getAllBuildings(ctx.db, ctx.session.user.id);
+  }),
+
+  getById: protectedProcedure
+    .input(z.object({ buildingId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return buildingService.getBuildingById(ctx.db, ctx.session.user.id, input.buildingId);
+    }),
+
+  upgrade: protectedProcedure
+    .input(z.object({ buildingId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return buildingService.upgradeBuilding(ctx.db, ctx.session.user.id, input.buildingId);
+    }),
+
+  assignCharacter: protectedProcedure
+    .input(z.object({ buildingId: z.string(), characterId: z.string().nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      return buildingService.assignCharacter(ctx.db, ctx.session.user.id, input.buildingId, input.characterId);
+    }),
+
+  calculateDailyOutput: protectedProcedure.query(async ({ ctx }) => {
+    return buildingService.calculateDailyOutput(ctx.db, ctx.session.user.id);
+  }),
+
+  collectDailyOutput: protectedProcedure.mutation(async ({ ctx }) => {
+    return buildingService.collectDailyOutput(ctx.db, ctx.session.user.id);
+  }),
+});
