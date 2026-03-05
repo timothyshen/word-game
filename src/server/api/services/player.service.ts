@@ -19,6 +19,7 @@ import {
   findActionLogs,
   createActionLog,
 } from "../repositories/player.repo";
+import { upsertUnlockFlag } from "../repositories/card.repo";
 import { getCurrentGameDay } from "../utils/game-time";
 
 // ── Stamina ──
@@ -69,6 +70,9 @@ export async function getOrCreatePlayer(db: FullDbClient, userId: string, name: 
     await initializePlayerBuildings(db, player.id);
     await initializePlayerCharacter(db, player.id);
     await initializePlayerCards(db, player.id);
+
+    await upsertUnlockFlag(db, player.id, "building_system");
+    await upsertUnlockFlag(db, player.id, "card_system");
   }
 
   // Calculate real-time stamina
@@ -131,7 +135,13 @@ export async function getPlayerStatus(db: FullDbClient, userId: string) {
     player.stamina, player.maxStamina, player.staminaPerMin, player.lastStaminaUpdate,
   );
 
-  return { ...player, stamina, skillSlots: player.tier * 6, currentGameDay: getCurrentGameDay() };
+  return {
+    ...player,
+    stamina,
+    skillSlots: player.tier * 6,
+    currentGameDay: getCurrentGameDay(),
+    unlockedSystems: player.unlockFlags.map(f => f.flagName),
+  };
 }
 
 // ── Stamina consumption ──
@@ -188,6 +198,10 @@ export async function levelUp(db: FullDbClient, userId: string) {
     stamina: newMaxStamina,
     lastStaminaUpdate: new Date(),
   });
+
+  if (newLevel >= 5) {
+    await upsertUnlockFlag(db, player.id, "progression_system");
+  }
 
   return {
     success: true,

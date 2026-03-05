@@ -18,6 +18,8 @@ import {
   CombatPanel,
 } from "~/components/game/panels";
 import { InnerCityPanel } from "~/components/game/panels/InnerCityPanel";
+import { useUnlocks } from "~/hooks/use-unlocks";
+import { UnlockToast } from "~/components/game/UnlockToast";
 
 export default function GamePage() {
   // Hub弹窗状态
@@ -49,6 +51,7 @@ export default function GamePage() {
 
   // 获取玩家数据
   const { data: player, isLoading, error } = api.player.getStatus.useQuery();
+  const unlocks = useUnlocks(player?.unlockedSystems);
 
   // 获取升级信息
   const { data: levelUpInfo } = api.player.getLevelUpInfo.useQuery(undefined, {
@@ -232,12 +235,12 @@ export default function GamePage() {
           <div className={`transition-all duration-500 delay-300 ${showHUD ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
             <div className="flex gap-2">
               {[
-                { icon: "👥", label: "角色", onClick: () => { setCharacterHubTab("list"); setShowCharacterHub(true); } },
-                { icon: "🎒", label: "背包", onClick: () => { setInventoryHubTab("backpack"); setShowInventoryHub(true); } },
-                { icon: "🗺️", label: "冒险", onClick: () => { setAdventureHubTab("exploration"); setShowAdventureHub(true); } },
-                { icon: "⚔️", label: "战斗", onClick: () => { setCombatLevel(1); setShowCombatPanel(true); } },
-                { icon: "🏙️", label: "城市", onClick: () => setShowInnerCityPanel(true) },
-              ].map((action, i) => (
+                { icon: "👥", label: "角色", system: "character_list", onClick: () => { setCharacterHubTab("list"); setShowCharacterHub(true); } },
+                { icon: "🎒", label: "背包", system: "backpack", onClick: () => { setInventoryHubTab("backpack"); setShowInventoryHub(true); } },
+                { icon: "🗺️", label: "冒险", system: "exploration", onClick: () => { setAdventureHubTab("exploration"); setShowAdventureHub(true); } },
+                { icon: "⚔️", label: "战斗", system: "combat", onClick: () => { setCombatLevel(1); setShowCombatPanel(true); } },
+                { icon: "🏙️", label: "城市", system: "inner_city", onClick: () => setShowInnerCityPanel(true) },
+              ].filter(a => unlocks.has(a.system)).map((action, i) => (
                 <button
                   key={i}
                   onClick={action.onClick}
@@ -256,11 +259,11 @@ export default function GamePage() {
           <div className={`transition-all duration-500 delay-150 ${showHUD ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
             <div className="flex items-center gap-2 bg-[#0a0a15]/60 border border-[#2a3a4a] rounded-full px-3 py-1.5">
               {[
-                { icon: "📊", label: "经济", onClick: () => setShowEconomyPanel(true) },
-                { icon: "⬆️", label: "进阶", onClick: () => { setProgressHubTab("profession"); setShowProgressHub(true); } },
-                { icon: "🎴", label: "结算", onClick: () => { setLogHubTab("settlement"); setShowLogHub(true); }, highlight: true },
-                { icon: "📋", label: "记录", onClick: () => { setLogHubTab("action"); setShowLogHub(true); } },
-              ].map((action, i) => (
+                { icon: "📊", label: "经济", system: "economy", onClick: () => setShowEconomyPanel(true) },
+                { icon: "⬆️", label: "进阶", system: "progression", onClick: () => { setProgressHubTab("profession"); setShowProgressHub(true); } },
+                { icon: "🎴", label: "结算", system: "log", onClick: () => { setLogHubTab("settlement"); setShowLogHub(true); }, highlight: true },
+                { icon: "📋", label: "记录", system: "log", onClick: () => { setLogHubTab("action"); setShowLogHub(true); } },
+              ].filter(a => unlocks.has(a.system)).map((action, i) => (
                 <button
                   key={i}
                   onClick={action.onClick}
@@ -394,6 +397,9 @@ export default function GamePage() {
           onClose={() => setShowInnerCityPanel(false)}
         />
       )}
+
+      {/* 解锁通知 */}
+      {player && <UnlockToast unlockedSystems={player.unlockedSystems} />}
     </div>
   );
 }

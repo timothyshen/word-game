@@ -35,6 +35,7 @@ export function findPlayerWithFullDetails(db: DbClient, userId: string) {
       cards: { include: { card: true } },
       buildings: { include: { building: true } },
       learnedSkills: { include: { skill: true } },
+      unlockFlags: true,
     },
   });
 }

@@ -6,6 +6,7 @@ import type { FullDbClient } from "../repositories/types";
 import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
 import * as combatRepo from "../repositories/combat.repo";
 import { getCurrentGameDay } from "../utils/game-time";
+import { upsertUnlockFlag } from "../repositories/card.repo";
 import { grantRandomCard } from "../utils/card-utils";
 import { calculateCurrentStamina } from "../utils/player-utils";
 import {
@@ -268,6 +269,8 @@ export async function startCombat(
     logs: JSON.stringify(initialLog),
     rewards: JSON.stringify(monster.rewards),
   });
+
+  await upsertUnlockFlag(db, player.id, "combat_system");
 
   return {
     combatId: combatSession.id,

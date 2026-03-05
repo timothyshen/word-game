@@ -157,6 +157,8 @@ export async function addCard(
     await cardRepo.createPlayerCardRecord(db, player.id, input.cardId, input.quantity);
   }
 
+  await cardRepo.upsertUnlockFlag(db, player.id, "card_system");
+
   // Check if card has unlock effect
   const typedEffect = parseCardEffect(card.effects);
   if (typedEffect?.type === "unlock") {
@@ -230,6 +232,8 @@ export async function useBuildingCard(
     positionX: input.positionX,
     positionY: input.positionY,
   });
+
+  await cardRepo.upsertUnlockFlag(db, player.id, "building_system");
 
   // Check if building unlocks profession system (building name contains "职业")
   if (building.name.includes("职业")) {
@@ -309,6 +313,8 @@ export async function useRecruitCard(
     speed: character.baseSpeed,
     luck: character.baseLuck,
   });
+
+  await cardRepo.upsertUnlockFlag(db, player.id, "recruit_system");
 
   // 消耗卡牌
   await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
