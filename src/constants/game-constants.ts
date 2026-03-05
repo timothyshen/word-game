@@ -11,7 +11,7 @@ export const STAMINA_COSTS = {
   HARVEST: 10,       // 采集资源
   REST: 5,           // 休息（消耗食物恢复）
   EXPLORE: 15,       // 探索未知区域
-  COMBAT_START: 0,   // 开始战斗
+  COMBAT_START: 15,  // 开始战斗
   PRAY: 5,           // 神殿祈祷
   TRADE: 5,          // 商队交易
 } as const;

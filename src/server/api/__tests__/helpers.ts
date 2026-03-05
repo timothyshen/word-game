@@ -81,9 +81,24 @@ function createMockModel<T extends { id: string }>(modelName: string) {
       return newItem;
     }),
 
-    update: vi.fn(async (args: { where: { id: string }; data: Partial<T> }) => {
+    update: vi.fn(async (args: { where: Record<string, unknown>; data: Partial<T> }) => {
       const items = getCollection<T>(modelName);
-      const index = items.findIndex((item) => item.id === args.where.id);
+      let index: number;
+      if (args.where.id) {
+        index = items.findIndex((item) => item.id === args.where.id);
+      } else {
+        // Support compound unique keys (e.g. playerId_worldId_positionX_positionY)
+        const compoundKey = Object.values(args.where)[0] as Record<string, unknown> | undefined;
+        if (compoundKey && typeof compoundKey === "object") {
+          index = items.findIndex((item) =>
+            Object.entries(compoundKey).every(
+              ([key, value]) => (item as Record<string, unknown>)[key] === value
+            )
+          );
+        } else {
+          index = -1;
+        }
+      }
       if (index === -1) throw new Error(`${modelName} not found`);
       items[index] = { ...items[index], ...args.data, updatedAt: new Date() } as T;
       return items[index];
@@ -333,16 +348,27 @@ export function createMockDb() {
     user: createMockModel<MockUser>("user"),
     actionLog: createMockModel<{ id: string }>('actionLog'),
     wildernessFacility: createMockModel<{ id: string }>('wildernessFacility'),
+    // $transaction mock: runs callback with the mock db itself as the "tx" client
+    $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+      return fn(createMockDb());
+    }),
   };
 }
 
 export type MockDb = ReturnType<typeof createMockDb>;
 
-// Create test context for admin router (no auth needed)
+// Create test context for admin router (requires admin session)
 export function createTestContextForAdmin(db: MockDb) {
   return {
     db,
-    session: null,
+    session: {
+      user: {
+        id: "admin-user-id",
+        email: "test@test.com",
+        name: "Admin User",
+      },
+      expires: new Date(Date.now() + 86400000).toISOString(),
+    },
   };
 }
 

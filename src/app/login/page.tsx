@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "~/trpc/react";
+import { setSessionCookie } from "./actions";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -26,9 +27,8 @@ function LoginForm() {
   }, [queryClient]);
 
   const loginMutation = api.auth.login.useMutation({
-    onSuccess: (data) => {
-      // Set dev-session cookie with SameSite for better browser compatibility
-      document.cookie = `dev-session=${data.userId}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    onSuccess: async (data) => {
+      await setSessionCookie(data.userId);
       router.push(callbackUrl);
     },
     onError: (err) => {
@@ -38,9 +38,8 @@ function LoginForm() {
   });
 
   const registerMutation = api.auth.register.useMutation({
-    onSuccess: (data) => {
-      // Set dev-session cookie with SameSite for better browser compatibility
-      document.cookie = `dev-session=${data.userId}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+    onSuccess: async (data) => {
+      await setSessionCookie(data.userId);
       router.push(callbackUrl);
     },
     onError: (err) => {

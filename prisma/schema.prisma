@@ -600,6 +600,7 @@ model ExploredArea {
     biome            String  @default("grassland") // grassland/forest/mountain/desert/swamp
     explorationLevel Int     @default(2) // 0=hidden, 1=fog, 2=visible
     discoveredAt     DateTime @default(now())
+    pendingEvent     String?  // JSON: server-generated event data, cleared after use
 
     @@index([playerId, worldId])
     @@unique([playerId, worldId, positionX, positionY])

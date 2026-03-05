@@ -20,7 +20,6 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
   const [collectResult, setCollectResult] = useState<{
     altarName: string;
     card: { name: string; rarity: string; icon: string };
-    isNew: boolean;
   } | null>(null);
   const [battleResult, setBattleResult] = useState<{
     victory: boolean;
@@ -49,7 +48,6 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
       setCollectResult({
         altarName: data.altarName,
         card: data.card,
-        isNew: data.isNew,
       });
       void utils.altar.getDiscoveredAltars.invalidate();
       void utils.card.getAll.invalidate();
@@ -132,11 +130,6 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
               className="relative p-6 bg-[#1a1a20] border-2 inline-block"
               style={{ borderColor: RARITY_COLORS[collectResult.card.rarity] }}
             >
-              {collectResult.isNew && (
-                <span className="absolute top-1 right-1 text-xs px-1.5 py-0.5 bg-[#c9a227] text-[#000]">
-                  NEW
-                </span>
-              )}
               <div className="text-5xl mb-3">{collectResult.card.icon}</div>
               <div className="font-bold text-lg">{collectResult.card.name}</div>
               <div

@@ -19,4 +19,12 @@ export {
   deductResourcesOrThrow,
   type ResourceType,
   type ResourceUpdates,
+  logActionInternal,
+  type ActionType,
 } from "./player-utils";
+
+export {
+  grantRandomCard,
+  grantRandomCards,
+  type CardGrantResult,
+} from "./card-utils";

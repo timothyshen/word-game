@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { storyRouter } from "../routers/story";
+import { storyRouter } from "../routers/content";
 import {
   createMockDb,
   createTestContextForPlayer,

@@ -5,6 +5,11 @@ import { cookies } from "next/headers";
 
 const DEV_SESSION_COOKIE = "dev-session";
 
+function safeCallbackUrl(url: string | null | undefined, fallback = "/game"): string {
+  if (!url || url.startsWith("http") || url.startsWith("//") || !url.startsWith("/")) return fallback;
+  return url;
+}
+
 async function handler(req: NextRequest, { params }: { params: Promise<{ nextauth: string[] }> }) {
   const { nextauth } = await params;
   const action = nextauth[0];
@@ -58,7 +63,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ nextaut
   if (action === "callback" && nextauth[1] === "dev-login" && req.method === "POST") {
     const formData = await req.formData();
     const username = (formData.get("username") as string) ?? "dev";
-    const callbackUrl = (formData.get("callbackUrl") as string) ?? "/game";
+    const callbackUrl = safeCallbackUrl(formData.get("callbackUrl") as string);
 
     // 查找或创建用户
     let user = await db.user.findFirst({
@@ -89,14 +94,14 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ nextaut
 
   // GET /api/auth/signin - 显示登录页 (重定向到我们的登录页)
   if (action === "signin") {
-    const callbackUrl = req.nextUrl.searchParams.get("callbackUrl") ?? "/game";
+    const callbackUrl = safeCallbackUrl(req.nextUrl.searchParams.get("callbackUrl"));
     return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`, req.url));
   }
 
   // POST/GET /api/auth/signout - 登出
   if (action === "signout") {
     const callbackUrl = req.method === "POST"
-      ? (await req.formData()).get("callbackUrl") as string ?? "/"
+      ? safeCallbackUrl((await req.formData()).get("callbackUrl") as string, "/")
       : "/";
 
     const response = NextResponse.redirect(new URL(callbackUrl, req.url));

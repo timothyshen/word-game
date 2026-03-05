@@ -157,7 +157,9 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
   const result = await next();
 
   const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  if (t._config.isDev) {
+    console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  }
 
   return result;
 });
@@ -192,3 +194,19 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Admin procedure
+ *
+ * Requires the user to be authenticated AND have an admin email.
+ * Configure allowed emails via ADMIN_EMAILS env var (comma-separated).
+ */
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  const adminEmails = (process.env.ADMIN_EMAILS ?? "test@test.com")
+    .split(",")
+    .map((e) => e.trim());
+  if (!ctx.session.user.email || !adminEmails.includes(ctx.session.user.email)) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "需要管理员权限" });
+  }
+  return next({ ctx });
+});

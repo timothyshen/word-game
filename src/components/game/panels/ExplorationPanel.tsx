@@ -46,6 +46,7 @@ export default function ExplorationPanel({
   const [selectedWorld] = useState("main");
   const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number } | null>(null);
   const [currentEvent, setCurrentEvent] = useState<ExplorationEvent | null>(null);
+  const [eventPosition, setEventPosition] = useState<{ x: number; y: number } | null>(null);
   const [eventResult, setEventResult] = useState<string | null>(null);
 
   const utils = api.useUtils();
@@ -167,6 +168,7 @@ export default function ExplorationPanel({
   };
 
   const handleTriggerEvent = (x: number, y: number) => {
+    setEventPosition({ x, y });
     triggerEventMutation.mutate({
       worldId: selectedWorld,
       positionX: x,
@@ -179,7 +181,9 @@ export default function ExplorationPanel({
     handleEventMutation.mutate({
       eventType: currentEvent.type,
       action,
-      eventData: JSON.stringify(currentEvent),
+      worldId: selectedWorld,
+      positionX: eventPosition?.x,
+      positionY: eventPosition?.y,
     });
   };
 

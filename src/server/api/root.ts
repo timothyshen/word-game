@@ -1,24 +1,11 @@
-import { postRouter } from "~/server/api/routers/post";
-import { playerRouter } from "~/server/api/routers/player";
-import { settlementRouter } from "~/server/api/routers/settlement";
-import { cardRouter } from "~/server/api/routers/card";
-import { buildingRouter } from "~/server/api/routers/building";
+import { playerRouter, authRouter, settlementRouter } from "~/server/api/routers/core";
+import { combatRouter, bossRouter } from "~/server/api/routers/combat";
+import { buildingRouter, shopRouter, equipmentRouter, altarRouter } from "~/server/api/routers/economy";
+import { cardRouter, breakthroughRouter, professionRouter, achievementRouter } from "~/server/api/routers/progression";
 import { explorationRouter } from "~/server/api/routers/exploration";
-import { combatRouter } from "~/server/api/routers/combat";
-import { altarRouter } from "~/server/api/routers/altar";
-import { equipmentRouter } from "~/server/api/routers/equipment";
-import { breakthroughRouter } from "~/server/api/routers/breakthrough";
-import { professionRouter } from "~/server/api/routers/profession";
-import { portalRouter } from "~/server/api/routers/portal";
-import { storyRouter } from "~/server/api/routers/story";
-import { bossRouter } from "~/server/api/routers/boss";
-import { territoryRouter } from "~/server/api/routers/territory";
-import { characterRouter } from "~/server/api/routers/character";
-import { shopRouter } from "~/server/api/routers/shop";
-import { achievementRouter } from "~/server/api/routers/achievement";
+import { innerCityRouter, territoryRouter, portalRouter } from "~/server/api/routers/territory";
+import { storyRouter, characterRouter } from "~/server/api/routers/content";
 import { adminRouter } from "~/server/api/routers/admin";
-import { authRouter } from "~/server/api/routers/auth";
-import { innerCityRouter } from "~/server/api/routers/innerCity";
 import { outerCityRouter } from "~/server/api/routers/outerCity";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
@@ -28,7 +15,6 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  post: postRouter,
   player: playerRouter,
   settlement: settlementRouter,
   card: cardRouter,

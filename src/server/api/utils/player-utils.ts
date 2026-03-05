@@ -5,6 +5,7 @@
 
 import { TRPCError } from "@trpc/server";
 import type { PrismaClient, Player } from "../../../../generated/prisma";
+import { getCurrentGameDay } from "./game-time";
 
 /**
  * 获取玩家或抛出错误
@@ -149,5 +150,37 @@ export async function deductResourcesOrThrow(
   return db.player.update({
     where: { id: player.id },
     data: updates,
+  });
+}
+
+/**
+ * 记录行动日志（服务端内部使用，不暴露为 tRPC mutation）
+ */
+export type ActionType = "build" | "explore" | "combat" | "upgrade" | "production" | "recruit";
+
+export async function logActionInternal(
+  db: PrismaClient,
+  playerId: string,
+  type: ActionType,
+  description: string,
+  baseScore: number,
+  bonus = 0,
+  bonusReason?: string,
+): Promise<void> {
+  const currentDay = getCurrentGameDay();
+  await db.actionLog.create({
+    data: {
+      playerId,
+      day: currentDay,
+      type,
+      description,
+      baseScore,
+      bonus,
+      bonusReason: bonusReason ?? null,
+    },
+  });
+  await db.player.update({
+    where: { id: playerId },
+    data: { currentDayScore: { increment: baseScore + bonus } },
   });
 }
