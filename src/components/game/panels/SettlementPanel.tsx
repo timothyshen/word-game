@@ -20,6 +20,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
   const [settlementResult, setSettlementResult] = useState<{
     settled: boolean;
     grantedCards?: Array<{ name: string; rarity: string }>;
+    chestReward?: { name: string; rarity: string; icon: string } | null;
     newStreakDays?: number;
   } | null>(null);
 
@@ -138,6 +139,13 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                         {c.name}
                       </span>
                     ))}
+                  </div>
+                )}
+                {settlementResult.chestReward && (
+                  <div className="text-sm mt-1">
+                    <span style={{ color: RARITY_COLORS[settlementResult.chestReward.rarity] }}>
+                      {settlementResult.chestReward.icon} 获得{settlementResult.chestReward.name}
+                    </span>
                   </div>
                 )}
               </div>

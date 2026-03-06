@@ -73,6 +73,13 @@ export const cardRouter = createTRPCRouter({
       return cardService.useItemCard(ctx.db, ctx.session.user.id, input);
     }),
 
+  // 开启宝箱
+  openChest: protectedProcedure
+    .input(z.object({ cardId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return cardService.useChestCard(ctx.db, ctx.session.user.id, input.cardId);
+    }),
+
   // 学习技能卡
   learnSkill: protectedProcedure
     .input(

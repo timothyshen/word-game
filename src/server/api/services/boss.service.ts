@@ -5,7 +5,14 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
 import { getCurrentGameDay, getWeekStartDate } from "../utils/game-time";
-import { grantRandomCard } from "../utils/card-utils";
+
+// Boss稀有度 → 宝箱名称映射
+const BOSS_CHEST_MAP: Record<string, string> = {
+  "精良": "精良宝箱",
+  "稀有": "稀有宝箱",
+  "史诗": "史诗宝箱",
+  "传说": "传说宝箱",
+};
 
 // Boss定义
 interface BossDefinition {
@@ -298,28 +305,18 @@ export async function challengeBoss(db: FullDbClient, userId: string, bossId: st
       },
     });
 
-    // 卡牌掉落
-    let droppedCard = null;
-    if (Math.random() < rewards.cardChance) {
-      droppedCard = await grantRandomCard(db, player.id, rewards.cardRarity);
-      if (droppedCard) {
-
-        // Check if card unlocks breakthrough system (card name contains "突破")
-        if (droppedCard.name.includes("突破")) {
-          await db.unlockFlag.upsert({
-            where: {
-              playerId_flagName: {
-                playerId: player.id,
-                flagName: "breakthrough_system",
-              },
-            },
-            update: {},
-            create: {
-              playerId: player.id,
-              flagName: "breakthrough_system",
-            },
-          });
-        }
+    // 宝箱掉落 (100% on victory)
+    const chestName = BOSS_CHEST_MAP[rewards.cardRarity];
+    let droppedChest = null;
+    if (chestName) {
+      const chestCard = await db.card.findFirst({ where: { name: chestName, type: "chest" } });
+      if (chestCard) {
+        await db.playerCard.upsert({
+          where: { playerId_cardId: { playerId: player.id, cardId: chestCard.id } },
+          update: { quantity: { increment: 1 } },
+          create: { playerId: player.id, cardId: chestCard.id, quantity: 1 },
+        });
+        droppedChest = { name: chestCard.name, rarity: chestCard.rarity, icon: chestCard.icon };
       }
     }
 
@@ -330,7 +327,7 @@ export async function challengeBoss(db: FullDbClient, userId: string, bossId: st
         gold: rewards.gold,
         crystals: rewards.crystals,
         exp: rewards.exp,
-        card: droppedCard,
+        chest: droppedChest,
       },
       message: `击败了${boss.name}！`,
     };

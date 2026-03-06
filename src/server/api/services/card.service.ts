@@ -351,6 +351,36 @@ export async function useRecruitCard(
   };
 }
 
+export async function useChestCard(
+  db: FullDbClient,
+  userId: string,
+  cardId: string,
+) {
+  const player = await getPlayerOrThrow(db, userId);
+
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, cardId);
+  if (!playerCard || playerCard.quantity < 1) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "没有该宝箱" });
+  }
+  if (playerCard.card.type !== "chest") {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "该卡牌不是宝箱" });
+  }
+
+  const effects = JSON.parse(playerCard.card.effects) as { draws: number; pool: Record<string, number> };
+
+  const { openChest } = await import("../utils/card-utils");
+  const grantedCards = await openChest(db as Parameters<typeof openChest>[0], player.id, effects.draws, effects.pool);
+
+  await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
+
+  return {
+    opened: true,
+    chestName: playerCard.card.name,
+    chestRarity: playerCard.card.rarity,
+    cards: grantedCards,
+  };
+}
+
 export async function useItemCard(
   db: FullDbClient,
   userId: string,

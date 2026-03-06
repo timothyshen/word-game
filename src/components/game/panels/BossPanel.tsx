@@ -19,7 +19,7 @@ export default function BossPanel({ onClose }: BossPanelProps) {
   const [battleResult, setBattleResult] = useState<{
     victory: boolean;
     message: string;
-    rewards?: { gold: number; crystals: number; exp: number; card?: { name: string; rarity: string } | null };
+    rewards?: { gold: number; crystals: number; exp: number; chest?: { name: string; rarity: string; icon: string } | null };
   } | null>(null);
 
   const utils = api.useUtils();
@@ -88,8 +88,8 @@ export default function BossPanel({ onClose }: BossPanelProps) {
                 <span className="text-[#c9a227]">🪙 {battleResult.rewards.gold}</span>
                 <span className="text-[#9b59b6]">💎 {battleResult.rewards.crystals}</span>
                 <span className="text-[#4a9eff]">⭐ {battleResult.rewards.exp} EXP</span>
-                {battleResult.rewards.card && (
-                  <span className="text-[#e67e22]">🎴 {battleResult.rewards.card.name}</span>
+                {battleResult.rewards.chest && (
+                  <span className="text-[#e67e22]">{battleResult.rewards.chest.icon} {battleResult.rewards.chest.name}</span>
                 )}
               </div>
             )}
@@ -167,7 +167,7 @@ export default function BossPanel({ onClose }: BossPanelProps) {
                       <span className="text-[#c9a227]">🪙 {boss.rewards.gold}</span>
                       <span className="text-[#9b59b6]">💎 {boss.rewards.crystals}</span>
                       <span className="text-[#4a9eff]">⭐ {boss.rewards.exp}</span>
-                      <span className="text-[#e67e22]">🎴 {boss.rewards.cardRarity}</span>
+                      <span className="text-[#e67e22]">📦 {boss.rewards.cardRarity}宝箱</span>
                     </div>
                   </div>
 

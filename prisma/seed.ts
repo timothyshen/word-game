@@ -452,6 +452,47 @@ async function main() {
       icon: "📐",
       effects: JSON.stringify({ type: "expansion", amount: 1 }),
     },
+    // 宝箱卡
+    {
+      name: "普通宝箱",
+      type: "chest",
+      rarity: "普通",
+      description: "开启后获得1张随机卡牌",
+      icon: "📦",
+      effects: JSON.stringify({ type: "chest", draws: 1, pool: { "普通": 70, "精良": 20, "稀有": 10 } }),
+    },
+    {
+      name: "精良宝箱",
+      type: "chest",
+      rarity: "精良",
+      description: "开启后获得2张随机卡牌",
+      icon: "🎁",
+      effects: JSON.stringify({ type: "chest", draws: 2, pool: { "精良": 40, "稀有": 40, "史诗": 20 } }),
+    },
+    {
+      name: "稀有宝箱",
+      type: "chest",
+      rarity: "稀有",
+      description: "开启后获得3张随机卡牌",
+      icon: "💠",
+      effects: JSON.stringify({ type: "chest", draws: 3, pool: { "精良": 30, "稀有": 40, "史诗": 25, "传说": 5 } }),
+    },
+    {
+      name: "史诗宝箱",
+      type: "chest",
+      rarity: "史诗",
+      description: "开启后获得4张随机卡牌",
+      icon: "👑",
+      effects: JSON.stringify({ type: "chest", draws: 4, pool: { "稀有": 20, "史诗": 40, "传说": 40 } }),
+    },
+    {
+      name: "传说宝箱",
+      type: "chest",
+      rarity: "传说",
+      description: "开启后获得5张随机卡牌",
+      icon: "🌟",
+      effects: JSON.stringify({ type: "chest", draws: 5, pool: { "史诗": 30, "传说": 70 } }),
+    },
   ];
 
   for (const card of cards) {

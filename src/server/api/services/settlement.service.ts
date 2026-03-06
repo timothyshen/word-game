@@ -199,12 +199,43 @@ export async function executeSettlement(db: FullDbClient, userId: string) {
     grantedCards.push(...cards);
   }
 
+  // Grant chest based on best grade
+  const GRADE_CHEST: Record<string, string | null> = {
+    D: null,
+    C: "普通宝箱",
+    B: "精良宝箱",
+    A: "稀有宝箱",
+    S: "史诗宝箱",
+  };
+
+  let chestReward = null;
+  if (settlementResults.length > 0) {
+    const gradeOrder = ["D", "C", "B", "A", "S"];
+    const bestGrade = settlementResults.reduce((best, r) => {
+      return gradeOrder.indexOf(r.grade) > gradeOrder.indexOf(best) ? r.grade : best;
+    }, "D");
+
+    const chestName = GRADE_CHEST[bestGrade];
+    if (chestName) {
+      const chestCard = await db.card.findFirst({ where: { name: chestName, type: "chest" } });
+      if (chestCard) {
+        await db.playerCard.upsert({
+          where: { playerId_cardId: { playerId: player.id, cardId: chestCard.id } },
+          update: { quantity: { increment: 1 } },
+          create: { playerId: player.id, cardId: chestCard.id, quantity: 1 },
+        });
+        chestReward = { name: chestCard.name, rarity: chestCard.rarity, icon: chestCard.icon };
+      }
+    }
+  }
+
   return {
     settled: true,
     daysSettled: currentDay - player.lastSettlementDay,
     results: settlementResults,
     totalRewardCards,
     grantedCards,
+    chestReward,
     newStreakDays,
   };
 }

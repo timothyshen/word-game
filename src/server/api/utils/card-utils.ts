@@ -19,7 +19,7 @@ export async function grantRandomCard(
   playerId: string,
   rarity: string,
 ): Promise<CardGrantResult | null> {
-  const cards = await db.card.findMany({ where: { rarity } });
+  const cards = await db.card.findMany({ where: { rarity, type: { not: "chest" } } });
   if (cards.length === 0) return null;
 
   const card = cards[Math.floor(Math.random() * cards.length)]!;
@@ -56,6 +56,39 @@ export async function grantRandomCards(
   for (let i = 0; i < count; i++) {
     const result = await grantRandomCard(db, playerId, rarity);
     if (result) results.push(result);
+  }
+  return results;
+}
+
+/**
+ * Roll a rarity from a weighted pool.
+ * Pool is e.g. { "普通": 70, "精良": 20, "稀有": 10 } where values are relative weights.
+ */
+export function rollRarity(pool: Record<string, number>): string {
+  const entries = Object.entries(pool);
+  const totalWeight = entries.reduce((sum, [, w]) => sum + w, 0);
+  let roll = Math.random() * totalWeight;
+  for (const [rarity, weight] of entries) {
+    roll -= weight;
+    if (roll <= 0) return rarity;
+  }
+  return entries[entries.length - 1]![0];
+}
+
+/**
+ * Open a chest: roll N cards from weighted rarity pool, grant them to player.
+ */
+export async function openChest(
+  db: PrismaClient,
+  playerId: string,
+  draws: number,
+  pool: Record<string, number>,
+): Promise<CardGrantResult[]> {
+  const results: CardGrantResult[] = [];
+  for (let i = 0; i < draws; i++) {
+    const rarity = rollRarity(pool);
+    const card = await grantRandomCard(db, playerId, rarity);
+    if (card) results.push(card);
   }
   return results;
 }

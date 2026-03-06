@@ -15,7 +15,7 @@ interface BackpackPanelProps {
   onClose: () => void;
 }
 
-type TabType = "all" | "building" | "character" | "skill" | "item";
+type TabType = "all" | "building" | "character" | "skill" | "item" | "chest";
 
 const RARITY_ORDER = ["传说", "史诗", "稀有", "精良", "普通"];
 
@@ -26,7 +26,14 @@ const TYPE_LABELS: Record<string, string> = {
   item: "道具",
   equipment: "装备",
   resource: "资源",
+  chest: "宝箱",
 };
+
+interface ChestResult {
+  chestName: string;
+  chestRarity: string;
+  cards: Array<{ id: string; name: string; type: string; rarity: string; icon: string; description: string }>;
+}
 
 export default function BackpackPanel({ onClose }: BackpackPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>("all");
@@ -39,6 +46,7 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
     description: string;
     quantity: number;
   } | null>(null);
+  const [chestResult, setChestResult] = useState<ChestResult | null>(null);
 
   const utils = api.useUtils();
 
@@ -51,6 +59,16 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
       void utils.card.getAll.invalidate();
       void utils.player.getStatus.invalidate();
       setSelectedCard(null);
+    },
+  });
+
+  // 开启宝箱
+  const openChestMutation = api.card.openChest.useMutation({
+    onSuccess: (data) => {
+      void utils.card.getAll.invalidate();
+      void utils.player.getStatus.invalidate();
+      setSelectedCard(null);
+      setChestResult(data);
     },
   });
 
@@ -73,6 +91,7 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
     character: playerCards?.filter((pc) => pc.quantity > 0 && pc.card.type === "character").length ?? 0,
     skill: playerCards?.filter((pc) => pc.quantity > 0 && pc.card.type === "skill").length ?? 0,
     item: playerCards?.filter((pc) => pc.quantity > 0 && (pc.card.type === "item" || pc.card.type === "equipment" || pc.card.type === "resource")).length ?? 0,
+    chest: playerCards?.filter((pc) => pc.quantity > 0 && pc.card.type === "chest").length ?? 0,
   };
 
   if (isLoading) {
@@ -122,6 +141,7 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
             { id: "character" as const, label: "角色", icon: "👤" },
             { id: "skill" as const, label: "技能", icon: "📖" },
             { id: "item" as const, label: "道具", icon: "🧪" },
+            { id: "chest" as const, label: "宝箱", icon: "📦" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -226,13 +246,23 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
                 <p className="text-sm text-[#888] mb-4">{selectedCard.description}</p>
 
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => useCardMutation.mutate({ cardId: selectedCard.id })}
-                    disabled={useCardMutation.isPending}
-                    className="flex-1 py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50"
-                  >
-                    {useCardMutation.isPending ? "使用中..." : "使用卡牌"}
-                  </button>
+                  {selectedCard.type === "chest" ? (
+                    <button
+                      onClick={() => openChestMutation.mutate({ cardId: selectedCard.id })}
+                      disabled={openChestMutation.isPending}
+                      className="flex-1 py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50"
+                    >
+                      {openChestMutation.isPending ? "开启中..." : "开启宝箱"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => useCardMutation.mutate({ cardId: selectedCard.id })}
+                      disabled={useCardMutation.isPending}
+                      className="flex-1 py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50"
+                    >
+                      {useCardMutation.isPending ? "使用中..." : "使用卡牌"}
+                    </button>
+                  )}
                   <button
                     onClick={() => setSelectedCard(null)}
                     className="px-4 py-2 border border-[#3a3a40] text-[#888] hover:text-[#e0dcd0]"
@@ -241,11 +271,42 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
                   </button>
                 </div>
 
-                {useCardMutation.error && (
+                {(useCardMutation.error ?? openChestMutation.error) && (
                   <div className="mt-3 p-2 bg-[#3a1a1a] border border-[#e74c3c]/30 text-sm text-[#e74c3c]">
-                    {useCardMutation.error.message}
+                    {(useCardMutation.error ?? openChestMutation.error)?.message}
                   </div>
                 )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+        {/* 宝箱开启结果 */}
+        {chestResult && (
+          <Dialog open={true} onOpenChange={() => setChestResult(null)}>
+            <DialogContent className="bg-[#0a0a15]/95 border-2 border-[#c9a227] p-0 max-w-md" showCloseButton={false}>
+              <DialogHeader className="p-4 border-b border-[#c9a227]/30">
+                <DialogTitle className="text-[#c9a227] font-bold text-lg text-center">
+                  {chestResult.chestName} 开启结果
+                </DialogTitle>
+              </DialogHeader>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
+                  {chestResult.cards.map((card, i) => (
+                    <div key={i} className="flex items-center gap-3 px-3 py-2 border border-[#2a3a4a] rounded">
+                      <span className="text-xl">{card.icon}</span>
+                      <span className="flex-1 text-sm text-[#e0dcd0]">{card.name}</span>
+                      <span className="text-xs" style={{ color: RARITY_COLORS[card.rarity] }}>
+                        {card.rarity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setChestResult(null)}
+                  className="mt-4 w-full py-2 bg-[#c9a227]/20 border border-[#c9a227] text-[#c9a227] rounded text-sm hover:bg-[#c9a227]/30"
+                >
+                  确认
+                </button>
               </div>
             </DialogContent>
           </Dialog>
