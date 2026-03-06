@@ -15,7 +15,7 @@ export const bossRouter = createTRPCRouter({
 
   getDetail: protectedProcedure
     .input(z.object({ bossId: z.string() }))
-    .query(({ input }) => {
-      return bossService.getBossDetail(input.bossId);
+    .query(({ ctx, input }) => {
+      return bossService.getBossDetail(ctx.db, input.bossId);
     }),
 });

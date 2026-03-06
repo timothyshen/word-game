@@ -606,17 +606,49 @@ model ExploredArea {
     @@unique([playerId, worldId, positionX, positionY])
 }
 
+// Boss模板
+model Boss {
+    id                 String  @id @default(cuid())
+    name               String  @unique
+    icon               String
+    description        String
+    level              Int
+    hp                 Int
+    attack             Int
+    defense            Int
+    skills             String  // JSON: Array<{name: string, damage: number, effect?: string}>
+    weeklyAttemptLimit Int     @default(3)
+
+    // 解锁条件
+    requiredTier       Int     @default(0)
+    requiredLevel      Int     @default(1)
+    requiredWorld      String? // null = 主位面
+
+    // 奖励
+    rewardGold         Int
+    rewardCrystals     Int
+    rewardExp          Int
+    rewardChestRarity  String
+    rewardEquipRarity  String
+
+    // 排序
+    sortOrder          Int     @default(0)
+
+    bossStatuses       BossStatus[]
+}
+
 // Boss状态
 model BossStatus {
     id       String @id @default(cuid())
     playerId String
     player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
-    bossId   String // Boss标识
+    bossId   String
+    boss     Boss   @relation(fields: [bossId], references: [id], onDelete: Cascade)
 
     // 本周挑战次数
     weeklyAttempts Int      @default(0)
     lastAttempt    DateTime?
-    lastDefeat     DateTime? // 上次击杀时间
+    lastDefeat     DateTime?
 
     // 每周一重置
     weekStartDate  DateTime
