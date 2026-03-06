@@ -259,17 +259,42 @@ function AltarTab() {
 // 商店标签页
 function ShopTab() {
   const [mode, setMode] = useState<"buy" | "sell">("buy");
-  const { data: player } = api.player.getStatus.useQuery();
-  const { data: cards } = api.card.getAll.useQuery();
+  const [category, setCategory] = useState<"all" | "resource" | "special" | "card">("all");
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [buyQuantity, setBuyQuantity] = useState(1);
+  const [selectedSellCard, setSelectedSellCard] = useState<string | null>(null);
+  const [sellQuantity, setSellQuantity] = useState(1);
 
   const utils = api.useUtils();
+  const { data: shopData, isLoading } = api.shop.getItems.useQuery({ category });
+  const { data: playerCards } = api.card.getAll.useQuery();
 
-  // 商品列表（简化示例）
-  const shopItems = [
-    { id: "gold_pack", name: "金币礼包", icon: "🪙", price: 100, currency: "crystals", reward: { gold: 1000 } },
-    { id: "stamina_potion", name: "体力药水", icon: "🧪", price: 50, currency: "gold", reward: { stamina: 50 } },
-    { id: "exp_book", name: "经验书", icon: "📖", price: 200, currency: "gold", reward: { exp: 100 } },
-  ];
+  const buyMutation = api.shop.buy.useMutation({
+    onSuccess: () => {
+      void utils.shop.getItems.invalidate();
+      void utils.player.getStatus.invalidate();
+      setSelectedItem(null);
+      setBuyQuantity(1);
+    },
+  });
+
+  const { data: sellPricePreview } = api.shop.getSellPrice.useQuery(
+    { cardId: selectedSellCard! },
+    { enabled: !!selectedSellCard }
+  );
+
+  const sellMutation = api.shop.sell.useMutation({
+    onSuccess: () => {
+      void utils.card.getAll.invalidate();
+      void utils.player.getStatus.invalidate();
+      setSelectedSellCard(null);
+      setSellQuantity(1);
+    },
+  });
+
+  const items = shopData?.items ?? [];
+  const playerResources = shopData?.playerResources ?? { gold: 0, crystals: 0 };
+  const sellableCards = playerCards?.filter((pc) => pc.quantity > 0) ?? [];
 
   return (
     <div className="h-full flex flex-col">
@@ -300,70 +325,199 @@ function ShopTab() {
       {/* 资源显示 */}
       <div className="flex-shrink-0 flex items-center justify-center gap-6 p-3 bg-[#0a0a0c] border-b border-[#2a2a30]">
         <span className="text-sm">
-          <span className="text-[#c9a227]">🪙</span> {player?.gold?.toLocaleString() ?? 0}
+          <span className="text-[#c9a227]">🪙</span> {playerResources.gold.toLocaleString()}
         </span>
         <span className="text-sm">
-          <span className="text-[#9b59b6]">💎</span> {player?.crystals ?? 0}
+          <span className="text-[#9b59b6]">💎</span> {playerResources.crystals}
         </span>
       </div>
 
-      {/* 内容 */}
-      <ScrollArea className="flex-1">
-        <div className="p-4">
-          {mode === "buy" ? (
-            <div className="space-y-2">
-              {shopItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-3 bg-[#1a1a20] border border-[#2a2a30]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{item.icon}</div>
-                    <div>
-                      <div className="font-bold text-white">{item.name}</div>
-                      <div className="text-xs text-[#888]">
-                        {item.currency === "crystals" ? "💎" : "🪙"} {item.price}
+      {mode === "buy" ? (
+        <>
+          {/* 分类筛选 */}
+          <div className="flex-shrink-0 flex gap-1 p-3 border-b border-[#2a2a30]">
+            {([
+              { id: "all" as const, label: "全部" },
+              { id: "resource" as const, label: "资源" },
+              { id: "special" as const, label: "特殊" },
+              { id: "card" as const, label: "卡包" },
+            ]).map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setCategory(cat.id)}
+                className={`px-3 py-1 text-sm transition-colors ${
+                  category === cat.id
+                    ? "bg-[#c9a227] text-[#08080a]"
+                    : "bg-[#1a1a20] text-[#888] hover:text-[#e0dcd0]"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          <ScrollArea className="flex-1">
+            <div className="p-4">
+              {isLoading ? (
+                <div className="text-center py-12 text-[#888]">加载中...</div>
+              ) : items.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-4">🏪</div>
+                  <div className="text-[#888]">暂无商品</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {items.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => { setSelectedItem(item.id); setBuyQuantity(1); }}
+                      disabled={!item.canBuy || (item.remaining !== undefined && item.remaining <= 0)}
+                      className={`p-3 text-left border transition-colors ${
+                        selectedItem === item.id
+                          ? "border-[#c9a227] bg-[#c9a227]/10"
+                          : "border-[#2a2a30] bg-[#1a1a20] hover:bg-[#222228]"
+                      } ${!item.canBuy ? "opacity-50" : ""}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="text-2xl">{item.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-sm text-white truncate">{item.name}</div>
+                          <div className="text-xs text-[#666] mt-1 line-clamp-1">{item.description}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            {item.price.gold ? <span className="text-xs text-[#c9a227]">🪙 {item.price.gold}</span> : null}
+                            {item.price.crystals ? <span className="text-xs text-[#9b59b6]">💎 {item.price.crystals}</span> : null}
+                          </div>
+                          {item.stock !== undefined && (
+                            <div className="text-xs text-[#666] mt-1">限购: {item.remaining}/{item.stock}</div>
+                          )}
+                        </div>
                       </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          {/* 购买确认 */}
+          {selectedItem && (() => {
+            const item = items.find((i) => i.id === selectedItem);
+            if (!item) return null;
+            const maxQty = item.remaining ?? 99;
+            return (
+              <div className="flex-shrink-0 border-t border-[#2a2a30] p-3 bg-[#151518] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{item.icon}</span>
+                  <div>
+                    <div className="font-bold text-sm text-white">{item.name}</div>
+                    <div className="text-xs text-[#888]">
+                      {(item.price.gold ?? 0) * buyQuantity > 0 && <span className="text-[#c9a227]">🪙 {(item.price.gold ?? 0) * buyQuantity}</span>}
+                      {(item.price.crystals ?? 0) * buyQuantity > 0 && <span className="text-[#9b59b6] ml-2">💎 {(item.price.crystals ?? 0) * buyQuantity}</span>}
                     </div>
                   </div>
-                  <button className="px-4 py-2 bg-[#4a9] text-[#08080a] font-bold hover:bg-[#5ba]">
-                    购买
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setBuyQuantity((q) => Math.max(1, q - 1))} className="w-7 h-7 bg-[#2a2a30] hover:bg-[#3a3a40] text-[#888] text-sm">-</button>
+                  <span className="w-6 text-center text-sm">{buyQuantity}</span>
+                  <button onClick={() => setBuyQuantity((q) => Math.min(maxQty, q + 1))} className="w-7 h-7 bg-[#2a2a30] hover:bg-[#3a3a40] text-[#888] text-sm">+</button>
+                  <button
+                    onClick={() => buyMutation.mutate({ itemId: selectedItem, quantity: buyQuantity })}
+                    disabled={buyMutation.isPending}
+                    className="px-3 py-1.5 bg-[#c9a227] text-[#08080a] text-sm font-bold hover:bg-[#ddb52f] disabled:opacity-50"
+                  >
+                    {buyMutation.isPending ? "..." : "购买"}
                   </button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div>
-              {!cards || cards.length === 0 ? (
+              </div>
+            );
+          })()}
+        </>
+      ) : (
+        <>
+          <ScrollArea className="flex-1">
+            <div className="p-4">
+              {sellableCards.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-4xl mb-4">📭</div>
                   <div className="text-[#888]">暂无可出售物品</div>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {cards.slice(0, 10).map((pc) => (
-                    <div
-                      key={pc.id}
-                      className="flex items-center justify-between p-3 bg-[#1a1a20] border border-[#2a2a30]"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">{pc.card.icon}</div>
-                        <div>
-                          <div className="font-bold text-white">{pc.card.name}</div>
-                          <div className="text-xs text-[#888]">x{pc.quantity}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {sellableCards.map((pc) => {
+                    const rarityPrices: Record<string, { gold: number; crystals: number }> = {
+                      "普通": { gold: 10, crystals: 0 }, "精良": { gold: 30, crystals: 1 },
+                      "稀有": { gold: 80, crystals: 3 }, "史诗": { gold: 200, crystals: 10 }, "传说": { gold: 500, crystals: 30 },
+                    };
+                    const price = rarityPrices[pc.card.rarity] ?? rarityPrices["普通"]!;
+                    return (
+                      <button
+                        key={pc.card.id}
+                        onClick={() => { setSelectedSellCard(pc.card.id); setSellQuantity(1); }}
+                        className={`p-3 border text-left transition-colors ${
+                          selectedSellCard === pc.card.id
+                            ? "border-[#c9a227] bg-[#c9a227]/10"
+                            : "border-[#2a2a30] bg-[#1a1a20] hover:bg-[#222228]"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className="text-2xl">{pc.card.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm text-white truncate">{pc.card.name}</div>
+                            <div className="text-xs text-[#666]">{pc.card.rarity} x{pc.quantity}</div>
+                            <div className="text-xs mt-1">
+                              <span className="text-[#c9a227]">🪙 {price.gold}</span>
+                              {price.crystals > 0 && <span className="text-[#9b59b6] ml-1">💎 {price.crystals}</span>}
+                              <span className="text-[#666]">/张</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <button className="px-4 py-2 bg-[#e67e22] text-[#08080a] font-bold hover:bg-[#f39c12]">
-                        出售
                       </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
+          </ScrollArea>
+
+          {/* 出售确认 */}
+          {selectedSellCard && sellPricePreview && (
+            <div className="flex-shrink-0 border-t border-[#2a2a30] p-3 bg-[#151518] flex items-center justify-between">
+              <div>
+                <div className="font-bold text-sm text-white">{sellPricePreview.cardName}</div>
+                <div className="text-xs text-[#888]">
+                  获得: <span className="text-[#c9a227]">🪙 {sellPricePreview.pricePerUnit.gold * sellQuantity}</span>
+                  {sellPricePreview.pricePerUnit.crystals > 0 && <span className="text-[#9b59b6] ml-1">💎 {sellPricePreview.pricePerUnit.crystals * sellQuantity}</span>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setSellQuantity((q) => Math.max(1, q - 1))} className="w-7 h-7 bg-[#2a2a30] hover:bg-[#3a3a40] text-[#888] text-sm">-</button>
+                <span className="w-6 text-center text-sm">{sellQuantity}</span>
+                <button onClick={() => setSellQuantity((q) => Math.min(sellPricePreview.quantity, q + 1))} className="w-7 h-7 bg-[#2a2a30] hover:bg-[#3a3a40] text-[#888] text-sm">+</button>
+                <button
+                  onClick={() => sellMutation.mutate({ cardId: selectedSellCard, quantity: sellQuantity })}
+                  disabled={sellMutation.isPending}
+                  className="px-3 py-1.5 bg-[#c9a227] text-[#08080a] text-sm font-bold hover:bg-[#ddb52f] disabled:opacity-50"
+                >
+                  {sellMutation.isPending ? "..." : "出售"}
+                </button>
+              </div>
+            </div>
           )}
+        </>
+      )}
+
+      {/* 操作反馈 */}
+      {buyMutation.isSuccess && (
+        <div className="flex-shrink-0 p-2 bg-[#1a3a1a] border-t border-[#4a9]/30 text-xs text-[#4a9] text-center">购买成功</div>
+      )}
+      {sellMutation.isSuccess && (
+        <div className="flex-shrink-0 p-2 bg-[#1a3a1a] border-t border-[#4a9]/30 text-xs text-[#4a9] text-center">出售成功</div>
+      )}
+      {(buyMutation.error ?? sellMutation.error) && (
+        <div className="flex-shrink-0 p-2 bg-[#3a1a1a] border-t border-[#e74c3c]/30 text-xs text-[#e74c3c] text-center">
+          {buyMutation.error?.message ?? sellMutation.error?.message}
         </div>
-      </ScrollArea>
+      )}
     </div>
   );
 }

@@ -13,13 +13,10 @@ export { default as CombatPanel } from "./CombatPanel";
 
 // 旧面板 - 仍可单独使用
 export { default as CharacterDetailPanel } from "./CharacterDetailPanel";
-export { default as MilitaryPanel } from "./MilitaryPanel";
 export { default as SettlementPanel } from "./SettlementPanel";
-export { default as ExplorationPanel } from "./ExplorationPanel";
 export { default as AltarPanel } from "./AltarPanel";
 export { default as EquipmentPanel } from "./EquipmentPanel";
 export { default as BackpackPanel } from "./BackpackPanel";
-export { default as BreakthroughCardModal, BreakthroughCardList } from "./BreakthroughCardModal";
 export { default as ShopPanel } from "./ShopPanel";
 export { default as AchievementPanel } from "./AchievementPanel";
 export { default as BossPanel } from "./BossPanel";

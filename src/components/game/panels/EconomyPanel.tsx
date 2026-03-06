@@ -135,11 +135,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
                     <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a20]">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-[#2a2a30] flex items-center justify-center text-lg">
-                          {facility.buildingName === "农田" && "🌾"}
-                          {facility.buildingName === "矿场" && "⛏️"}
-                          {facility.buildingName === "伐木场" && "🪓"}
-                          {facility.buildingName === "市场" && "🏪"}
-                          {!["农田", "矿场", "伐木场", "市场"].includes(facility.buildingName) && "🏠"}
+                          {facility.icon ?? "🏠"}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">

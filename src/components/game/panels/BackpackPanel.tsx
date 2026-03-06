@@ -305,7 +305,7 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
                   onClick={() => setChestResult(null)}
                   className="mt-4 w-full py-2 bg-[#c9a227]/20 border border-[#c9a227] text-[#c9a227] rounded text-sm hover:bg-[#c9a227]/30"
                 >
-                  确认
+                  确定
                 </button>
               </div>
             </DialogContent>

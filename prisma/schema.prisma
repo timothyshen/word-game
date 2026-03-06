@@ -126,7 +126,6 @@ model Player {
     storyProgress    StoryProgress[]
     unlockFlags      UnlockFlag[]
     economyLogs      EconomyLog[]
-    militaryStatus   MilitaryStatus?
     profession       PlayerProfession?
     equippedItems    EquippedItem[]
     learnedSkills    PlayerSkill[]      // 已学习技能
@@ -440,27 +439,6 @@ model EconomyLog {
     @@unique([playerId, day])
 }
 
-// 军事状态
-model MilitaryStatus {
-    id       String @id @default(cuid())
-    playerId String @unique
-    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
-
-    totalPower    Int @default(0) // 总战力
-    defensePower  Int @default(0) // 防御力
-    morale        Int @default(100) // 士气 (0-100)
-    soldiers      Int @default(0) // 士兵数
-    maxSoldiers   Int @default(10) // 士兵上限
-    reserveSoldiers Int @default(0) // 预备兵
-
-    // 威胁等级
-    threatLevel String @default("low") // low/medium/high/critical
-
-    // 周边威胁（JSON）
-    nearbyThreats String @default("[]")
-
-    updatedAt DateTime @updatedAt
-}
 
 // ===== 技能系统 =====
 

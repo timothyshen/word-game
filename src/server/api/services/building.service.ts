@@ -154,12 +154,12 @@ export async function calculateDailyOutput(db: FullDbClient, userId: string) {
   const buildings = await findPlayerBuildings(db, player.id);
 
   const totalOutput: Record<string, number> = { gold: 0, wood: 0, stone: 0, food: 0, crystals: 0 };
-  const breakdown: Array<{ buildingName: string; level: number; hasWorker: boolean; output: Record<string, number> }> = [];
+  const breakdown: Array<{ buildingName: string; icon: string; level: number; hasWorker: boolean; output: Record<string, number> }> = [];
 
   for (const pb of buildings) {
     const output = calculateBuildingOutput(pb.building.baseEffects, pb.level, !!pb.assignedCharId);
     if (Object.keys(output).length > 0) {
-      breakdown.push({ buildingName: pb.building.name, level: pb.level, hasWorker: !!pb.assignedCharId, output });
+      breakdown.push({ buildingName: pb.building.name, icon: pb.building.icon, level: pb.level, hasWorker: !!pb.assignedCharId, output });
       for (const [resource, amount] of Object.entries(output)) {
         totalOutput[resource] = (totalOutput[resource] ?? 0) + amount;
       }

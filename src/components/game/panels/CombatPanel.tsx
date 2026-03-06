@@ -61,8 +61,9 @@ export default function CombatPanel({
         void utils.player.getStatus.invalidate();
       }
     },
-    onError: () => {
+    onError: (err) => {
       setIsActing(false);
+      setCombatLog(prev => [...prev, `[错误] ${err.message}`]);
     },
   });
 
@@ -71,6 +72,9 @@ export default function CombatPanel({
     onSuccess: () => {
       void utils.player.getStatus.invalidate();
       onClose();
+    },
+    onError: (err) => {
+      setCombatLog(prev => [...prev, `[错误] ${err.message}`]);
     },
   });
 
@@ -81,10 +85,10 @@ export default function CombatPanel({
     }
   }, [combatId, monsterLevel, monsterType, characterId, startMutation]);
 
-  // 自动滚动日志
+  // 自动滚动日志到最新条目
   useEffect(() => {
     if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
+      logRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [combatLog]);
 
@@ -132,6 +136,7 @@ export default function CombatPanel({
 
   const status = combatStatus?.status ?? "ongoing";
   const monster = combatStatus?.monster ?? startMutation.data?.monster;
+  // Fallback defaults only used briefly before API data loads
   const playerHp = combatStatus?.playerHp ?? startMutation.data?.playerHp ?? 100;
   const playerMaxHp = combatStatus?.playerMaxHp ?? startMutation.data?.playerMaxHp ?? 100;
   const playerMp = combatStatus?.playerMp ?? startMutation.data?.playerMp ?? 50;
@@ -198,7 +203,7 @@ export default function CombatPanel({
           </div>
 
           {/* 战斗日志 */}
-          <ScrollArea className="flex-1 min-h-[200px]" ref={logRef}>
+          <ScrollArea className="flex-1 min-h-[200px]">
             <div className="p-4 space-y-1">
               {combatLog.map((log, i) => (
                 <div
@@ -208,12 +213,15 @@ export default function CombatPanel({
                       ? "text-[#4a9]"
                       : log.includes("失败") || log.includes("击败")
                       ? "text-[#e74c3c]"
+                      : log.includes("[错误]")
+                      ? "text-[#e67e22]"
                       : "text-[#888]"
                   }`}
                 >
                   {log}
                 </div>
               ))}
+              <div ref={logRef} />
             </div>
           </ScrollArea>
 

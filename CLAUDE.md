@@ -167,11 +167,9 @@ src/
 |------|------|------|
 | 结算面板 | `SettlementPanel.tsx` | 每日结算、奖励领取 |
 | 经济面板 | `EconomyPanel.tsx` | 资源总览、产出统计 |
-| 军事面板 | `MilitaryPanel.tsx` | 战力统计、角色管理 |
 | 战斗面板 | `CombatPanel.tsx` | 回合制战斗界面 |
 | 祭坛面板 | `AltarPanel.tsx` | 抽卡、合成、献祭 |
 | 装备面板 | `EquipmentPanel.tsx` | 11槽位装备管理 |
-| 探索面板 | `ExplorationPanel.tsx` | 野外探索 |
 | 角色详情 | `CharacterDetailPanel.tsx` | 角色信息 |
 | 建筑详情 | `BuildingDetailPanel.tsx` | 建筑升级、工人分配 |
 

@@ -41,12 +41,18 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
   });
 
   // 执行结算
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const settleMutation = api.settlement.executeSettlement.useMutation({
     onSuccess: (data) => {
+      setErrorMsg(null);
       setSettlementResult(data);
       void utils.player.getStatus.invalidate();
       void utils.settlement.getSettlementPreview.invalidate();
       void utils.settlement.getHistory.invalidate();
+    },
+    onError: (err) => {
+      setErrorMsg(err.message);
     },
   });
 
@@ -323,6 +329,11 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                 >
                   {settlementResult?.settled ? "完成" : "今日已结算"}
                 </button>
+              )}
+              {errorMsg && (
+                <div className="mt-2 p-2 bg-[#3a1a1a] border border-[#e74c3c]/30 text-xs text-[#e74c3c] text-center">
+                  {errorMsg}
+                </div>
               )}
               <div className="text-center text-xs text-[#666] mt-2">
                 奖励将添加到您的卡牌背包

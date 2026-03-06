@@ -13,7 +13,6 @@ interface ShopItem {
   category: "card" | "resource" | "special";
   price: { gold?: number; crystals?: number };
   stock?: number;
-  cardId?: string;
   effect?: { type: string; value: number };
 }
 

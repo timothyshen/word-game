@@ -33,7 +33,7 @@ export default function GamePage() {
   const [inventoryHubTab, setInventoryHubTab] = useState("backpack");
 
   const [showAdventureHub, setShowAdventureHub] = useState(false);
-  const [adventureHubTab, setAdventureHubTab] = useState("exploration");
+  const [adventureHubTab, setAdventureHubTab] = useState("boss");
 
   const [showProgressHub, setShowProgressHub] = useState(false);
   const [progressHubTab, setProgressHubTab] = useState("profession");
@@ -106,7 +106,7 @@ export default function GamePage() {
     const [hub, tab] = action.split(":");
     switch (hub) {
       case "logHub": setLogHubTab(tab ?? "settlement"); setShowLogHub(true); break;
-      case "adventureHub": setAdventureHubTab(tab ?? "exploration"); setShowAdventureHub(true); break;
+      case "adventureHub": setAdventureHubTab(tab ?? "boss"); setShowAdventureHub(true); break;
       case "inventoryHub": setInventoryHubTab(tab ?? "backpack"); setShowInventoryHub(true); break;
       case "progressHub": setProgressHubTab(tab ?? "profession"); setShowProgressHub(true); break;
       case "characterHub": setCharacterHubTab(tab ?? "list"); setShowCharacterHub(true); break;
@@ -270,7 +270,7 @@ export default function GamePage() {
               {[
                 { icon: "👥", label: "角色", system: "character_list", onClick: () => { setCharacterHubTab("list"); setShowCharacterHub(true); } },
                 { icon: "🎒", label: "背包", system: "backpack", onClick: () => { setInventoryHubTab("backpack"); setShowInventoryHub(true); } },
-                { icon: "🗺️", label: "冒险", system: "exploration", onClick: () => { setAdventureHubTab("exploration"); setShowAdventureHub(true); } },
+                { icon: "🗺️", label: "冒险", system: "exploration", onClick: () => { setAdventureHubTab("boss"); setShowAdventureHub(true); } },
                 { icon: "⚔️", label: "战斗", system: "combat", onClick: () => { setCombatLevel(1); setShowCombatPanel(true); } },
                 { icon: "🏙️", label: "城市", system: "inner_city", onClick: () => setShowInnerCityPanel(true) },
               ].filter(a => unlocks.has(a.system)).map((action, i) => (

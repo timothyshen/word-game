@@ -783,8 +783,17 @@ async function main() {
     ];
 
     for (const tile of exploredTiles) {
-      await prisma.exploredArea.create({
-        data: {
+      await prisma.exploredArea.upsert({
+        where: {
+          playerId_worldId_positionX_positionY: {
+            playerId: testPlayerRecord.id,
+            worldId: "main",
+            positionX: tile.x,
+            positionY: tile.y,
+          },
+        },
+        update: {},
+        create: {
           playerId: testPlayerRecord.id,
           worldId: "main",
           positionX: tile.x,
@@ -848,6 +857,122 @@ async function main() {
     });
   }
   console.log(`Created ${outerCityPOIs.length} outer city POIs`);
+
+  // ========== 剧情章节与节点 ==========
+  const storyChapters = [
+    {
+      title: "领主的觉醒",
+      description: "你从沉睡中醒来，发现自己成为了一片荒芜领地的领主。一切从这里开始...",
+      order: 1,
+      rewardsJson: JSON.stringify({ gold: 200, exp: 100 }),
+      unlockJson: JSON.stringify({}),
+      nodes: [
+        { nodeId: "awakening_1", title: "沉睡的领主", content: "你缓缓睁开双眼，周围是一片破旧的石室。窗外透进微弱的光线，照亮了散落一地的古老卷轴。", speaker: "旁白", speakerIcon: "📜", order: 1, nextNodeId: "awakening_2" },
+        { nodeId: "awakening_2", title: "管家的问候", content: "一位老者推门而入，躬身行礼：'领主大人，您终于醒了！我是您的管家老陈，这片领地已经荒废多年，正等着您来重建。'", speaker: "管家老陈", speakerIcon: "👴", order: 2, nextNodeId: "awakening_3" },
+        { nodeId: "awakening_3", title: "领地现状", content: "管家带你走出石室，眼前是一片杂草丛生的空地。远处有几座破旧的建筑，依稀能看出曾经的繁华。'领主大人，虽然现在一片荒芜，但只要用心经营，这里一定能恢复往日的荣光。'", speaker: "管家老陈", speakerIcon: "👴", order: 3, choicesJson: JSON.stringify([
+          { text: "让我先看看周围有什么", nextNodeId: "awakening_4a" },
+          { text: "告诉我领地目前有哪些资源", nextNodeId: "awakening_4b" },
+        ]) },
+        { nodeId: "awakening_4a", title: "初步探索", content: "你环顾四周。北面是一片密林，东面有一条小河，南面是一望无际的平原，西面矗立着一座山丘。'这些地方都蕴藏着丰富的资源，领主大人。不过也有不少危险潜伏其中。'", speaker: "管家老陈", speakerIcon: "👴", order: 4, nextNodeId: "awakening_5", rewardsJson: JSON.stringify({ exp: 50 }) },
+        { nodeId: "awakening_4b", title: "资源盘点", content: "'目前我们有少量的金币和基础物资。粮仓里还有些存粮，但不会撑太久。我建议先修缮一下主要建筑，然后招募一些人手。'", speaker: "管家老陈", speakerIcon: "👴", order: 4, nextNodeId: "awakening_5", rewardsJson: JSON.stringify({ gold: 100 }) },
+        { nodeId: "awakening_5", title: "新的开始", content: "管家递给你一把钥匙：'这是领主府的钥匙。从今天起，这片土地的命运就掌握在您手中了。祝您好运，领主大人！'", speaker: "管家老陈", speakerIcon: "👴", order: 5, rewardsJson: JSON.stringify({ gold: 100, exp: 50 }) },
+      ],
+    },
+    {
+      title: "边境危机",
+      description: "领地边境传来不安的消息，一群强盗正在附近活动。你需要做出决断。",
+      order: 2,
+      rewardsJson: JSON.stringify({ gold: 500, crystals: 5, exp: 200 }),
+      unlockJson: JSON.stringify({ level: 3 }),
+      nodes: [
+        { nodeId: "crisis_1", title: "紧急报告", content: "一名哨兵气喘吁吁地跑来：'领主大人！边境发现一群强盗，他们已经洗劫了附近的商队，正朝我们这边移动！'", speaker: "哨兵", speakerIcon: "🏃", order: 1, nextNodeId: "crisis_2" },
+        { nodeId: "crisis_2", title: "商议对策", content: "管家皱着眉头：'领主大人，我们有三个选择：正面迎击、设伏诱敌，或者谈判招安。每种方案各有利弊。'", speaker: "管家老陈", speakerIcon: "👴", order: 2, choicesJson: JSON.stringify([
+          { text: "正面迎击！展示我们的实力", nextNodeId: "crisis_3a" },
+          { text: "设伏诱敌，智取为上", nextNodeId: "crisis_3b" },
+          { text: "尝试谈判招安", nextNodeId: "crisis_3c" },
+        ]) },
+        { nodeId: "crisis_3a", title: "正面交锋", content: "你率领守卫正面迎击强盗。经过一番激战，强盗被击退，但你方也有不少损伤。战后在强盗营地中发现了不少金币和物资。", speaker: "旁白", speakerIcon: "⚔️", order: 3, nextNodeId: "crisis_4", rewardsJson: JSON.stringify({ gold: 300, exp: 100 }) },
+        { nodeId: "crisis_3b", title: "智取强盗", content: "你在必经之路上设下埋伏。当强盗经过时，伏兵四起，打了他们一个措手不及。强盗首领被生擒，缴获大量赃物。", speaker: "旁白", speakerIcon: "🧠", order: 3, nextNodeId: "crisis_4", rewardsJson: JSON.stringify({ gold: 400, crystals: 3, exp: 150 }) },
+        { nodeId: "crisis_3c", title: "招安谈判", content: "你派使者与强盗首领谈判。原来他们是被战乱逼上梁山的农民。你许诺给他们土地和工作，大部分人同意归顺。", speaker: "旁白", speakerIcon: "🤝", order: 3, nextNodeId: "crisis_4", rewardsJson: JSON.stringify({ exp: 200 }) },
+        { nodeId: "crisis_4", title: "危机解除", content: "边境危机得到解决。管家满意地点头：'领主大人处事果断，领地的名声也因此传开了。以后应该能吸引更多人才前来投奔。'", speaker: "管家老陈", speakerIcon: "👴", order: 4, rewardsJson: JSON.stringify({ gold: 200, exp: 100 }) },
+      ],
+    },
+    {
+      title: "神秘商人",
+      description: "一位神秘的旅行商人来到领地，带来了关于传送门的消息。",
+      order: 3,
+      rewardsJson: JSON.stringify({ crystals: 10, exp: 300 }),
+      unlockJson: JSON.stringify({ level: 5 }),
+      nodes: [
+        { nodeId: "merchant_1", title: "不速之客", content: "一位身披斗篷的旅行者来到领地大门前。他自称是跨越位面的商人，带来了远方的珍奇货物和重要消息。", speaker: "旁白", speakerIcon: "🧳", order: 1, nextNodeId: "merchant_2" },
+        { nodeId: "merchant_2", title: "位面传说", content: "'诸位可曾听说过诸天位面？在我们所在的主位面之外，还存在着火焰位面、寒冰位面、暗影位面和天界。每个位面都有独特的资源和强大的守护者。'", speaker: "神秘商人", speakerIcon: "🧙", order: 2, nextNodeId: "merchant_3" },
+        { nodeId: "merchant_3", title: "传送门的线索", content: "'在你领地北方的深林中，我曾感应到传送门的能量波动。如果你能找到并激活它，就能前往其他位面探索。不过...'他压低声音，'每个位面都有强大的Boss镇守，需要足够的实力才能生存。'", speaker: "神秘商人", speakerIcon: "🧙", order: 3, choicesJson: JSON.stringify([
+          { text: "你能带我去传送门的位置吗？", nextNodeId: "merchant_4a" },
+          { text: "告诉我更多关于各位面Boss的信息", nextNodeId: "merchant_4b" },
+        ]) },
+        { nodeId: "merchant_4a", title: "传送门之路", content: "'抱歉，我还有其他位面的生意要做。但我可以卖给你一张古老的地图，上面标注了传送门的大致位置。'他从包裹中取出一张泛黄的羊皮卷。", speaker: "神秘商人", speakerIcon: "🧙", order: 4, nextNodeId: "merchant_5", rewardsJson: JSON.stringify({ crystals: 5 }) },
+        { nodeId: "merchant_4b", title: "Boss情报", content: "'火焰位面有烈焰魔将，寒冰位面有冰霜女皇，暗影位面有虚空领主，天界有圣光守护者。每个都不是好惹的角色。不过打败他们的奖励也非常丰厚。'", speaker: "神秘商人", speakerIcon: "🧙", order: 4, nextNodeId: "merchant_5", rewardsJson: JSON.stringify({ exp: 100 }) },
+        { nodeId: "merchant_5", title: "离别赠礼", content: "商人即将离去时，从包裹中取出几颗闪烁的水晶：'这是诸天水晶，在各个位面都能使用。算是我的一点心意，希望日后还能在其他位面与你再会。'", speaker: "神秘商人", speakerIcon: "🧙", order: 5, rewardsJson: JSON.stringify({ crystals: 5, exp: 200 }) },
+      ],
+    },
+  ];
+
+  for (const chapter of storyChapters) {
+    const { nodes, ...chapterData } = chapter;
+    const existing = await prisma.storyChapter.findFirst({ where: { title: chapterData.title } });
+    const created = existing ?? await prisma.storyChapter.create({ data: chapterData });
+    for (const node of nodes) {
+      await prisma.storyNode.upsert({
+        where: { chapterId_nodeId: { chapterId: created.id, nodeId: node.nodeId } },
+        update: {},
+        create: { chapterId: created.id, ...node },
+      });
+    }
+  }
+  console.log(`Created ${storyChapters.length} story chapters with nodes`);
+
+  // ========== 冒险事件 ==========
+  const adventures = [
+    // 资源类事件
+    { name: "废弃矿洞", type: "resource", minLevel: 1, maxLevel: 10, weight: 120, title: "废弃矿洞", description: "你发现了一个废弃的矿洞，里面似乎还有未开采的矿石。", icon: "⛏️", optionsJson: JSON.stringify([{ text: "进入矿洞采集", action: "collect" }, { text: "标记位置，稍后再来", action: "leave" }]), rewardsJson: JSON.stringify({ gold: 30, stone: 50 }) },
+    { name: "丰饶果林", type: "resource", minLevel: 1, maxLevel: 15, weight: 100, title: "丰饶果林", description: "一片结满果实的果林，散发着诱人的香气。", icon: "🌳", optionsJson: JSON.stringify([{ text: "采集果实", action: "collect" }, { text: "继续前进", action: "leave" }]), rewardsJson: JSON.stringify({ food: 80 }) },
+    { name: "伐木场遗址", type: "resource", minLevel: 3, maxLevel: 20, weight: 100, title: "伐木场遗址", description: "一处废弃的伐木场，周围散落着大量木材。", icon: "🪓", optionsJson: JSON.stringify([{ text: "收集木材", action: "collect" }, { text: "继续前进", action: "leave" }]), rewardsJson: JSON.stringify({ wood: 80 }) },
+    { name: "隐藏金矿", type: "resource", minLevel: 10, maxLevel: 30, weight: 60, title: "隐藏的金矿脉", description: "岩壁上闪烁着金色的光芒——这里有一条天然金矿脉！", icon: "💰", optionsJson: JSON.stringify([{ text: "开采金矿", action: "collect" }, { text: "离开", action: "leave" }]), rewardsJson: JSON.stringify({ gold: 200 }) },
+    { name: "水晶洞穴", type: "resource", minLevel: 15, weight: 40, title: "水晶洞穴", description: "洞穴深处散发着神秘的紫色光芒，空气中弥漫着魔力的气息。", icon: "💎", optionsJson: JSON.stringify([{ text: "采集水晶", action: "collect" }, { text: "离开", action: "leave" }]), rewardsJson: JSON.stringify({ crystals: 5, exp: 30 }) },
+
+    // 怪物类事件
+    { name: "哥布林巡逻队", type: "monster", minLevel: 1, maxLevel: 10, weight: 100, title: "哥布林巡逻队", description: "一小队哥布林挡住了去路，它们手持破旧的武器，看起来并不太强。", icon: "👺", optionsJson: JSON.stringify([{ text: "战斗！", action: "fight" }, { text: "绕路走", action: "leave" }]), monsterJson: JSON.stringify({ name: "哥布林", baseHp: 30, baseAtk: 8, baseDef: 3, expReward: 20, goldReward: 15, cardChance: 0.1 }) },
+    { name: "野狼群", type: "monster", minLevel: 5, maxLevel: 15, weight: 80, title: "野狼群", description: "一群饥饿的野狼围了上来，领头的灰狼体型庞大，眼中闪烁着凶光。", icon: "🐺", optionsJson: JSON.stringify([{ text: "迎战群狼", action: "fight" }, { text: "点火驱赶", action: "leave" }]), monsterJson: JSON.stringify({ name: "灰狼首领", baseHp: 60, baseAtk: 15, baseDef: 5, expReward: 40, goldReward: 25, cardChance: 0.12 }) },
+    { name: "石像鬼", type: "monster", minLevel: 10, maxLevel: 25, weight: 70, title: "苏醒的石像鬼", description: "路边的石像突然动了起来！它张开石质的翅膀，发出沙哑的吼叫。", icon: "🗿", optionsJson: JSON.stringify([{ text: "与之战斗", action: "fight" }, { text: "快速撤退", action: "leave" }]), monsterJson: JSON.stringify({ name: "石像鬼", baseHp: 100, baseAtk: 22, baseDef: 15, expReward: 80, goldReward: 50, cardChance: 0.15 }) },
+    { name: "暗影刺客", type: "monster", minLevel: 20, maxLevel: 40, weight: 50, title: "暗影伏击", description: "黑暗中闪过一道寒光！一名暗影刺客正潜伏在路旁，准备突袭。", icon: "🗡️", optionsJson: JSON.stringify([{ text: "反击！", action: "fight" }, { text: "防御并撤退", action: "leave" }]), monsterJson: JSON.stringify({ name: "暗影刺客", baseHp: 150, baseAtk: 35, baseDef: 10, expReward: 150, goldReward: 100, cardChance: 0.2 }) },
+
+    // 宝藏类事件
+    { name: "古老宝箱", type: "treasure", minLevel: 1, maxLevel: 20, weight: 60, title: "古老的宝箱", description: "你在灌木丛后发现了一个锈迹斑斑的宝箱。锁已经损坏，只需轻轻一推就能打开。", icon: "📦", optionsJson: JSON.stringify([{ text: "打开宝箱", action: "open" }, { text: "可能是陷阱，离开", action: "leave" }]), rewardsJson: JSON.stringify({ gold: 80, exp: 20 }) },
+    { name: "勇者遗物", type: "treasure", minLevel: 10, maxLevel: 30, weight: 40, title: "勇者的遗物", description: "一具骸骨靠在树下，手中紧握着一个精致的盒子。看起来是某位冒险者的遗物。", icon: "💀", optionsJson: JSON.stringify([{ text: "恭敬地打开盒子", action: "open" }, { text: "为他祈祷后离开", action: "leave" }]), rewardsJson: JSON.stringify({ gold: 150, crystals: 3, exp: 50 }) },
+    { name: "龙之宝库", type: "treasure", minLevel: 25, weight: 20, title: "龙之宝库", description: "你发现了传说中龙族藏匿财宝的洞穴入口。洞口散发着灼热的气息，但能看到里面金光闪闪。", icon: "🐲", optionsJson: JSON.stringify([{ text: "冒险进入", action: "open" }, { text: "太危险了，离开", action: "leave" }]), rewardsJson: JSON.stringify({ gold: 500, crystals: 10, exp: 200 }) },
+
+    // 商人类事件
+    { name: "流浪商人", type: "merchant", minLevel: 1, weight: 80, title: "流浪商人", description: "一位背着大包小包的商人在路边休息。他看到你后热情地打招呼：'要看看我的商品吗？价格公道！'", icon: "🧳", optionsJson: JSON.stringify([{ text: "看看有什么好东西", action: "trade" }, { text: "不了，继续赶路", action: "leave" }]), rewardsJson: JSON.stringify({ gold: 50, exp: 10 }) },
+    { name: "精灵药师", type: "merchant", minLevel: 10, weight: 50, title: "精灵药师", description: "一位精灵药师在林间空地上摆出了各种药剂。'这些都是用稀有草药调配的，对冒险者很有用。'", icon: "🧝", optionsJson: JSON.stringify([{ text: "购买药剂", action: "trade" }, { text: "继续前进", action: "leave" }]), rewardsJson: JSON.stringify({ exp: 30 }) },
+
+    // 陷阱类事件
+    { name: "毒沼泽", type: "trap", minLevel: 5, maxLevel: 25, weight: 60, title: "毒沼泽", description: "前方的地面看起来有些异样...突然，你的脚陷入了沼泽！有毒的气体正在升起。", icon: "☠️", optionsJson: JSON.stringify([{ text: "奋力挣脱", action: "escape" }, { text: "等待救援", action: "wait" }]), rewardsJson: JSON.stringify({ exp: 30 }) },
+    { name: "落石陷阱", type: "trap", minLevel: 8, maxLevel: 30, weight: 50, title: "落石陷阱", description: "头顶传来咔嚓声响，碎石开始坠落！这是人为设置的陷阱！", icon: "🪨", optionsJson: JSON.stringify([{ text: "快速闪避", action: "escape" }, { text: "硬抗", action: "endure" }]), rewardsJson: JSON.stringify({ exp: 40 }) },
+
+    // 特殊类事件
+    { name: "许愿泉", type: "special", minLevel: 1, weight: 30, title: "许愿泉", description: "你发现了一口散发着淡蓝色光芒的泉水。传说向泉水许愿可以获得神秘的力量。", icon: "⛲", optionsJson: JSON.stringify([{ text: "投入金币许愿", action: "wish", cost: { gold: 50 } }, { text: "饮用泉水", action: "drink" }, { text: "离开", action: "leave" }]), rewardsJson: JSON.stringify({ crystals: 3, exp: 50 }) },
+    { name: "流浪诗人", type: "special", minLevel: 5, weight: 40, title: "流浪诗人", description: "一位诗人坐在路边弹奏着琴弦，悠扬的曲调让人心旷神怡。'旅者，要听一曲吗？也许我的歌声能给你带来好运。'", icon: "🎵", optionsJson: JSON.stringify([{ text: "坐下倾听", action: "listen" }, { text: "继续赶路", action: "leave" }]), rewardsJson: JSON.stringify({ exp: 40 }) },
+    { name: "古代祭坛", type: "special", minLevel: 15, weight: 25, title: "古代祭坛", description: "一座古老的祭坛矗立在空地中央，上面刻满了神秘的符文。祭坛散发着微弱的能量波动。", icon: "🏛️", optionsJson: JSON.stringify([{ text: "献上祭品", action: "sacrifice", cost: { crystals: 5 } }, { text: "研究符文", action: "study" }, { text: "离开", action: "leave" }]), rewardsJson: JSON.stringify({ crystals: 10, exp: 100 }) },
+  ];
+
+  for (const adventure of adventures) {
+    await prisma.adventure.upsert({
+      where: { name: adventure.name },
+      update: {},
+      create: adventure,
+    });
+  }
+  console.log(`Created ${adventures.length} adventure events`);
 
   console.log("Seeding complete!");
 }

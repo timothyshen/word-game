@@ -69,6 +69,13 @@ function BossTab() {
   return (
     <ScrollArea className="h-full">
       <div className="p-4 space-y-3">
+        {(!bosses || bosses.length === 0) && (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">🐲</div>
+            <div className="text-[#888]">暂无可挑战的Boss</div>
+            <div className="text-xs text-[#666] mt-1">提升等级和职阶以解锁更多Boss</div>
+          </div>
+        )}
         {bosses?.map((boss) => (
           <div
             key={boss.id}
