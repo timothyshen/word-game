@@ -7,7 +7,8 @@ import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositori
 import * as combatRepo from "../repositories/combat.repo";
 import { getCurrentGameDay } from "../utils/game-time";
 import { upsertUnlockFlag } from "../repositories/card.repo";
-import { grantRandomCard } from "../utils/card-utils";
+import { grantRandomCard, rollRarity } from "../utils/card-utils";
+import { grantRandomEquipment, getEquipmentDropTable } from "../utils/equipment-utils";
 import { calculateCurrentStamina } from "../utils/player-utils";
 import {
   calculateDamage,
@@ -533,6 +534,16 @@ export async function executeAction(
       const droppedCard = await grantRandomCard(db, player.id, rewards.cardRarity);
       if (droppedCard) {
         newLogs.push(`🃏 获得卡牌：${droppedCard.name}（${droppedCard.rarity}）`);
+      }
+    }
+
+    // Equipment drop
+    const equipDrop = getEquipmentDropTable(monster.level);
+    if (Math.random() < equipDrop.chance) {
+      const eqRarity = rollRarity(equipDrop.pool);
+      const droppedEquipment = await grantRandomEquipment(db, player.id, eqRarity);
+      if (droppedEquipment) {
+        newLogs.push(`⚔️ 获得装备：${droppedEquipment.name}（${droppedEquipment.rarity}）`);
       }
     }
 

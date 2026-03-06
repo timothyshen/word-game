@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
 import { getCurrentGameDay, getWeekStartDate } from "../utils/game-time";
+import { grantRandomEquipment } from "../utils/equipment-utils";
 
 // Boss稀有度 → 宝箱名称映射
 const BOSS_CHEST_MAP: Record<string, string> = {
@@ -320,6 +321,12 @@ export async function challengeBoss(db: FullDbClient, userId: string, bossId: st
       }
     }
 
+    // 装备掉落 (100% on victory)
+    let droppedEquipment = null;
+    if (rewards.cardRarity) {
+      droppedEquipment = await grantRandomEquipment(db, player.id, rewards.cardRarity);
+    }
+
     return {
       victory: true,
       bossName: boss.name,
@@ -328,6 +335,7 @@ export async function challengeBoss(db: FullDbClient, userId: string, bossId: st
         crystals: rewards.crystals,
         exp: rewards.exp,
         chest: droppedChest,
+        equipment: droppedEquipment,
       },
       message: `击败了${boss.name}！`,
     };

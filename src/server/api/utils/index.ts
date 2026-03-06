@@ -26,5 +26,12 @@ export {
 export {
   grantRandomCard,
   grantRandomCards,
+  rollRarity,
   type CardGrantResult,
 } from "./card-utils";
+
+export {
+  grantRandomEquipment,
+  getEquipmentDropTable,
+  type EquipmentDropResult,
+} from "./equipment-utils";

@@ -19,7 +19,13 @@ export default function BossPanel({ onClose }: BossPanelProps) {
   const [battleResult, setBattleResult] = useState<{
     victory: boolean;
     message: string;
-    rewards?: { gold: number; crystals: number; exp: number; chest?: { name: string; rarity: string; icon: string } | null };
+    rewards?: {
+      gold: number;
+      crystals: number;
+      exp: number;
+      chest?: { name: string; rarity: string; icon: string } | null;
+      equipment?: { name: string; rarity: string; icon: string } | null;
+    };
   } | null>(null);
 
   const utils = api.useUtils();
@@ -90,6 +96,9 @@ export default function BossPanel({ onClose }: BossPanelProps) {
                 <span className="text-[#4a9eff]">⭐ {battleResult.rewards.exp} EXP</span>
                 {battleResult.rewards.chest && (
                   <span className="text-[#e67e22]">{battleResult.rewards.chest.icon} {battleResult.rewards.chest.name}</span>
+                )}
+                {battleResult.rewards.equipment && (
+                  <span className="text-[#e67e22]">⚔️ {battleResult.rewards.equipment.name}</span>
                 )}
               </div>
             )}
