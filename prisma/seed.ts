@@ -978,6 +978,9 @@ async function main() {
   // ===== 游戏规则 =====
   await seedGameRules(prisma);
 
+  // ===== 实体系统 =====
+  await seedEntitySystem(prisma);
+
   console.log("Seeding complete!");
 }
 
@@ -1001,6 +1004,93 @@ async function seedGameRules(db: PrismaClient): Promise<void> {
     });
   }
   console.log(`Seeded ${SEED_RULES.length} game rules`);
+}
+
+async function seedEntitySystem(db: PrismaClient): Promise<void> {
+  console.log("Seeding entity system...");
+
+  // 1. Default game
+  const game = await db.game.upsert({
+    where: { name: "诸天领域" },
+    update: {},
+    create: {
+      name: "诸天领域",
+      config: JSON.stringify({
+        maxPlayers: 1000,
+        version: "1.0.0",
+        description: "领主养成类文字游戏",
+      }),
+    },
+  });
+
+  // 2. Entity schemas
+  const schemas = [
+    {
+      name: "character",
+      components: ["stats", "equipment", "skills"],
+      defaults: {
+        stats: {
+          hp: 100,
+          maxHp: 100,
+          mp: 50,
+          maxMp: 50,
+          atk: 10,
+          def: 5,
+          spd: 8,
+          luck: 5,
+        },
+        skills: { equipped: [], maxSlots: 6 },
+      },
+    },
+    {
+      name: "building",
+      components: ["production"],
+      defaults: {
+        production: { output: {}, interval: 86400 },
+      },
+    },
+    {
+      name: "item",
+      components: ["inventory"],
+      defaults: {},
+    },
+    {
+      name: "equipment",
+      components: ["stats"],
+      defaults: {
+        stats: { atk: 0, def: 0, spd: 0, hp: 0 },
+      },
+    },
+    {
+      name: "card",
+      components: [],
+      defaults: {},
+    },
+  ];
+
+  for (const schema of schemas) {
+    await db.entitySchema.upsert({
+      where: { gameId_name: { gameId: game.id, name: schema.name } },
+      update: {
+        components: JSON.stringify(schema.components),
+        defaults: JSON.stringify(schema.defaults),
+      },
+      create: {
+        gameId: game.id,
+        name: schema.name,
+        components: JSON.stringify(schema.components),
+        defaults: JSON.stringify(schema.defaults),
+      },
+    });
+  }
+
+  // 3. Link existing rules to game
+  await db.gameRule.updateMany({
+    where: { gameId: null },
+    data: { gameId: game.id },
+  });
+
+  console.log(`  Seeded game "${game.name}" with ${schemas.length} schemas`);
 }
 
 main()

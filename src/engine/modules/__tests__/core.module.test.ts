@@ -1,20 +1,20 @@
 import { describe, it, expect, vi } from "vitest";
 import { CoreModule } from "../core.module";
-import type { GameEngine, GameEvent } from "../../types";
+import type { EventHandler, GameEngine, GameEvent, GameModule } from "../../types";
 
 function createMockEngine(): GameEngine {
   const handlers = new Map<
     string,
-    Array<{ handler: (...args: unknown[]) => unknown; priority: number }>
+    Array<{ handler: EventHandler; priority: number }>
   >();
 
   return {
     events: {
-      on: vi.fn((event: string, handler: (...args: unknown[]) => unknown, priority = 0) => {
+      on: vi.fn((event: string, handler: EventHandler, priority = 0) => {
         if (!handlers.has(event)) handlers.set(event, []);
         handlers.get(event)!.push({ handler, priority });
       }),
-      off: vi.fn((event: string, handler: (...args: unknown[]) => unknown) => {
+      off: vi.fn((event: string, handler: EventHandler) => {
         const list = handlers.get(event);
         if (list) {
           const idx = list.findIndex((h) => h.handler === handler);
@@ -37,6 +37,7 @@ function createMockEngine(): GameEngine {
     formulas: {} as GameEngine["formulas"],
     modules: {} as GameEngine["modules"],
     state: {} as GameEngine["state"],
+    entities: {} as GameEngine["entities"],
     db: null,
   };
 }
@@ -48,7 +49,7 @@ describe("CoreModule", () => {
   });
 
   it("has no dependencies", () => {
-    const mod = new CoreModule();
+    const mod: GameModule = new CoreModule();
     expect(mod.dependencies).toBeUndefined();
   });
 
