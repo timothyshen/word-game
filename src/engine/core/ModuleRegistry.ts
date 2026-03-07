@@ -1,0 +1,99 @@
+import type { GameEngine, GameModule, IModuleRegistry } from "../types";
+
+export class ModuleRegistry implements IModuleRegistry {
+  private modules = new Map<string, GameModule>();
+  private initOrder: string[] = [];
+
+  register(module: GameModule): void {
+    if (this.modules.has(module.name)) {
+      throw new Error(`Module "${module.name}" is already registered`);
+    }
+    this.modules.set(module.name, module);
+  }
+
+  get(name: string): GameModule | undefined {
+    return this.modules.get(name);
+  }
+
+  getAll(): GameModule[] {
+    return Array.from(this.modules.values());
+  }
+
+  async initAll(engine: GameEngine): Promise<void> {
+    const sorted = this.topologicalSort();
+    this.initOrder = sorted;
+
+    for (const name of sorted) {
+      const mod = this.modules.get(name)!;
+      await mod.init(engine);
+    }
+  }
+
+  async destroyAll(): Promise<void> {
+    const reversed = [...this.initOrder].reverse();
+
+    for (const name of reversed) {
+      const mod = this.modules.get(name);
+      if (mod?.destroy) {
+        await mod.destroy();
+      }
+    }
+  }
+
+  /**
+   * Kahn's algorithm for topological sort.
+   * Throws on circular or missing dependencies.
+   */
+  private topologicalSort(): string[] {
+    const inDegree = new Map<string, number>();
+    const adjacency = new Map<string, string[]>();
+
+    // Initialize
+    for (const name of this.modules.keys()) {
+      inDegree.set(name, 0);
+      adjacency.set(name, []);
+    }
+
+    // Build graph: edge from dependency -> dependent
+    for (const [name, mod] of this.modules) {
+      for (const dep of mod.dependencies ?? []) {
+        if (!this.modules.has(dep)) {
+          throw new Error(
+            `Module "${name}" depends on "${dep}", which is not registered`,
+          );
+        }
+        adjacency.get(dep)!.push(name);
+        inDegree.set(name, (inDegree.get(name) ?? 0) + 1);
+      }
+    }
+
+    // Collect nodes with no incoming edges
+    const queue: string[] = [];
+    for (const [name, degree] of inDegree) {
+      if (degree === 0) {
+        queue.push(name);
+      }
+    }
+
+    const sorted: string[] = [];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      sorted.push(current);
+
+      for (const neighbor of adjacency.get(current) ?? []) {
+        const newDegree = (inDegree.get(neighbor) ?? 1) - 1;
+        inDegree.set(neighbor, newDegree);
+        if (newDegree === 0) {
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    if (sorted.length !== this.modules.size) {
+      throw new Error("Circular dependency detected among modules");
+    }
+
+    return sorted;
+  }
+}
