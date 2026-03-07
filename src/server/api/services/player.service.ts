@@ -3,6 +3,7 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { Player } from "../../../../generated/prisma";
+import { engine, ruleService } from "~/server/api/engine";
 import type { FullDbClient } from "../repositories/types";
 import {
   findPlayerByUserId,
@@ -22,6 +23,13 @@ import {
 import { upsertUnlockFlag } from "../repositories/card.repo";
 import { getCurrentGameDay } from "../utils/game-time";
 import { computeHints } from "./hint.service";
+
+// ── Formula helper ──
+
+async function calcFormula(ruleName: string, vars: Record<string, number>): Promise<number> {
+  const formula = await ruleService.getFormula(ruleName);
+  return engine.formulas.calculate(formula, vars);
+}
 
 // ── Stamina ──
 
@@ -85,7 +93,8 @@ export async function getOrCreatePlayer(db: FullDbClient, userId: string, name: 
     player.stamina = stamina;
   }
 
-  return { ...player, skillSlots: player.tier * 6, currentGameDay: getCurrentGameDay() };
+  const skillSlots = await calcFormula("player_skill_slots", { tier: player.tier });
+  return { ...player, skillSlots, currentGameDay: getCurrentGameDay() };
 }
 
 async function initializePlayerBuildings(db: FullDbClient, playerId: string) {
@@ -138,10 +147,11 @@ export async function getPlayerStatus(db: FullDbClient, userId: string) {
 
   const currentGameDay = getCurrentGameDay();
 
+  const skillSlots = await calcFormula("player_skill_slots", { tier: player.tier });
   return {
     ...player,
     stamina,
-    skillSlots: player.tier * 6,
+    skillSlots,
     currentGameDay,
     unlockedSystems: player.unlockFlags.map(f => f.flagName),
     hints: computeHints(player, currentGameDay),
@@ -177,19 +187,22 @@ export async function getTodayActions(db: FullDbClient, userId: string) {
 export async function levelUp(db: FullDbClient, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const expNeeded = Math.floor(100 * Math.pow(1.15, player.level - 1));
+  const expNeeded = Math.floor(await calcFormula("player_exp_required", { level: player.level }));
   if (player.exp < expNeeded) {
     throw new TRPCError({ code: "BAD_REQUEST", message: `经验不足，需要 ${expNeeded}，当前 ${player.exp}` });
   }
 
-  const maxLevelForTier = player.tier * 20;
+  const maxLevelForTier = await calcFormula("player_max_level", { tier: player.tier });
   if (player.level >= maxLevelForTier) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "已达当前职阶等级上限，请先突破" });
   }
 
-  const statGrowth = Math.floor(player.level * 0.5) + 1;
-  const newMaxStamina = player.maxStamina + 5;
+  const statGrowth = await calcFormula("player_stat_growth", { level: player.level });
+  const staminaConfig = await ruleService.getConfig<{ value: number }>("player_stamina_per_level");
+  const staminaPerLevel = staminaConfig.value;
+  const newMaxStamina = player.maxStamina + staminaPerLevel;
   const newLevel = player.level + 1;
+  const charismaGrowth = await calcFormula("player_charisma_growth", { statGrowth });
 
   await updatePlayer(db, player.id, {
     level: { increment: 1 },
@@ -197,8 +210,8 @@ export async function levelUp(db: FullDbClient, userId: string) {
     strength: { increment: statGrowth },
     agility: { increment: statGrowth },
     intellect: { increment: statGrowth },
-    charisma: { increment: Math.ceil(statGrowth * 0.5) },
-    maxStamina: { increment: 5 },
+    charisma: { increment: charismaGrowth },
+    maxStamina: { increment: staminaPerLevel },
     stamina: newMaxStamina,
     lastStaminaUpdate: new Date(),
   });
@@ -216,7 +229,7 @@ export async function levelUp(db: FullDbClient, userId: string) {
       strength: player.strength + statGrowth,
       agility: player.agility + statGrowth,
       intellect: player.intellect + statGrowth,
-      charisma: player.charisma + Math.ceil(statGrowth * 0.5),
+      charisma: player.charisma + charismaGrowth,
       maxStamina: newMaxStamina,
     },
     message: `升级成功！达到 ${newLevel} 级`,
@@ -258,8 +271,8 @@ export async function updateStats(
 
 export async function getLevelUpInfo(db: FullDbClient, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
-  const expNeeded = Math.floor(100 * Math.pow(1.15, player.level - 1));
-  const maxLevelForTier = player.tier * 20;
+  const expNeeded = Math.floor(await calcFormula("player_exp_required", { level: player.level }));
+  const maxLevelForTier = await calcFormula("player_max_level", { tier: player.tier });
 
   return {
     currentLevel: player.level,
