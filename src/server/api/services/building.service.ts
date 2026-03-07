@@ -16,11 +16,17 @@ import {
   upsertEconomyLog,
 } from "../repositories/building.repo";
 import { getCurrentGameDay } from "../utils/game-time";
+import { engine, ruleService } from "~/server/api/engine";
 import {
   parseBuildingEffects,
   calculateBuildingOutput as calcOutput,
   getUpgradeCost as calcUpgradeCost,
 } from "~/shared/effects";
+
+async function calcFormula(ruleName: string, vars: Record<string, number>): Promise<number> {
+  const formula = await ruleService.getFormula(ruleName);
+  return engine.formulas.calculate(formula, vars);
+}
 
 function getUpgradeCost(baseEffectsJson: string, slot: string, currentLevel: number) {
   return calcUpgradeCost(parseBuildingEffects(baseEffectsJson), slot, currentLevel);
@@ -92,7 +98,7 @@ export async function upgradeBuilding(db: FullDbClient, userId: string, building
   const newLevel = playerBuilding.level + 1;
   const updated = await updatePlayerBuildingLevel(db, playerBuilding.id, newLevel);
 
-  const baseScore = 30 * newLevel;
+  const baseScore = await calcFormula("building_upgrade_score", { level: newLevel });
   await createActionLog(db, {
     playerId: player.id,
     day: getCurrentGameDay(),
@@ -167,7 +173,8 @@ export async function calculateDailyOutput(db: FullDbClient, userId: string) {
   }
 
   const characters = await findAllPlayerCharacters(db, player.id);
-  const consumption: Record<string, number> = { food: characters.length * 5 };
+  const foodConfig = await ruleService.getConfig<{ value: number }>("building_food_consumption");
+  const consumption: Record<string, number> = { food: characters.length * foodConfig.value };
   const netOutput: Record<string, number> = {};
   for (const resource of Object.keys(totalOutput)) {
     netOutput[resource] = (totalOutput[resource] ?? 0) - (consumption[resource] ?? 0);
@@ -190,7 +197,8 @@ export async function collectDailyOutput(db: FullDbClient, userId: string) {
   }
 
   const characters = await findAllPlayerCharacters(db, player.id);
-  const foodConsumption = characters.length * 5;
+  const foodConfig = await ruleService.getConfig<{ value: number }>("building_food_consumption");
+  const foodConsumption = characters.length * foodConfig.value;
 
   await updatePlayer(db, player.id, {
     gold: { increment: totalOutput.gold ?? 0 },
@@ -208,7 +216,10 @@ export async function collectDailyOutput(db: FullDbClient, userId: string) {
     foodExpense: foodConsumption,
   });
 
-  const productionScore = Object.values(totalOutput).reduce((sum, v) => sum + Math.floor(v / 10), 0);
+  let productionScore = 0;
+  for (const v of Object.values(totalOutput)) {
+    productionScore += await calcFormula("building_production_score", { totalOutput: v });
+  }
   if (productionScore > 0) {
     await createActionLog(db, {
       playerId: player.id,

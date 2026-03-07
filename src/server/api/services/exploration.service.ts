@@ -7,6 +7,7 @@ import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositori
 import * as exploRepo from "../repositories/exploration.repo";
 import { upsertUnlockFlag } from "../repositories/card.repo";
 import { getCurrentGameDay } from "../utils/game-time";
+import { ruleService } from "~/server/api/engine";
 import { grantRandomCards } from "../utils/card-utils";
 import {
   parseAdventureOptions,
@@ -56,13 +57,24 @@ interface ExplorationEvent {
 
 // ── Private constants ──
 
-const EXPLORE_STAMINA_COST = 15;
-const TRIGGER_EVENT_STAMINA_COST = 10;
 const FACILITY_STAMINA_COST = 5;
-const FACILITY_SPAWN_CHANCE = 0.4;
-const EXPLORE_BASE_SCORE = 40;
 const EXPLORE_BONUS_SCORE = 30;
 const VALID_FACILITY_RESOURCES = ["gold", "wood", "stone", "food"] as const;
+
+async function getExplorationConfig() {
+  const [staminaCost, eventStaminaCost, facilitySpawnChance, baseScore] = await Promise.all([
+    ruleService.getConfig<{ value: number }>("explore_stamina_cost"),
+    ruleService.getConfig<{ value: number }>("explore_event_stamina_cost"),
+    ruleService.getConfig<{ value: number }>("explore_facility_spawn_chance"),
+    ruleService.getConfig<{ value: number }>("explore_base_score"),
+  ]);
+  return {
+    EXPLORE_STAMINA_COST: staminaCost.value,
+    TRIGGER_EVENT_STAMINA_COST: eventStaminaCost.value,
+    FACILITY_SPAWN_CHANCE: facilitySpawnChance.value,
+    EXPLORE_BASE_SCORE: baseScore.value,
+  };
+}
 
 // ── Private helpers ──
 
@@ -254,9 +266,10 @@ export async function exploreArea(
   input: { worldId: string; positionX: number; positionY: number },
 ) {
   const player = await getPlayerOrThrow(db, userId);
+  const config = await getExplorationConfig();
 
   // Check stamina
-  if (player.stamina < EXPLORE_STAMINA_COST) {
+  if (player.stamina < config.EXPLORE_STAMINA_COST) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
   }
 
@@ -269,7 +282,7 @@ export async function exploreArea(
 
   // Deduct stamina
   await updatePlayer(db, player.id, {
-    stamina: { decrement: EXPLORE_STAMINA_COST },
+    stamina: { decrement: config.EXPLORE_STAMINA_COST },
     lastStaminaUpdate: new Date(),
   });
 
@@ -291,7 +304,7 @@ export async function exploreArea(
   // Randomly spawn wilderness facility
   let newFacility = null;
 
-  if (Math.random() < FACILITY_SPAWN_CHANCE) {
+  if (Math.random() < config.FACILITY_SPAWN_CHANCE) {
     newFacility = await spawnFacility(db, player.id, input.worldId, input.positionX, input.positionY, areaLevel);
   }
 
@@ -301,20 +314,20 @@ export async function exploreArea(
     day: getCurrentGameDay(),
     type: "explore",
     description: `探索了${areaName}`,
-    baseScore: EXPLORE_BASE_SCORE,
+    baseScore: config.EXPLORE_BASE_SCORE,
     bonus: EXPLORE_BONUS_SCORE,
     bonusReason: "发现新区域",
   });
 
   await updatePlayer(db, player.id, {
-    currentDayScore: { increment: EXPLORE_BASE_SCORE + EXPLORE_BONUS_SCORE },
+    currentDayScore: { increment: config.EXPLORE_BASE_SCORE + EXPLORE_BONUS_SCORE },
   });
 
   return {
     explored: true,
     areaName,
     position: { x: input.positionX, y: input.positionY },
-    staminaCost: EXPLORE_STAMINA_COST,
+    staminaCost: config.EXPLORE_STAMINA_COST,
     facilityFound: newFacility ? {
       name: newFacility.name,
       type: newFacility.type,
@@ -330,6 +343,8 @@ export async function triggerEvent(
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
+  const config = await getExplorationConfig();
+
   // Check area is explored
   const area = await exploRepo.findExploredArea(db, player.id, input.worldId, input.positionX, input.positionY);
 
@@ -338,13 +353,13 @@ export async function triggerEvent(
   }
 
   // Check stamina
-  if (player.stamina < TRIGGER_EVENT_STAMINA_COST) {
+  if (player.stamina < config.TRIGGER_EVENT_STAMINA_COST) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
   }
 
   // Deduct stamina
   await updatePlayer(db, player.id, {
-    stamina: { decrement: TRIGGER_EVENT_STAMINA_COST },
+    stamina: { decrement: config.TRIGGER_EVENT_STAMINA_COST },
     lastStaminaUpdate: new Date(),
   });
 
@@ -372,7 +387,7 @@ export async function triggerEvent(
 
   return {
     event,
-    staminaCost: TRIGGER_EVENT_STAMINA_COST,
+    staminaCost: config.TRIGGER_EVENT_STAMINA_COST,
     areaName: area.name,
   };
 }
