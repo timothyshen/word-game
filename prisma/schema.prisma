@@ -861,6 +861,21 @@ model HeroInstance {
     @@index([playerId])
 }
 
+// ===== 游戏规则引擎 =====
+
+model GameRule {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String
+  ruleType    String   // "formula", "condition", "weighted_random", "config"
+  definition  String   // JSON string
+  description String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
 // 外城兴趣点
 model OuterCityPOI {
     id          String   @id @default(cuid())

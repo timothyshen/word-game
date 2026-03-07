@@ -1,4 +1,5 @@
 import { PrismaClient } from "../generated/prisma";
+import { SEED_RULES } from "../src/engine/rules/seed-rules";
 
 const prisma = new PrismaClient();
 
@@ -974,7 +975,32 @@ async function main() {
   }
   console.log(`Created ${adventures.length} adventure events`);
 
+  // ===== 游戏规则 =====
+  await seedGameRules(prisma);
+
   console.log("Seeding complete!");
+}
+
+async function seedGameRules(db: PrismaClient): Promise<void> {
+  for (const rule of SEED_RULES) {
+    await db.gameRule.upsert({
+      where: { name: rule.name },
+      update: {
+        category: rule.category,
+        ruleType: rule.ruleType,
+        definition: rule.definition,
+        description: rule.description,
+      },
+      create: {
+        name: rule.name,
+        category: rule.category,
+        ruleType: rule.ruleType,
+        definition: rule.definition,
+        description: rule.description,
+      },
+    });
+  }
+  console.log(`Seeded ${SEED_RULES.length} game rules`);
 }
 
 main()
