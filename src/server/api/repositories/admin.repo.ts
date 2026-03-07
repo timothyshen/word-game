@@ -358,6 +358,35 @@ export function deletePoi(db: DbClient, id: string) {
   return db.outerCityPOI.delete({ where: { id } });
 }
 
+// ===== GameRule =====
+
+export function getRules(db: DbClient) {
+  return db.gameRule.findMany({ orderBy: [{ category: "asc" }, { name: "asc" }] });
+}
+
+export function getRule(db: DbClient, id: string) {
+  return db.gameRule.findUnique({ where: { id } });
+}
+
+export function createRule(
+  db: DbClient,
+  data: { name: string; category: string; ruleType: string; definition: string; description: string },
+) {
+  return db.gameRule.create({ data });
+}
+
+export function updateRule(
+  db: DbClient,
+  input: { id: string } & Record<string, unknown>,
+) {
+  const { id, ...data } = input;
+  return db.gameRule.update({ where: { id }, data });
+}
+
+export function deleteRule(db: DbClient, id: string) {
+  return db.gameRule.delete({ where: { id } });
+}
+
 // ===== Stats =====
 
 interface AdminStats {

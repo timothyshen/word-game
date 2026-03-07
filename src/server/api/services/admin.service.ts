@@ -13,5 +13,6 @@ export {
   getEquipments, getEquipment, createEquipment, updateEquipment, deleteEquipment,
   getProfessions, getProfession, createProfession, updateProfession, deleteProfession,
   getPois, getPoi, createPoi, updatePoi, deletePoi,
+  getRules, getRule, createRule, updateRule, deleteRule,
   getStats,
 } from "../repositories/admin.repo";

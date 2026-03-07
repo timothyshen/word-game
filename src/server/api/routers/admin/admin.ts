@@ -149,6 +149,16 @@ const adventureSchema = z.object({
   monsterJson: jsonStringOptional(),
 });
 
+// ===== GameRule 相关 =====
+
+const gameRuleSchema = z.object({
+  name: z.string().min(1),
+  category: z.string().min(1),
+  ruleType: z.enum(["formula", "condition", "weighted_random", "config"]),
+  definition: jsonString("{}"),
+  description: z.string().default(""),
+});
+
 export const adminRouter = createTRPCRouter({
   // ===== Card CRUD =====
 
@@ -347,6 +357,34 @@ export const adminRouter = createTRPCRouter({
   deletePoi: adminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(({ ctx, input }) => adminService.deletePoi(ctx.db, input.id)),
+
+  // ===== GameRule CRUD =====
+
+  getRules: adminProcedure.query(({ ctx }) => adminService.getRules(ctx.db)),
+
+  getRule: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .query(({ ctx, input }) => adminService.getRule(ctx.db, input.id)),
+
+  createRule: adminProcedure
+    .input(gameRuleSchema)
+    .mutation(({ ctx, input }) => adminService.createRule(ctx.db, input)),
+
+  updateRule: adminProcedure
+    .input(z.object({ id: z.string() }).merge(gameRuleSchema.partial()))
+    .mutation(async ({ ctx, input }) => {
+      const result = await adminService.updateRule(ctx.db, input);
+      ctx.ruleService.invalidateCache();
+      return result;
+    }),
+
+  deleteRule: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await adminService.deleteRule(ctx.db, input.id);
+      ctx.ruleService.invalidateCache();
+      return { deleted: true };
+    }),
 
   // ===== 统计信息 =====
 
