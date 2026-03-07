@@ -12,6 +12,7 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { db } from "~/server/db";
+import { engine, ruleService } from "./engine";
 
 /**
  * 1. CONTEXT
@@ -48,6 +49,8 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     session: opts.session,
     db,
+    engine,
+    ruleService,
   };
 };
 
