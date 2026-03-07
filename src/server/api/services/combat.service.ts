@@ -2,6 +2,7 @@
  * Combat Service — combat system business logic
  */
 import { TRPCError } from "@trpc/server";
+import { engine, ruleService } from "~/server/api/engine";
 import type { FullDbClient } from "../repositories/types";
 import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
 import * as combatRepo from "../repositories/combat.repo";
@@ -102,10 +103,21 @@ const BASE_ACTIONS: CombatAction[] = [
   },
 ];
 
-function generateMonster(level: number, type?: string, config?: MonsterConfig | null): SerializedMonster {
+// ── Formula helper ──
+
+async function calcFormula(ruleName: string, vars: Record<string, number>): Promise<number> {
+  const formula = await ruleService.getFormula(ruleName);
+  return engine.formulas.calculate(formula, vars);
+}
+
+async function generateMonster(level: number, type?: string, config?: MonsterConfig | null): Promise<SerializedMonster> {
+  const levelMult = await calcFormula("combat_monster_scaling", { level });
+  const rewardExp = await calcFormula("combat_reward_exp", { level });
+  const rewardGold = await calcFormula("combat_reward_gold", { level });
+  const cardDropChance = await calcFormula("combat_card_drop_chance", { level });
+
   // Use DB monster config if provided
   if (config) {
-    const levelMult = 1 + (level - 1) * 0.25;
     return {
       id: `monster_${Date.now()}`,
       name: config.name,
@@ -123,9 +135,9 @@ function generateMonster(level: number, type?: string, config?: MonsterConfig | 
         currentCooldown: 0,
       })),
       rewards: {
-        exp: 15 * level,
-        gold: 10 * level,
-        cardChance: 0.1 + level * 0.03,
+        exp: rewardExp,
+        gold: rewardGold,
+        cardChance: cardDropChance,
         cardRarity: level >= 5 ? "稀有" : level >= 3 ? "精良" : "普通",
       },
     };
@@ -136,7 +148,6 @@ function generateMonster(level: number, type?: string, config?: MonsterConfig | 
     ? DEFAULT_MONSTERS.find(m => m.name === type) ?? DEFAULT_MONSTERS[0]!
     : DEFAULT_MONSTERS[Math.floor(Math.random() * DEFAULT_MONSTERS.length)]!;
 
-  const levelMult = 1 + (level - 1) * 0.25;
   const hp = Math.floor(chosen.baseHp * levelMult);
 
   return {
@@ -164,9 +175,9 @@ function generateMonster(level: number, type?: string, config?: MonsterConfig | 
       },
     ],
     rewards: {
-      exp: 15 * level,
-      gold: 10 * level,
-      cardChance: 0.1 + level * 0.03,
+      exp: rewardExp,
+      gold: rewardGold,
+      cardChance: cardDropChance,
       cardRarity: level >= 5 ? "稀有" : level >= 3 ? "精良" : "普通",
     },
   };
@@ -217,7 +228,8 @@ export async function startCombat(
     player.lastStaminaUpdate,
   );
 
-  const staminaCost = 15;
+  const staminaConfig = await ruleService.getConfig<{ value: number }>("combat_stamina_cost");
+  const staminaCost = staminaConfig.value;
   if (currentStamina < staminaCost) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
   }
@@ -256,7 +268,7 @@ export async function startCombat(
   const monsterConfig = options.monsterConfigJson
     ? parseMonsterConfig(options.monsterConfigJson)
     : null;
-  const monster = generateMonster(options.monsterLevel, options.monsterType, monsterConfig);
+  const monster = await generateMonster(options.monsterLevel, options.monsterType, monsterConfig);
   const initialLog = [`⚔️ 战斗开始！你遭遇了 Lv.${monster.level} ${monster.name}！`];
 
   const combatSession = await combatRepo.createCombatSession(db, {
