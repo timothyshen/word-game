@@ -870,6 +870,8 @@ model GameRule {
   ruleType    String   // "formula", "condition", "weighted_random", "config"
   definition  String   // JSON string
   description String   @default("")
+  gameId      String?
+  game        Game?    @relation(fields: [gameId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -896,4 +898,59 @@ model OuterCityPOI {
     respawnsAt  DateTime?
 
     @@unique([positionX, positionY])
+}
+
+// ===== 实体系统 (ECS) =====
+
+model Game {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  config    String         @default("{}")  // JSON: game global config
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  schemas   EntitySchema[]
+  rules     GameRule[]
+}
+
+model EntitySchema {
+  id         String           @id @default(cuid())
+  gameId     String
+  name       String           // "character", "building", "item", "equipment", "card"
+  components String           @default("[]")  // JSON array of component names
+  defaults   String           @default("{}")  // JSON: default component values
+  game       Game             @relation(fields: [gameId], references: [id])
+  templates  EntityTemplate[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([gameId, name])
+}
+
+model EntityTemplate {
+  id          String       @id @default(cuid())
+  schemaId    String
+  name        String
+  data        String       @default("{}")  // JSON: default component data
+  icon        String       @default("")
+  rarity      String?
+  description String       @default("")
+  schema      EntitySchema @relation(fields: [schemaId], references: [id])
+  entities    Entity[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([schemaId])
+}
+
+model Entity {
+  id         String         @id @default(cuid())
+  templateId String
+  ownerId    String         // Player who owns this entity
+  state      String         @default("{}")  // JSON: runtime component state
+  template   EntityTemplate @relation(fields: [templateId], references: [id])
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([ownerId])
+  @@index([templateId])
 }
