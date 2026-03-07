@@ -33,8 +33,8 @@ describe("EventBus", () => {
   it("should call multiple handlers for the same event", async () => {
     const bus = new EventBus();
     const calls: number[] = [];
-    const h1 = vi.fn(() => calls.push(1));
-    const h2 = vi.fn(() => calls.push(2));
+    const h1 = vi.fn(() => { calls.push(1); });
+    const h2 = vi.fn(() => { calls.push(2); });
 
     bus.on("test", h1);
     bus.on("test", h2);
