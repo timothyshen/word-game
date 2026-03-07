@@ -386,6 +386,69 @@ export const adminRouter = createTRPCRouter({
       return { deleted: true };
     }),
 
+  // ===== Entity System 相关 =====
+
+  getGames: adminProcedure.query(async ({ ctx }) => {
+    return ctx.db.game.findMany({
+      include: { schemas: { include: { _count: { select: { templates: true } } } } },
+      orderBy: { name: "asc" },
+    });
+  }),
+
+  getSchemas: adminProcedure
+    .input(z.object({ gameId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.entitySchema.findMany({
+        where: { gameId: input.gameId },
+        include: { _count: { select: { templates: true } } },
+        orderBy: { name: "asc" },
+      });
+    }),
+
+  getTemplates: adminProcedure
+    .input(z.object({ schemaId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.entityTemplate.findMany({
+        where: { schemaId: input.schemaId },
+        include: { schema: true, _count: { select: { entities: true } } },
+        orderBy: { name: "asc" },
+      });
+    }),
+
+  createTemplate: adminProcedure
+    .input(z.object({
+      schemaId: z.string(),
+      name: z.string().min(1),
+      data: jsonString("{}"),
+      icon: z.string().default(""),
+      rarity: z.string().optional(),
+      description: z.string().default(""),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.entityTemplate.create({ data: input });
+    }),
+
+  updateTemplate: adminProcedure
+    .input(z.object({
+      id: z.string(),
+      name: z.string().min(1).optional(),
+      data: jsonStringOptional(),
+      icon: z.string().optional(),
+      rarity: z.string().optional(),
+      description: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      return ctx.db.entityTemplate.update({ where: { id }, data });
+    }),
+
+  deleteTemplate: adminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.entityTemplate.delete({ where: { id: input.id } });
+      return { deleted: true };
+    }),
+
   // ===== 统计信息 =====
 
   getStats: adminProcedure.query(({ ctx }) => adminService.getStats(ctx.db)),

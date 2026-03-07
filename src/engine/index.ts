@@ -4,6 +4,7 @@
 
 import type {
   GameEngine,
+  IEntityManager,
   IEventBus,
   IFormulaEngine,
   IModuleRegistry,
@@ -16,6 +17,7 @@ import { FormulaEngine } from "./core/FormulaEngine";
 import { ModuleRegistry } from "./core/ModuleRegistry";
 import { RuleEngine } from "./core/RuleEngine";
 import { StateManager } from "./core/StateManager";
+import { EntityManager } from "./entity/EntityManager";
 
 // Re-export types
 export type {
@@ -24,6 +26,7 @@ export type {
   GameEngine,
   GameEvent,
   GameModule,
+  IEntityManager,
   IEventBus,
   IFormulaEngine,
   IModuleRegistry,
@@ -58,6 +61,7 @@ export class GameEngineImpl implements GameEngine {
   readonly formulas: IFormulaEngine;
   readonly modules: IModuleRegistry;
   readonly state: IStateManager;
+  readonly entities: IEntityManager;
   readonly db: unknown;
 
   constructor(options?: CreateEngineOptions) {
@@ -67,6 +71,8 @@ export class GameEngineImpl implements GameEngine {
     this.rules = new RuleEngine(this.formulas);
     this.modules = new ModuleRegistry();
     this.db = options?.db ?? null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.entities = new EntityManager(this.db as any);
   }
 
   /** Start the engine — initialises all registered modules */

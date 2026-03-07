@@ -15,6 +15,7 @@ const navItems = [
   { href: "/admin/stories", label: "剧情管理", icon: "📜" },
   { href: "/admin/adventures", label: "奇遇管理", icon: "🎲" },
   { href: "/admin/rules", label: "规则管理", icon: "📐" },
+  { href: "/admin/entities", label: "实体管理", icon: "🧩" },
 ];
 
 export default function AdminLayout({

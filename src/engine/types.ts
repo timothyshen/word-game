@@ -64,6 +64,22 @@ export interface IModuleRegistry {
   destroyAll(): Promise<void>;
 }
 
+// ---- Entity Manager --------------------------------------------------------
+
+export interface IEntityManager {
+  createSchema(gameId: string, name: string, components: string[], defaults?: Record<string, unknown>): Promise<unknown>;
+  getSchema(gameId: string, name: string): Promise<unknown>;
+  getSchemasByGame(gameId: string): Promise<unknown[]>;
+  createTemplate(schemaId: string, name: string, data: Record<string, unknown>, opts?: { icon?: string; rarity?: string; description?: string }): Promise<unknown>;
+  getTemplate(id: string): Promise<unknown>;
+  getTemplatesBySchema(schemaId: string): Promise<unknown[]>;
+  createEntity(templateId: string, ownerId: string, initialState?: Record<string, unknown>): Promise<unknown>;
+  getEntity(id: string): Promise<unknown>;
+  getEntitiesByOwner(ownerId: string, schemaName?: string): Promise<unknown[]>;
+  updateEntityState(id: string, partialState: Record<string, unknown>): Promise<unknown>;
+  deleteEntity(id: string): Promise<unknown>;
+}
+
 // ---- Engine ----------------------------------------------------------------
 
 export interface GameEngine {
@@ -72,6 +88,7 @@ export interface GameEngine {
   formulas: IFormulaEngine;
   modules: IModuleRegistry;
   state: IStateManager;
+  entities: IEntityManager;
   /** Database client — kept generic until concrete implementation is chosen */
   db: unknown;
 }
