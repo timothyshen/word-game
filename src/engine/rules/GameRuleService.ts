@@ -63,7 +63,7 @@ export class GameRuleService {
 
     const rules = await this.db.gameRule.findMany({ where: { category } });
 
-    const records: GameRuleRecord[] = rules.map((r) => ({
+    const records: GameRuleRecord[] = rules.map((r: GameRuleRecord) => ({
       id: r.id,
       name: r.name,
       category: r.category,
