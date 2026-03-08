@@ -2,6 +2,8 @@
 // Game Engine — foundational type definitions
 // ---------------------------------------------------------------------------
 
+import type { GameEventMap, TypedGameEvent } from "./events";
+
 // ---- Events ----------------------------------------------------------------
 
 export interface GameEvent {
@@ -35,6 +37,22 @@ export interface GameModule {
 // ---- Sub-system interfaces -------------------------------------------------
 
 export interface IEventBus {
+  // Typed overloads — compile-time only
+  on<K extends keyof GameEventMap>(
+    event: K,
+    handler: (event: TypedGameEvent<K>) => Promise<void> | void,
+    priority?: number,
+  ): void;
+  off<K extends keyof GameEventMap>(
+    event: K,
+    handler: (event: TypedGameEvent<K>) => Promise<void> | void,
+  ): void;
+  emit<K extends keyof GameEventMap>(
+    event: K,
+    payload: GameEventMap[K],
+    source?: string,
+  ): Promise<void>;
+  // Backward-compatible string overloads
   on(event: string, handler: EventHandler, priority?: number): void;
   off(event: string, handler: EventHandler): void;
   emit(event: string, payload: unknown, source?: string): Promise<void>;

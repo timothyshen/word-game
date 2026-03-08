@@ -37,6 +37,7 @@ export type {
   WeightedItem,
 } from "./types";
 
+export type { GameEventMap, TypedGameEvent } from "./events";
 export type { IEntityStore } from "./entity/IEntityStore";
 export type { IRuleStore } from "./rules/IRuleStore";
 

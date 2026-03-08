@@ -1,4 +1,5 @@
-import type { GameEngine, GameModule, GameEvent } from "../types";
+import type { GameEngine, GameModule } from "../types";
+import type { TypedGameEvent } from "../events";
 
 export class CombatModule implements GameModule {
   name = "combat";
@@ -19,13 +20,10 @@ export class CombatModule implements GameModule {
     }
   }
 
-  private handleStart = async (event: GameEvent): Promise<void> => {
-    const { userId, combatId } = event.payload as {
-      userId: string;
-      combatId?: string;
-      monsterLevel: number;
-      monsterType?: string;
-    };
+  private handleStart = async (
+    event: TypedGameEvent<"combat:start">,
+  ): Promise<void> => {
+    const { userId, combatId } = event.payload;
     await this.engine?.events.emit(
       "combat:started",
       { userId, combatId },
@@ -33,24 +31,23 @@ export class CombatModule implements GameModule {
     );
   };
 
-  private handleAction = async (event: GameEvent): Promise<void> => {
-    const payload = event.payload as {
-      userId: string;
-      combatId: string;
-      actionId: string;
-      result?: { status: string; rewards?: unknown };
-    };
-
-    if (payload.result?.status === "victory") {
+  private handleAction = async (
+    event: TypedGameEvent<"combat:action">,
+  ): Promise<void> => {
+    const { userId, result } = event.payload;
+    const resultObj = result as
+      | { status: string; rewards?: unknown }
+      | undefined;
+    if (resultObj?.status === "victory") {
       await this.engine?.events.emit(
         "combat:victory",
-        { userId: payload.userId, rewards: payload.result.rewards },
+        { userId, rewards: resultObj.rewards },
         "combat",
       );
-    } else if (payload.result?.status === "defeat") {
+    } else if (resultObj?.status === "defeat") {
       await this.engine?.events.emit(
         "combat:defeat",
-        { userId: payload.userId },
+        { userId },
         "combat",
       );
     }
