@@ -72,18 +72,3 @@ export function findPlayerSkillBySkillId(
   });
 }
 
-export function findPlayerWithCharacters(
-  db: DbClient,
-  userId: string,
-  characterId?: string,
-) {
-  return db.player.findUnique({
-    where: { userId },
-    include: {
-      characters: {
-        include: { character: true },
-        where: characterId ? { id: characterId } : undefined,
-      },
-    },
-  });
-}

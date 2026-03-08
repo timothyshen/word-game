@@ -14,7 +14,7 @@ export const portalRouter = createTRPCRouter({
   challengePortalGuardian: protectedProcedure
     .input(z.object({ portalId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return portalService.challengePortalGuardian(ctx.db, ctx.session.user.id, input.portalId);
+      return portalService.challengePortalGuardian(ctx.db, ctx.engine.entities, ctx.session.user.id, input.portalId);
     }),
 
   usePortal: protectedProcedure

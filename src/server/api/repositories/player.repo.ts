@@ -25,14 +25,6 @@ export function findPlayerWithFullDetails(db: DbClient, userId: string) {
     where: { userId },
     include: {
       profession: { include: { profession: true } },
-      characters: {
-        include: {
-          character: true,
-          profession: { include: { profession: true } },
-          learnedSkills: { include: { skill: true } },
-        },
-      },
-      cards: { include: { card: true } },
       learnedSkills: { include: { skill: true } },
       unlockFlags: true,
     },

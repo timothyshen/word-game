@@ -1,7 +1,7 @@
 /** Admin Repository — pure data access for Card, StoryChapter, StoryNode, Adventure, Building, Character, Skill, Equipment, Profession, OuterCityPOI, Stats */
 import type { IEntityManager } from "~/engine/types";
 import type { DbClient } from "./types";
-import { type CharacterEntity, parseCharacterState } from "../utils/character-utils";
+import { parseCharacterState } from "../utils/character-utils";
 
 // ===== Card =====
 
@@ -173,7 +173,6 @@ export function updateBuilding(
 
 export async function deleteBuilding(db: DbClient, id: string) {
   await db.innerCityBuilding.deleteMany({ where: { templateId: id } });
-  await db.playerBuilding.deleteMany({ where: { buildingId: id } });
   return db.building.delete({ where: { id } });
 }
 
@@ -207,25 +206,7 @@ export function updateCharacter(
 }
 
 export async function deleteCharacter(db: DbClient, entities: IEntityManager, id: string) {
-  // Find all character entities that reference this template
-  // We need to find entities across all owners with this characterId in state
-  // Use entity template's schema to find all character entities, then filter
-  const allCharEntities = (await entities.getEntitiesByTemplate("")) as CharacterEntity[];
-  // Since we can't query by state across all owners easily,
-  // clean up the old Prisma records and entity records
-  const pcs = await db.playerCharacter.findMany({
-    where: { characterId: id },
-    select: { id: true },
-  });
-  const pcIds = pcs.map((pc) => pc.id);
-  if (pcIds.length > 0) {
-    await db.heroInstance.deleteMany({ where: { characterId: { in: pcIds } } });
-    await db.characterSkill.deleteMany({ where: { playerCharacterId: { in: pcIds } } });
-    await db.characterProfession.deleteMany({ where: { playerCharacterId: { in: pcIds } } });
-    await db.playerCharacter.deleteMany({ where: { characterId: id } });
-  }
-
-  // Also clean up entity records with matching characterId in state
+  // Clean up entity records with matching characterId in state
   // Get all entity records and filter by state.characterId
   const entityRecords = await db.entity.findMany({
     include: { template: { include: { schema: true } } },

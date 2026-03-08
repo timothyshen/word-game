@@ -39,11 +39,6 @@ export async function deploy(db: FullDbClient, entities: IEntityManager, userId:
       status: "idle",
       stamina: 100,
     },
-    include: {
-      character: {
-        include: { character: true },
-      },
-    },
   });
 
   // 确保起始位置已探索

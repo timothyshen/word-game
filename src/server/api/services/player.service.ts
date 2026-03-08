@@ -20,6 +20,8 @@ import {
 } from "../repositories/player.repo";
 import { addCardEntity } from "../utils/card-entity-utils";
 import { createBuildingEntity } from "../utils/building-utils";
+import { findPlayerCards } from "../repositories/card.repo";
+import { findPlayerCharacters } from "../repositories/character.repo";
 import { findPlayerBuildings } from "../repositories/building.repo";
 import { upsertUnlockFlag } from "../repositories/card.repo";
 import { getCurrentGameDay } from "../utils/game-time";
@@ -165,15 +167,30 @@ export async function getPlayerStatus(db: FullDbClient, entities: IEntityManager
     building: b.building,
   }));
 
+  // Load characters and cards from entity system
+  const characters = await findPlayerCharacters(db, entities, player.id);
+  const playerCards = await findPlayerCards(db, entities, player.id);
+  const buildingCardCount = playerCards.filter(c => c.card.type === "building" && c.quantity > 0).length;
+  const recruitCardCount = playerCards.filter(c => c.card.type === "recruit" && c.quantity > 0).length;
+  const idleBuildingCount = buildings.filter(b => !b.assignedCharId).length;
+
   const skillSlots = await calcFormula("player_skill_slots", { tier: player.tier });
   return {
     ...player,
     buildings,
+    characters,
+    cards: playerCards,
     stamina,
     skillSlots,
     currentGameDay,
     unlockedSystems: player.unlockFlags.map(f => f.flagName),
-    hints: computeHints({ ...player, buildings }, currentGameDay),
+    hints: computeHints({
+      ...player,
+      characterCount: characters.length,
+      buildingCardCount,
+      recruitCardCount,
+      idleBuildingCount,
+    }, currentGameDay),
   };
 }
 

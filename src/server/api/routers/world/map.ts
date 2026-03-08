@@ -7,7 +7,7 @@ import * as mapService from "../../services/worldMap.service";
 export const mapRouter = createTRPCRouter({
   // 获取外城状态
   getStatus: protectedProcedure.query(async ({ ctx }) => {
-    return mapService.getStatus(ctx.db, ctx.session.user.id);
+    return mapService.getStatus(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   // 移动英雄

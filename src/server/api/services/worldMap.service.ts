@@ -1,8 +1,11 @@
 // 地图和移动服务
 
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { TRPCError } from "@trpc/server";
 import { generateRandomEvent, type ExplorationEvent } from "../routers/world/events";
+import { parseCharacterState } from "../utils/character-utils";
+import { resolveHeroCharacter } from "../utils/hero-utils";
 
 const BIOMES = ["grassland", "forest", "mountain", "desert", "swamp"];
 const STAMINA_COST = 5;
@@ -11,27 +14,13 @@ function randomBiome(): string {
   return BIOMES[Math.floor(Math.random() * BIOMES.length)]!;
 }
 
-export async function getStatus(db: FullDbClient, userId: string) {
+export async function getStatus(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await db.player.findFirst({
     where: { userId },
     include: {
-      heroInstances: {
-        include: {
-          character: {
-            include: {
-              character: true,
-            },
-          },
-        },
-      },
+      heroInstances: true,
       exploredAreas: {
         where: { worldId: "main" },
-      },
-      characters: {
-        include: {
-          character: true,
-          heroInstance: true,
-        },
       },
     },
   });
@@ -40,13 +29,45 @@ export async function getStatus(db: FullDbClient, userId: string) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
+  // Get character entities for available characters
+  const charEntities = await entities.getEntitiesByOwner(player.id, "character") as Array<{ id: string; state: string }>;
+  const heroCharIds = new Set(player.heroInstances.map(h => h.characterId));
+
+  // Parse entity states and get template info for available characters
+  const availableChars = [];
+  for (const entity of charEntities) {
+    if (!heroCharIds.has(entity.id)) {
+      const state = parseCharacterState(entity);
+      const charTemplate = await db.character.findUnique({ where: { id: state.characterId } });
+      availableChars.push({
+        id: entity.id,
+        name: charTemplate?.name ?? "未知",
+        portrait: charTemplate?.portrait ?? "👤",
+        level: state.level,
+      });
+    }
+  }
+
+  // Enrich heroes with character data
+  const enrichedHeroes = [];
+  for (const hero of player.heroInstances) {
+    const charData = await resolveHeroCharacter(db, entities, hero.characterId);
+    enrichedHeroes.push({
+      ...hero,
+      character: {
+        ...charData.state,
+        character: charData.template,
+      },
+    });
+  }
+
   // 获取全局POI列表
   const pois = await db.outerCityPOI.findMany();
 
   return {
-    heroes: player.heroInstances,
+    heroes: enrichedHeroes,
     exploredAreas: player.exploredAreas,
-    availableCharacters: player.characters.filter((c) => !c.heroInstance),
+    availableCharacters: availableChars,
     pois,
   };
 }

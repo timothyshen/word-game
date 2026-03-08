@@ -3,6 +3,8 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
+import { resolveHeroCharacter } from "../utils/hero-utils";
 
 // ===== Types =====
 
@@ -190,6 +192,7 @@ export function generateRandomEvent(areaLevel: number): ExplorationEvent {
 /** Handle event choice for a hero */
 export async function handleChoice(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: {
     heroId: string;
@@ -205,7 +208,6 @@ export async function handleChoice(
 
   const hero = await db.heroInstance.findFirst({
     where: { id: input.heroId, playerId: player.id },
-    include: { character: { include: { character: true } } },
   });
 
   if (!hero) {
@@ -255,8 +257,8 @@ export async function handleChoice(
 
     case "fight":
       if (eventData?.monster) {
-        const heroStats = hero.character.character;
-        const heroPower = (heroStats.baseAttack ?? 10) + (heroStats.baseDefense ?? 5);
+        const charData = await resolveHeroCharacter(db, entities, hero.characterId);
+        const heroPower = charData.state.attack + charData.state.defense;
         const monsterPower = eventData.monster.attack + eventData.monster.defense;
 
         const winChance = heroPower / (heroPower + monsterPower);

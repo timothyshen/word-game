@@ -553,8 +553,8 @@ export default function OuterCityMiniMap({ onOpenFull }: OuterCityMiniMapProps) 
                   onClick={() => deployHero.mutate({ characterId: char.id })}
                   className="w-full px-2 py-1 text-left text-[10px] hover:bg-[#2a2a30] flex items-center gap-1"
                 >
-                  <span>{char.character.portrait}</span>
-                  <span>{char.character.name}</span>
+                  <span>{char.portrait}</span>
+                  <span>{char.name}</span>
                 </button>
               ))}
             </div>

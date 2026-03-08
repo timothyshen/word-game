@@ -22,6 +22,6 @@ export const eventsRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return worldEventsService.handleChoice(ctx.db, ctx.session.user.id, input);
+      return worldEventsService.handleChoice(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 });

@@ -67,10 +67,7 @@ export async function getAllBosses(db: FullDbClient, userId: string) {
 }
 
 export async function challengeBoss(db: FullDbClient, entities: IEntityManager, userId: string, bossId: string) {
-  const player = await db.player.findUnique({
-    where: { userId },
-    include: { characters: { include: { character: true } } },
-  });
+  const player = await db.player.findUnique({ where: { userId } });
 
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
@@ -125,10 +122,11 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
 
   // 计算战斗力
   const playerPower = player.strength * 3 + player.agility * 2 + player.intellect * 2;
-  const charactersPower = player.characters.reduce(
-    (sum, c) => sum + c.attack + c.defense + c.speed,
-    0
-  );
+  const charEntities = await entities.getEntitiesByOwner(player.id, "character") as Array<{ id: string; state: string }>;
+  const charactersPower = charEntities.reduce((sum, e) => {
+    const state = JSON.parse(e.state) as { attack: number; defense: number; speed: number };
+    return sum + state.attack + state.defense + state.speed;
+  }, 0);
   const totalPower = playerPower + charactersPower;
   const bossPower = boss.attack + boss.defense * 0.5 + boss.hp * 0.01;
 

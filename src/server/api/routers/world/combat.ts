@@ -9,7 +9,7 @@ export const combatRouter = createTRPCRouter({
   start: protectedProcedure
     .input(z.object({ heroId: z.string(), poiId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const result = await worldCombatService.startCombat(ctx.db, ctx.session.user.id, input);
+      const result = await worldCombatService.startCombat(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
       void ctx.engine.events.emit("combat:start", {
         userId: ctx.session.user.id,
         heroId: input.heroId,

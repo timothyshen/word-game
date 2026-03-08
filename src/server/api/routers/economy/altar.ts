@@ -10,7 +10,7 @@ export const altarRouter = createTRPCRouter({
   challengeGuardian: protectedProcedure
     .input(z.object({ altarId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return altarService.challengeGuardian(ctx.db, ctx.session.user.id, input.altarId);
+      return altarService.challengeGuardian(ctx.db, ctx.engine.entities, ctx.session.user.id, input.altarId);
     }),
 
   collectDailyCard: protectedProcedure

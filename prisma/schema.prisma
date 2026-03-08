@@ -119,15 +119,10 @@ model Player {
     updatedAt DateTime @updatedAt
 
     // 关联
-    characters       PlayerCharacter[]
-    equipment        PlayerEquipment[]
-    cards            PlayerCard[]
-    buildings        PlayerBuilding[]
     storyProgress    StoryProgress[]
     unlockFlags      UnlockFlag[]
     economyLogs      EconomyLog[]
     profession       PlayerProfession?
-    equippedItems    EquippedItem[]
     learnedSkills    PlayerSkill[]      // 已学习技能
     actionLogs       ActionLog[]        // 行动记录（用于结算）
     settlementLogs   SettlementLog[]    // 结算记录
@@ -206,59 +201,16 @@ model Character {
 
     // 初始特性
     traits String // JSON数组
-
-    playerCharacters PlayerCharacter[]
 }
 
-// 玩家拥有的角色实例（可操作）
-model PlayerCharacter {
-    id          String    @id @default(cuid())
-    playerId    String
-    player      Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
-    characterId String
-    character   Character @relation(fields: [characterId], references: [id])
-
-    // 职阶系统
-    tier      Int    @default(1) // 职阶：决定技能槽数量（tier × 6）
-
-    // 实例属性
-    level     Int    @default(1)
-    maxLevel  Int    @default(20)
-    exp       Int    @default(0)
-    hp        Int
-    maxHp     Int
-    mp        Int
-    maxMp     Int
-    status    String @default("idle") // idle/working/exploring/injured
-    workingAt String? // 工作地点
-
-    // 成长后的属性
-    attack  Int
-    defense Int
-    speed   Int
-    luck    Int
-
-    // 好感度
-    affection Int @default(0)
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    // 关联
-    profession    CharacterProfession?
-    equippedItems EquippedItem[]
-    learnedSkills CharacterSkill[]  // 已学习技能
-    heroInstance  HeroInstance?     // 外城英雄实例
-}
-
-// 角色职业（可为空，通过突破卡获得）
+// 角色职业（可为空，通过突破卡获得）— FK references Entity (character entity)
 model CharacterProfession {
-    id                String          @id @default(cuid())
-    playerCharacterId String          @unique
-    playerCharacter   PlayerCharacter @relation(fields: [playerCharacterId], references: [id], onDelete: Cascade)
+    id                String     @id @default(cuid())
+    playerCharacterId String     @unique
+    entity            Entity     @relation("CharacterProfessionEntity", fields: [playerCharacterId], references: [id], onDelete: Cascade)
     professionId      String
-    profession        Profession      @relation(fields: [professionId], references: [id])
-    obtainedAt        DateTime        @default(now())
+    profession        Profession @relation(fields: [professionId], references: [id])
+    obtainedAt        DateTime   @default(now())
 }
 
 // 装备模板
@@ -283,41 +235,6 @@ model Equipment {
 
     // 装备要求
     requiredLevel Int @default(1)
-
-    playerEquipment PlayerEquipment[]
-}
-
-// 玩家拥有的装备实例
-model PlayerEquipment {
-    id          String    @id @default(cuid())
-    playerId    String
-    player      Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
-    equipmentId String
-    equipment   Equipment @relation(fields: [equipmentId], references: [id])
-
-    // 强化等级
-    enhanceLevel Int @default(0)
-
-    createdAt DateTime @default(now())
-
-    equippedOn EquippedItem?
-}
-
-// 装备穿戴关联（11槽位）
-model EquippedItem {
-    id                String           @id @default(cuid())
-    playerEquipmentId String           @unique
-    playerEquipment   PlayerEquipment  @relation(fields: [playerEquipmentId], references: [id], onDelete: Cascade)
-    slot              String // mainHand/offHand/helmet/chest/belt/gloves/pants/boots/necklace/ring1/ring2
-
-    // 装备到玩家或角色（二选一）
-    playerId          String?
-    player            Player?          @relation(fields: [playerId], references: [id], onDelete: Cascade)
-    playerCharacterId String?
-    playerCharacter   PlayerCharacter? @relation(fields: [playerCharacterId], references: [id], onDelete: Cascade)
-
-    @@unique([playerId, slot])
-    @@unique([playerCharacterId, slot])
 }
 
 // 卡牌模板
@@ -337,19 +254,6 @@ model Card {
     // item: {itemType, effect, ...}
     effects     String
 
-    playerCards PlayerCard[]
-}
-
-// 玩家拥有的卡牌
-model PlayerCard {
-    id       String @id @default(cuid())
-    playerId String
-    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
-    cardId   String
-    card     Card   @relation(fields: [cardId], references: [id])
-    quantity Int    @default(1)
-
-    @@unique([playerId, cardId])
 }
 
 // 建筑模板
@@ -364,29 +268,7 @@ model Building {
     // 基础效果（JSON）
     baseEffects String
 
-    playerBuildings    PlayerBuilding[]
     innerCityBuildings InnerCityBuilding[]
-}
-
-// 玩家已建造建筑
-model PlayerBuilding {
-    id         String   @id @default(cuid())
-    playerId   String
-    player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-    buildingId String
-    building   Building @relation(fields: [buildingId], references: [id])
-
-    level         Int     @default(1)
-    status        String  @default("idle") // idle/working/upgrading
-    assignedCharId String? // 分配的角色ID
-
-    positionX Int // 地图位置
-    positionY Int
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@unique([playerId, positionX, positionY])
 }
 
 // 剧情进度
@@ -478,13 +360,13 @@ model PlayerSkill {
     @@unique([playerId, skillId])
 }
 
-// 角色已学习技能
+// 角色已学习技能 — FK references Entity (character entity)
 model CharacterSkill {
-    id                String          @id @default(cuid())
+    id                String @id @default(cuid())
     playerCharacterId String
-    playerCharacter   PlayerCharacter @relation(fields: [playerCharacterId], references: [id], onDelete: Cascade)
+    entity            Entity @relation("CharacterSkillEntity", fields: [playerCharacterId], references: [id], onDelete: Cascade)
     skillId           String
-    skill             Skill           @relation(fields: [skillId], references: [id])
+    skill             Skill  @relation(fields: [skillId], references: [id])
 
     level     Int    @default(1)
     exp       Int    @default(0)
@@ -842,13 +724,13 @@ model InnerCityConfig {
 
 // ===== 外城探索系统 =====
 
-// 外城英雄实例
+// 外城英雄实例 — characterId references Entity (character entity)
 model HeroInstance {
     id          String   @id @default(cuid())
     playerId    String
     player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
     characterId String   @unique
-    character   PlayerCharacter @relation(fields: [characterId], references: [id])
+    charEntity  Entity   @relation("HeroCharacterEntity", fields: [characterId], references: [id])
 
     positionX   Int      @default(0)
     positionY   Int      @default(0)
@@ -950,6 +832,11 @@ model Entity {
   template   EntityTemplate @relation(fields: [templateId], references: [id])
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
+
+  // Reverse relations for junction tables migrated from old models
+  characterSkills      CharacterSkill[]      @relation("CharacterSkillEntity")
+  characterProfessions CharacterProfession[] @relation("CharacterProfessionEntity")
+  heroInstance         HeroInstance?         @relation("HeroCharacterEntity")
 
   @@index([ownerId])
   @@index([templateId])

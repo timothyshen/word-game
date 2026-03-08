@@ -268,8 +268,6 @@ export async function getAllAchievements(db: FullDbClient, entities: IEntityMana
   const player = await db.player.findUnique({
     where: { userId },
     include: {
-      characters: true,
-      cards: true,
       achievements: true,
     },
   });
@@ -278,11 +276,15 @@ export async function getAllAchievements(db: FullDbClient, entities: IEntityMana
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  // Load buildings from entity system
+  // Load from entity system
   const buildingEntities = await findPlayerBuildings(db, entities, player.id);
+  const charEntities = await entities.getEntitiesByOwner(player.id, "character") as unknown[];
+  const cardEntities = await entities.getEntitiesByOwner(player.id, "card") as unknown[];
   const playerWithBuildings = {
     ...player,
     buildings: buildingEntities.map(b => ({ level: b.level })),
+    characters: charEntities,
+    cards: cardEntities,
   };
 
   // 获取统计数据
@@ -319,8 +321,6 @@ export async function claimAchievement(db: FullDbClient, entities: IEntityManage
   const player = await db.player.findUnique({
     where: { userId },
     include: {
-      characters: true,
-      cards: true,
       achievements: true,
     },
   });
@@ -329,11 +329,15 @@ export async function claimAchievement(db: FullDbClient, entities: IEntityManage
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  // Load buildings from entity system
+  // Load from entity system
   const buildingEntities = await findPlayerBuildings(db, entities, player.id);
+  const charEntities = await entities.getEntitiesByOwner(player.id, "character") as unknown[];
+  const cardEntities = await entities.getEntitiesByOwner(player.id, "card") as unknown[];
   const playerWithBuildings = {
     ...player,
     buildings: buildingEntities.map(b => ({ level: b.level })),
+    characters: charEntities,
+    cards: cardEntities,
   };
 
   const achievement = ACHIEVEMENTS.find((a) => a.id === achievementId);
@@ -417,8 +421,6 @@ export async function getByCategory(
   const player = await db.player.findUnique({
     where: { userId },
     include: {
-      characters: true,
-      cards: true,
       achievements: true,
     },
   });
@@ -427,11 +429,15 @@ export async function getByCategory(
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  // Load buildings from entity system
+  // Load from entity system
   const buildingEntities = await findPlayerBuildings(db, entities, player.id);
+  const charEntities = await entities.getEntitiesByOwner(player.id, "character") as unknown[];
+  const cardEntities = await entities.getEntitiesByOwner(player.id, "card") as unknown[];
   const playerWithBuildings = {
     ...player,
     buildings: buildingEntities.map(b => ({ level: b.level })),
+    characters: charEntities,
+    cards: cardEntities,
   };
 
   const exploredAreasCount = await db.exploredArea.count({

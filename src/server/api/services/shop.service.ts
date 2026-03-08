@@ -7,6 +7,7 @@ import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
 import { addCardEntity, findCardEntityByCardId, parseCardState, consumeCardEntity } from "../utils/card-entity-utils";
 import * as cardRepo from "../repositories/card.repo";
+import { ruleService } from "~/server/api/engine";
 
 interface ShopItem {
   id: string;
@@ -19,20 +20,9 @@ interface ShopItem {
   effect?: { type: string; value: number };
 }
 
-const SHOP_ITEMS: ShopItem[] = [
-  { id: "wood_pack_s", name: "木材包（小）", icon: "🪵", description: "获得100木材", category: "resource", price: { gold: 50 }, effect: { type: "wood", value: 100 } },
-  { id: "wood_pack_m", name: "木材包（中）", icon: "🪵", description: "获得500木材", category: "resource", price: { gold: 200 }, effect: { type: "wood", value: 500 } },
-  { id: "stone_pack_s", name: "石材包（小）", icon: "🪨", description: "获得100石材", category: "resource", price: { gold: 60 }, effect: { type: "stone", value: 100 } },
-  { id: "stone_pack_m", name: "石材包（中）", icon: "🪨", description: "获得500石材", category: "resource", price: { gold: 250 }, effect: { type: "stone", value: 500 } },
-  { id: "food_pack_s", name: "粮食包（小）", icon: "🌾", description: "获得100粮食", category: "resource", price: { gold: 40 }, effect: { type: "food", value: 100 } },
-  { id: "food_pack_m", name: "粮食包（中）", icon: "🌾", description: "获得500粮食", category: "resource", price: { gold: 160 }, effect: { type: "food", value: 500 } },
-  { id: "stamina_potion", name: "体力药水", icon: "⚡", description: "恢复50点体力", category: "special", price: { gold: 100 }, stock: 5, effect: { type: "stamina", value: 50 } },
-  { id: "crystal_pack", name: "水晶包", icon: "💎", description: "获得10水晶", category: "special", price: { gold: 500 }, stock: 3, effect: { type: "crystals", value: 10 } },
-  { id: "exp_book_s", name: "经验书（小）", icon: "📕", description: "获得100经验值", category: "special", price: { gold: 150 }, effect: { type: "exp", value: 100 } },
-  { id: "exp_book_m", name: "经验书（中）", icon: "📗", description: "获得500经验值", category: "special", price: { gold: 600 }, effect: { type: "exp", value: 500 } },
-  { id: "rare_card_pack", name: "稀有卡包", icon: "🎴", description: "随机获得一张稀有卡牌", category: "card", price: { crystals: 50 }, stock: 1 },
-  { id: "epic_card_pack", name: "史诗卡包", icon: "🃏", description: "随机获得一张史诗卡牌", category: "card", price: { crystals: 150 }, stock: 1 },
-];
+async function getShopItems(): Promise<ShopItem[]> {
+  return ruleService.getConfig<ShopItem[]>("shop_items");
+}
 
 function getTodayString(): string {
   const now = new Date();
@@ -54,7 +44,8 @@ export async function getItems(db: FullDbClient, userId: string, category: strin
   });
   const purchaseMap = new Map(purchases.map((p) => [p.itemId, p.quantity]));
 
-  const items = SHOP_ITEMS.filter((item) => category === "all" || item.category === category).map((item) => {
+  const shopItems = await getShopItems();
+  const items = shopItems.filter((item) => category === "all" || item.category === category).map((item) => {
     const purchased = purchaseMap.get(item.id) ?? 0;
     const remaining = item.stock !== undefined ? item.stock - purchased : undefined;
     return {
@@ -71,7 +62,8 @@ export async function getItems(db: FullDbClient, userId: string, category: strin
 export async function buyItem(db: FullDbClient, entities: IEntityManager, userId: string, itemId: string, quantity: number) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const item = SHOP_ITEMS.find((i) => i.id === itemId);
+  const shopItems = await getShopItems();
+  const item = shopItems.find((i) => i.id === itemId);
   if (!item) throw new TRPCError({ code: "NOT_FOUND", message: "物品不存在" });
 
   const today = getTodayString();
@@ -160,10 +152,7 @@ export async function sellCard(db: FullDbClient, entities: IEntityManager, userI
     throw new TRPCError({ code: "BAD_REQUEST", message: "卡牌数量不足" });
   }
 
-  const rarityPrices: Record<string, { gold: number; crystals: number }> = {
-    "普通": { gold: 10, crystals: 0 }, "精良": { gold: 30, crystals: 1 },
-    "稀有": { gold: 80, crystals: 3 }, "史诗": { gold: 200, crystals: 10 }, "传说": { gold: 500, crystals: 30 },
-  };
+  const rarityPrices = await ruleService.getConfig<Record<string, { gold: number; crystals: number }>>("shop_sell_prices");
   const price = rarityPrices[playerCard.card.rarity] ?? rarityPrices["普通"]!;
   const totalGold = price.gold * quantity;
   const totalCrystals = price.crystals * quantity;
@@ -185,10 +174,7 @@ export async function getSellPrice(db: FullDbClient, entities: IEntityManager, u
   const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, cardId);
   if (!playerCard) throw new TRPCError({ code: "NOT_FOUND", message: "未拥有该卡牌" });
 
-  const rarityPrices: Record<string, { gold: number; crystals: number }> = {
-    "普通": { gold: 10, crystals: 0 }, "精良": { gold: 30, crystals: 1 },
-    "稀有": { gold: 80, crystals: 3 }, "史诗": { gold: 200, crystals: 10 }, "传说": { gold: 500, crystals: 30 },
-  };
+  const rarityPrices = await ruleService.getConfig<Record<string, { gold: number; crystals: number }>>("shop_sell_prices");
   const price = rarityPrices[playerCard.card.rarity] ?? rarityPrices["普通"]!;
 
   return {

@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { getInnerCityBonuses } from "./worldHelpers";
+import { resolveHeroCharacter } from "../utils/hero-utils";
 
 // ===== Constants =====
 
@@ -32,19 +33,15 @@ async function findPlayerOrThrow(db: FullDbClient, userId: string) {
   return player;
 }
 
-async function findHeroOrThrow(db: FullDbClient, heroId: string, playerId: string) {
+async function findHeroOrThrow(db: FullDbClient, entities: IEntityManager, heroId: string, playerId: string) {
   const hero = await db.heroInstance.findFirst({
     where: { id: heroId, playerId },
-    include: {
-      character: {
-        include: { character: true },
-      },
-    },
   });
   if (!hero) {
     throw new TRPCError({ code: "NOT_FOUND", message: "英雄不存在" });
   }
-  return hero;
+  const charData = await resolveHeroCharacter(db, entities, hero.characterId);
+  return { ...hero, charData };
 }
 
 async function findPoiOrThrow(db: FullDbClient, poiId: string) {
@@ -69,11 +66,12 @@ function computeEnemyStats(poi: { guardianLevel: number | null; difficulty: numb
 
 export async function startCombat(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: { heroId: string; poiId: string },
 ) {
   const player = await findPlayerOrThrow(db, userId);
-  const hero = await findHeroOrThrow(db, input.heroId, player.id);
+  const hero = await findHeroOrThrow(db, entities, input.heroId, player.id);
   const poi = await findPoiOrThrow(db, input.poiId);
 
   if (!COMBATABLE_POI_TYPES.has(poi.type)) {
@@ -104,12 +102,12 @@ export async function startCombat(
       poiId: poi.id,
       turn: 1,
       hero: {
-        name: hero.character.character.name,
-        portrait: hero.character.character.portrait,
-        hp: hero.character.hp,
-        maxHp: hero.character.maxHp,
-        attack: hero.character.attack,
-        defense: hero.character.defense,
+        name: hero.charData.template.name,
+        portrait: hero.charData.template.portrait,
+        hp: hero.charData.state.hp,
+        maxHp: hero.charData.state.maxHp,
+        attack: hero.charData.state.attack,
+        defense: hero.charData.state.defense,
       },
       enemy: {
         name: `${ENEMY_NAMES[poi.type] ?? "敌人"} Lv.${enemy.level}`,
@@ -120,7 +118,7 @@ export async function startCombat(
         defense: enemy.def,
         level: enemy.level,
       },
-      logs: [`战斗开始！${hero.character.character.name} 对阵 ${poi.name}`],
+      logs: [`战斗开始！${hero.charData.template.name} 对阵 ${poi.name}`],
     },
   };
 }
@@ -139,7 +137,7 @@ export async function performAction(
   },
 ) {
   const player = await findPlayerOrThrow(db, userId);
-  const hero = await findHeroOrThrow(db, input.heroId, player.id);
+  const hero = await findHeroOrThrow(db, entities, input.heroId, player.id);
   const poi = await findPoiOrThrow(db, input.poiId);
 
   const logs: string[] = [];
@@ -151,8 +149,8 @@ export async function performAction(
   const cityBonuses = await getInnerCityBonuses(db, player.id);
 
   // 应用内城加成到战斗属性
-  const heroBaseAtk = hero.character.attack;
-  const heroBaseDef = hero.character.defense;
+  const heroBaseAtk = hero.charData.state.attack;
+  const heroBaseDef = hero.charData.state.defense;
   const heroAtk = Math.floor(heroBaseAtk * (1 + cityBonuses.attackBonus));
   const heroDef = Math.floor(heroBaseDef * (1 + cityBonuses.defenseBonus));
 
@@ -170,7 +168,7 @@ export async function performAction(
 
   // 处理逃跑
   if (input.action === "flee") {
-    const fleeChance = 0.5 + (hero.character.speed / 100) * 0.3;
+    const fleeChance = 0.5 + (hero.charData.state.speed / 100) * 0.3;
     if (Math.random() < fleeChance) {
       await db.heroInstance.update({
         where: { id: hero.id },
@@ -197,13 +195,13 @@ export async function performAction(
       const crit = Math.random() < 0.15;
       const finalDamage = crit ? Math.floor(damage * 1.5) : damage;
       enemyHp -= finalDamage;
-      logs.push(`${hero.character.character.name} 攻击造成 ${finalDamage} 伤害${crit ? "（暴击！）" : ""}`);
+      logs.push(`${hero.charData.template.name} 攻击造成 ${finalDamage} 伤害${crit ? "（暴击！）" : ""}`);
     } else if (input.action === "defend") {
-      logs.push(`${hero.character.character.name} 进入防御姿态`);
+      logs.push(`${hero.charData.template.name} 进入防御姿态`);
     } else if (input.action === "skill") {
       const damage = Math.max(1, Math.floor(heroAtk * 1.5) - enemyDef);
       enemyHp -= damage;
-      logs.push(`${hero.character.character.name} 使用技能造成 ${damage} 伤害！`);
+      logs.push(`${hero.charData.template.name} 使用技能造成 ${damage} 伤害！`);
     }
 
     // 敌人反击（如果还活着）
@@ -285,7 +283,7 @@ export async function performAction(
     });
 
     // Update character HP via entity system
-    await entities.updateEntityState(hero.characterId, { hp: Math.floor(hero.character.maxHp * 0.3) });
+    await entities.updateEntityState(hero.characterId, { hp: Math.floor(hero.charData.state.maxHp * 0.3) });
 
     logs.push("战斗失败...英雄撤退");
 

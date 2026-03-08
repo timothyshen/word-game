@@ -7,6 +7,7 @@ import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
 import * as icRepo from "../repositories/innerCity.repo";
 import * as cardRepo from "../repositories/card.repo";
+import { ruleService } from "~/server/api/engine";
 import {
   getBuildingRadius,
   getBuildingSize,
@@ -107,7 +108,8 @@ export async function initialize(db: FullDbClient, userId: string) {
   }
 
   // 创建领地配置
-  await icRepo.createConfig(db, player.id, 4.0, 4.0, 1.5);
+  const initTerritory = await ruleService.getConfig<{ halfW: number; halfH: number; cornerR: number }>("innercity_initial_territory");
+  await icRepo.createConfig(db, player.id, initTerritory.halfW, initTerritory.halfH, initTerritory.cornerR);
 
   // 在中心放置主城堡
   const castle = await icRepo.findBuildingTemplate(db, "主城堡");
@@ -125,7 +127,7 @@ export async function initialize(db: FullDbClient, userId: string) {
   return {
     success: true,
     message: "内城初始化完成",
-    territory: { halfW: 4.0, halfH: 4.0, cornerR: 1.5 },
+    territory: { halfW: initTerritory.halfW, halfH: initTerritory.halfH, cornerR: initTerritory.cornerR },
   };
 }
 
@@ -216,6 +218,7 @@ export async function placeBuilding(
   await cardRepo.consumeCard(entities, playerCard.id, playerCard.quantity);
 
   // 记录行动分数
+  const buildScore = await ruleService.getConfig<{ value: number }>("innercity_build_score");
   const gameDay = Math.floor(
     (Date.now() - new Date(player.createdAt).getTime()) / (24 * 60 * 60 * 1000)
   ) + 1;
@@ -225,12 +228,12 @@ export async function placeBuilding(
     day: gameDay,
     type: "build",
     description: `在内城建造了 ${buildingTemplate.name}`,
-    baseScore: 50,
+    baseScore: buildScore.value,
     bonus: 0,
     bonusReason: null,
   });
 
-  await updatePlayer(db, player.id, { currentDayScore: { increment: 50 } });
+  await updatePlayer(db, player.id, { currentDayScore: { increment: buildScore.value } });
 
   const size = getBuildingSize(building.template.name, 1);
   return {
@@ -276,8 +279,9 @@ export async function expandTerritory(db: FullDbClient, entities: IEntityManager
   }
 
   const amount = effects.amount ?? 1;
-  const widthIncrement = amount * 1.5;
-  const cornerIncrement = amount * 0.5;
+  const expandConfig = await ruleService.getConfig<{ widthPerAmount: number; cornerPerAmount: number }>("innercity_expand_multipliers");
+  const widthIncrement = amount * expandConfig.widthPerAmount;
+  const cornerIncrement = amount * expandConfig.cornerPerAmount;
 
   const newWidth = config.territoryWidth + widthIncrement;
   const newHeight = config.territoryHeight + widthIncrement;
@@ -345,10 +349,11 @@ export async function upgradeBuilding(db: FullDbClient, userId: string, building
   }
 
   // 计算升级费用
+  const baseCost = await ruleService.getConfig<{ gold: number; wood: number; stone: number }>("innercity_upgrade_base_cost");
   const upgradeCost = {
-    gold: 100 * building.level,
-    wood: 50 * building.level,
-    stone: 30 * building.level,
+    gold: baseCost.gold * building.level,
+    wood: baseCost.wood * building.level,
+    stone: baseCost.stone * building.level,
   };
 
   if (player.gold < upgradeCost.gold) {
@@ -396,10 +401,11 @@ export async function demolish(db: FullDbClient, userId: string, buildingId: str
     throw new TRPCError({ code: "BAD_REQUEST", message: "主城堡不能拆除" });
   }
 
+  const refundConfig = await ruleService.getConfig<{ goldBase: number; woodBase: number; stoneBase: number; refundRate: number }>("innercity_demolish_refund");
   const refund = {
-    gold: Math.floor(50 * building.level * 0.5),
-    wood: Math.floor(25 * building.level * 0.5),
-    stone: Math.floor(15 * building.level * 0.5),
+    gold: Math.floor(refundConfig.goldBase * building.level * refundConfig.refundRate),
+    wood: Math.floor(refundConfig.woodBase * building.level * refundConfig.refundRate),
+    stone: Math.floor(refundConfig.stoneBase * building.level * refundConfig.refundRate),
   };
 
   await updatePlayer(db, player.id, {

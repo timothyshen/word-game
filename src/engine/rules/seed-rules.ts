@@ -414,4 +414,32 @@ export const SEED_RULES: SeedRule[] = [
     }),
     description: "Stat multipliers by equipment rarity",
   },
+
+  // ===== shop (~2 rules) =====
+  { name: "shop_items", category: "economy", ruleType: "config", definition: JSON.stringify([
+    { id: "wood_pack_s", name: "木材包（小）", icon: "🪵", description: "获得100木材", category: "resource", price: { gold: 50 }, effect: { type: "wood", value: 100 } },
+    { id: "wood_pack_m", name: "木材包（中）", icon: "🪵", description: "获得500木材", category: "resource", price: { gold: 200 }, effect: { type: "wood", value: 500 } },
+    { id: "stone_pack_s", name: "石材包（小）", icon: "🪨", description: "获得100石材", category: "resource", price: { gold: 60 }, effect: { type: "stone", value: 100 } },
+    { id: "stone_pack_m", name: "石材包（中）", icon: "🪨", description: "获得500石材", category: "resource", price: { gold: 250 }, effect: { type: "stone", value: 500 } },
+    { id: "food_pack_s", name: "粮食包（小）", icon: "🌾", description: "获得100粮食", category: "resource", price: { gold: 40 }, effect: { type: "food", value: 100 } },
+    { id: "food_pack_m", name: "粮食包（中）", icon: "🌾", description: "获得500粮食", category: "resource", price: { gold: 160 }, effect: { type: "food", value: 500 } },
+    { id: "stamina_potion", name: "体力药水", icon: "⚡", description: "恢复50点体力", category: "special", price: { gold: 100 }, stock: 5, effect: { type: "stamina", value: 50 } },
+    { id: "crystal_pack", name: "水晶包", icon: "💎", description: "获得10水晶", category: "special", price: { gold: 500 }, stock: 3, effect: { type: "crystals", value: 10 } },
+    { id: "exp_book_s", name: "经验书（小）", icon: "📕", description: "获得100经验值", category: "special", price: { gold: 150 }, effect: { type: "exp", value: 100 } },
+    { id: "exp_book_m", name: "经验书（中）", icon: "📗", description: "获得500经验值", category: "special", price: { gold: 600 }, effect: { type: "exp", value: 500 } },
+    { id: "rare_card_pack", name: "稀有卡包", icon: "🎴", description: "随机获得一张稀有卡牌", category: "card", price: { crystals: 50 }, stock: 1 },
+    { id: "epic_card_pack", name: "史诗卡包", icon: "🃏", description: "随机获得一张史诗卡牌", category: "card", price: { crystals: 150 }, stock: 1 },
+  ]), description: "Shop item catalog" },
+  { name: "shop_sell_prices", category: "economy", ruleType: "config", definition: JSON.stringify({
+    "普通": { gold: 10, crystals: 0 }, "精良": { gold: 30, crystals: 1 },
+    "稀有": { gold: 80, crystals: 3 }, "史诗": { gold: 200, crystals: 10 }, "传说": { gold: 500, crystals: 30 },
+  }), description: "Card sell prices by rarity" },
+
+  // ===== innerCity (~6 rules) =====
+  { name: "innercity_initial_territory", category: "territory", ruleType: "config", definition: JSON.stringify({ halfW: 4.0, halfH: 4.0, cornerR: 1.5 }), description: "Initial territory dimensions" },
+  { name: "innercity_expand_multipliers", category: "territory", ruleType: "config", definition: JSON.stringify({ widthPerAmount: 1.5, cornerPerAmount: 0.5 }), description: "Territory expansion multipliers" },
+  { name: "innercity_upgrade_cost", category: "territory", ruleType: "formula", definition: JSON.stringify({ gold: "baseGold * level", wood: "baseWood * level", stone: "baseStone * level" }), description: "Building upgrade cost formula" },
+  { name: "innercity_upgrade_base_cost", category: "territory", ruleType: "config", definition: JSON.stringify({ gold: 100, wood: 50, stone: 30 }), description: "Base upgrade costs" },
+  { name: "innercity_demolish_refund", category: "territory", ruleType: "config", definition: JSON.stringify({ goldBase: 50, woodBase: 25, stoneBase: 15, refundRate: 0.5 }), description: "Demolish refund formula" },
+  { name: "innercity_build_score", category: "territory", ruleType: "config", definition: JSON.stringify({ value: 50 }), description: "Action score for building placement" },
 ];

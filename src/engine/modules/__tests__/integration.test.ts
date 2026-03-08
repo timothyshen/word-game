@@ -159,6 +159,90 @@ describe("Module integration", () => {
     ]);
   });
 
+  it("boss:challenge victory triggers progression:check", async () => {
+    const engine = createEngine();
+    registerAllModules(engine);
+    await engine.start();
+
+    const emittedEvents: Array<{ type: string; payload: unknown }> = [];
+    engine.events.on("progression:check", (event: GameEvent) => {
+      emittedEvents.push({ type: event.type, payload: event.payload });
+    });
+
+    await engine.events.emit(
+      "boss:challenge",
+      { userId: "user-1", bossId: "b-1", victory: true },
+      "test",
+    );
+
+    expect(emittedEvents).toContainEqual(
+      expect.objectContaining({
+        type: "progression:check",
+        payload: expect.objectContaining({ trigger: "boss_challenge" }),
+      }),
+    );
+
+    await engine.stop();
+  });
+
+  it("territory events flow through TerritoryModule", async () => {
+    const engine = createEngine();
+    registerAllModules(engine);
+    await engine.start();
+
+    const emittedEvents: Array<{ type: string; payload: unknown }> = [];
+    engine.events.on("territory:expanded", (event: GameEvent) => {
+      emittedEvents.push({ type: event.type, payload: event.payload });
+    });
+
+    await engine.events.emit(
+      "territory:build",
+      { userId: "user-1", positionX: 1, positionY: 2 },
+      "test",
+    );
+
+    expect(emittedEvents).toContainEqual(
+      expect.objectContaining({
+        type: "territory:expanded",
+        payload: expect.objectContaining({ trigger: "build" }),
+      }),
+    );
+
+    await engine.stop();
+  });
+
+  it("character:levelUp triggers both progression and content checks", async () => {
+    const engine = createEngine();
+    registerAllModules(engine);
+    await engine.start();
+
+    const emittedEvents: Array<{ type: string; payload: unknown }> = [];
+    engine.events.on("progression:check", (event: GameEvent) => {
+      emittedEvents.push({ type: event.type, payload: event.payload });
+    });
+    engine.events.on("content:checkUnlocks", (event: GameEvent) => {
+      emittedEvents.push({ type: event.type, payload: event.payload });
+    });
+
+    await engine.events.emit(
+      "character:levelUp",
+      { userId: "user-1", characterId: "c-1", newLevel: 10 },
+      "test",
+    );
+
+    expect(emittedEvents).toContainEqual(
+      expect.objectContaining({
+        type: "progression:check",
+        payload: expect.objectContaining({ trigger: "character_level_up" }),
+      }),
+    );
+    expect(emittedEvents).toContainEqual(
+      expect.objectContaining({ type: "content:checkUnlocks" }),
+    );
+
+    await engine.stop();
+  });
+
   it("engine starts and stops cleanly with all modules", async () => {
     const engine = createEngine();
     registerAllModules(engine);

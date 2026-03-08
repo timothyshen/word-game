@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { getInnerCityBonuses } from "./worldHelpers";
+import { resolveHeroCharacter } from "../utils/hero-utils";
 
 // ===== interact: 与POI互动 =====
 export async function interact(
@@ -105,11 +106,6 @@ export async function harvest(
 
   const hero = await db.heroInstance.findFirst({
     where: { id: input.heroId, playerId: player.id },
-    include: {
-      character: {
-        include: { character: true },
-      },
-    },
   });
 
   if (!hero) {
@@ -219,7 +215,8 @@ async function handleShrine(db: FullDbClient, entities: IEntityManager, hero: an
   } else if (poi.resourceType === "attack") {
     // 临时增加攻击力 - 更新角色基础攻击
     const boostAmount = poi.resourceAmount ?? 5;
-    await entities.updateEntityState(hero.characterId, { attack: hero.character.attack + boostAmount });
+    const charData = await resolveHeroCharacter(db, entities, hero.characterId);
+    await entities.updateEntityState(hero.characterId, { attack: charData.state.attack + boostAmount });
     message = `战神祝福！攻击力+${boostAmount}`;
   } else {
     message = "获得神殿祝福";

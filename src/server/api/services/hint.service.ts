@@ -29,9 +29,10 @@ interface PlayerForHints {
   maxStamina: number;
   lastSettlementDay: number;
   food: number;
-  characters: Array<{ id: string }>;
-  cards: Array<{ card: { type: string }; quantity: number }>;
-  buildings: Array<{ building: { baseEffects: string }; assignedCharId: string | null }>;
+  characterCount: number;
+  buildingCardCount: number;
+  recruitCardCount: number;
+  idleBuildingCount: number;
   learnedSkills: Array<{ id: string }>;
   unlockFlags: Array<{ flagName: string }>;
 }
@@ -58,13 +59,11 @@ export function computeHints(player: PlayerForHints, currentGameDay: number): Hi
 
   // ── MEDIUM PRIORITY: Actionable items ──
 
-  const buildingCards = player.cards.filter(c => c.card.type === "building" && c.quantity > 0);
-  if (buildingCards.length > 0) {
+  if (player.buildingCardCount > 0) {
     hints.push({ id: "has_building_cards", priority: "medium", type: "status", icon: "🏗️", message: "你有建筑卡可以使用", action: "innerCity" });
   }
 
-  const recruitCards = player.cards.filter(c => c.card.type === "recruit" && c.quantity > 0);
-  if (recruitCards.length > 0) {
+  if (player.recruitCardCount > 0) {
     hints.push({ id: "has_recruit_cards", priority: "medium", type: "status", icon: "👥", message: "你有招募卡可以使用", action: "inventoryHub:backpack" });
   }
 
@@ -83,13 +82,12 @@ export function computeHints(player: PlayerForHints, currentGameDay: number): Hi
 
   // ── LOW PRIORITY: Tips ──
 
-  const idleBuildings = player.buildings.filter(b => !b.assignedCharId);
-  if (idleBuildings.length > 0 && player.characters.length > 0) {
-    hints.push({ id: "idle_buildings", priority: "low", type: "tip", icon: "🏠", message: `${idleBuildings.length}个建筑未分配工人`, action: "innerCity" });
+  if (player.idleBuildingCount > 0 && player.characterCount > 0) {
+    hints.push({ id: "idle_buildings", priority: "low", type: "tip", icon: "🏠", message: `${player.idleBuildingCount}个建筑未分配工人`, action: "innerCity" });
   }
 
-  const foodNeeded = player.characters.length * 5 * 3;
-  if (player.food < foodNeeded && player.characters.length > 0) {
+  const foodNeeded = player.characterCount * 5 * 3;
+  if (player.food < foodNeeded && player.characterCount > 0) {
     hints.push({ id: "low_food", priority: "low", type: "tip", icon: "🍞", message: "食物储备不足，建议建造农田", action: "innerCity" });
   }
 

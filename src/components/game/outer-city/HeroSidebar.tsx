@@ -108,9 +108,9 @@ export default function HeroSidebar({
                   key={char.id}
                   className="mb-2 flex items-center gap-2 rounded bg-[#1a1a20] p-2"
                 >
-                  <span className="text-xl">{char.character.portrait}</span>
+                  <span className="text-xl">{char.portrait}</span>
                   <p className="flex-1 truncate text-sm text-[#e0dcd0]">
-                    {char.character.name}
+                    {char.name}
                   </p>
                   <button
                     onClick={() => deployHero.mutate({ characterId: char.id })}
