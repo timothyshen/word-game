@@ -22,13 +22,13 @@ function makeRule(overrides: Partial<GameRuleRecord> = {}): GameRuleRecord {
   };
 }
 
-function createMockStore(): IRuleStore & {
-  findRuleByName: ReturnType<typeof vi.fn>;
-  findRulesByCategory: ReturnType<typeof vi.fn>;
-} {
+function createMockStore() {
   return {
     findRuleByName: vi.fn(),
     findRulesByCategory: vi.fn(),
+  } as unknown as IRuleStore & {
+    findRuleByName: ReturnType<typeof vi.fn>;
+    findRulesByCategory: ReturnType<typeof vi.fn>;
   };
 }
 

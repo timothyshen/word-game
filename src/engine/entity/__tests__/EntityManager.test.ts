@@ -19,7 +19,7 @@ function createMockStore() {
     updateEntityState: vi.fn(),
     deleteEntity: vi.fn(),
     deleteManyEntities: vi.fn(),
-  } satisfies Record<keyof IEntityStore, ReturnType<typeof vi.fn>>;
+  } as unknown as IEntityStore & Record<keyof IEntityStore, ReturnType<typeof vi.fn>>;
 }
 
 type MockStore = ReturnType<typeof createMockStore>;
@@ -27,7 +27,7 @@ type MockStore = ReturnType<typeof createMockStore>;
 let mockStore: MockStore;
 
 function createManager(): EntityManager {
-  return new EntityManager(mockStore);
+  return new EntityManager(mockStore as IEntityStore);
 }
 
 describe("EntityManager", () => {
