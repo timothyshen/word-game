@@ -1,7 +1,15 @@
-import type { GameEngine, GameModule, GameEvent } from "../types";
+import type { GameEngine, GamePlugin } from "../types";
+import type { TypedGameEvent } from "../events";
 
-export class CoreModule implements GameModule {
+export class CoreModule implements GamePlugin {
   name = "core";
+  manifest = {
+    name: "core",
+    version: "1.0.0",
+    description: "Core player and achievement events",
+    provides: ["player:statusChanged"],
+    requires: ["player:expGain", "achievement:claimed"],
+  };
   private engine: GameEngine | null = null;
 
   async init(engine: GameEngine): Promise<void> {
@@ -21,21 +29,20 @@ export class CoreModule implements GameModule {
     }
   }
 
-  private handleExpGain = async (event: GameEvent): Promise<void> => {
+  private handleExpGain = async (
+    event: TypedGameEvent<"player:expGain">,
+  ): Promise<void> => {
     // For now, just emit a status changed event.
     // Actual level-up logic still runs through the router -> service path.
     // This module enables cross-module communication when exp is gained.
-    const { userId } = event.payload as { userId: string; amount: number };
+    const { userId } = event.payload;
     await this.engine?.events.emit("player:statusChanged", { userId }, "core");
   };
 
   private handleAchievementClaimed = async (
-    event: GameEvent,
+    event: TypedGameEvent<"achievement:claimed">,
   ): Promise<void> => {
-    const { userId } = event.payload as {
-      userId: string;
-      achievementId: string;
-    };
+    const { userId } = event.payload;
     await this.engine?.events.emit(
       "player:statusChanged",
       { userId, trigger: "achievement" },

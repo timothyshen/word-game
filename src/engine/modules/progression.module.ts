@@ -1,8 +1,23 @@
-import type { GameEngine, GameModule, GameEvent } from "../types";
+import type { GameEngine, GamePlugin } from "../types";
+import type { TypedGameEvent } from "../events";
 
-export class ProgressionModule implements GameModule {
+export class ProgressionModule implements GamePlugin {
   name = "progression";
   dependencies = ["core", "combat", "exploration"];
+  manifest = {
+    name: "progression",
+    version: "1.0.0",
+    description: "Progression tracking and card acquisition",
+    provides: ["card:acquired", "progression:check"],
+    requires: [
+      "combat:victory",
+      "exploration:complete",
+      "boss:challenge",
+      "card:used",
+      "character:levelUp",
+      "breakthrough:complete",
+    ],
+  };
   private engine: GameEngine | null = null;
 
   async init(engine: GameEngine): Promise<void> {
@@ -30,13 +45,15 @@ export class ProgressionModule implements GameModule {
     }
   }
 
-  private handleCombatVictory = async (event: GameEvent): Promise<void> => {
-    const { userId, rewards } = event.payload as {
-      userId: string;
-      rewards?: { cards?: Array<{ id: string; name: string }> };
-    };
-    if (rewards?.cards) {
-      for (const card of rewards.cards) {
+  private handleCombatVictory = async (
+    event: TypedGameEvent<"combat:victory">,
+  ): Promise<void> => {
+    const { userId, rewards } = event.payload;
+    const rewardsObj = rewards as
+      | { cards?: Array<{ id: string; name: string }> }
+      | undefined;
+    if (rewardsObj?.cards) {
+      for (const card of rewardsObj.cards) {
         await this.engine?.events.emit(
           "card:acquired",
           { userId, cardId: card.id, cardName: card.name },
@@ -53,14 +70,14 @@ export class ProgressionModule implements GameModule {
   };
 
   private handleExplorationComplete = async (
-    event: GameEvent,
+    event: TypedGameEvent<"exploration:complete">,
   ): Promise<void> => {
-    const { userId, result } = event.payload as {
-      userId: string;
-      result?: { cards?: Array<{ id: string; name: string }> };
-    };
-    if (result?.cards) {
-      for (const card of result.cards) {
+    const { userId, result } = event.payload;
+    const resultObj = result as
+      | { cards?: Array<{ id: string; name: string }> }
+      | undefined;
+    if (resultObj?.cards) {
+      for (const card of resultObj.cards) {
         await this.engine?.events.emit(
           "card:acquired",
           { userId, cardId: card.id, cardName: card.name },
@@ -75,12 +92,10 @@ export class ProgressionModule implements GameModule {
     );
   };
 
-  private handleBossChallenge = async (event: GameEvent): Promise<void> => {
-    const { userId, victory } = event.payload as {
-      userId: string;
-      bossId: string;
-      victory: boolean;
-    };
+  private handleBossChallenge = async (
+    event: TypedGameEvent<"boss:challenge">,
+  ): Promise<void> => {
+    const { userId, victory } = event.payload;
     if (victory) {
       await this.engine?.events.emit(
         "combat:victory",
@@ -95,12 +110,10 @@ export class ProgressionModule implements GameModule {
     );
   };
 
-  private handleCardUsed = async (event: GameEvent): Promise<void> => {
-    const { userId } = event.payload as {
-      userId: string;
-      cardId: string;
-      action: string;
-    };
+  private handleCardUsed = async (
+    event: TypedGameEvent<"card:used">,
+  ): Promise<void> => {
+    const { userId } = event.payload;
     await this.engine?.events.emit(
       "progression:check",
       { userId, trigger: "card_used" },
@@ -109,13 +122,9 @@ export class ProgressionModule implements GameModule {
   };
 
   private handleCharacterLevelUp = async (
-    event: GameEvent,
+    event: TypedGameEvent<"character:levelUp">,
   ): Promise<void> => {
-    const { userId, characterId, newLevel } = event.payload as {
-      userId: string;
-      characterId: string;
-      newLevel: number;
-    };
+    const { userId, characterId, newLevel } = event.payload;
     await this.engine?.events.emit(
       "progression:check",
       { userId, trigger: "character_level_up", characterId, newLevel },
@@ -123,12 +132,10 @@ export class ProgressionModule implements GameModule {
     );
   };
 
-  private handleBreakthrough = async (event: GameEvent): Promise<void> => {
-    const { userId, target, newTier } = event.payload as {
-      userId: string;
-      target: string;
-      newTier: number;
-    };
+  private handleBreakthrough = async (
+    event: TypedGameEvent<"breakthrough:complete">,
+  ): Promise<void> => {
+    const { userId, target, newTier } = event.payload;
     await this.engine?.events.emit(
       "progression:check",
       { userId, trigger: "breakthrough", target, newTier },

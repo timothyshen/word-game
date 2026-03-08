@@ -34,7 +34,11 @@ export interface GameEventMap {
   "combat:defeat": { userId: string };
 
   // Exploration
-  "exploration:start": { userId: string; result?: unknown };
+  "exploration:start": {
+    userId: string;
+    result?: unknown;
+    encounter?: { monsterType: string; monsterLevel: number };
+  };
   "exploration:complete": { userId: string; result?: unknown };
   "exploration:encounter": {
     userId: string;
@@ -43,7 +47,7 @@ export interface GameEventMap {
   };
 
   // Economy / Settlement / Building
-  "settlement:daily": { userId: string };
+  "settlement:daily": { userId: string; output?: Record<string, number> };
   "building:upgrade": {
     userId: string;
     buildingId: string;
@@ -71,16 +75,23 @@ export interface GameEventMap {
     amount: number;
   };
   "breakthrough:complete": { userId: string; target: string; newTier: number };
-  "progression:check": { userId: string; trigger: string };
+  "progression:check": {
+    userId: string;
+    trigger: string;
+    characterId?: string;
+    newLevel?: number;
+    target?: string;
+    newTier?: number;
+  };
 
   // Content
-  "content:checkUnlocks": { userId: string };
+  "content:checkUnlocks": { userId: string; newLevel?: number; newTier?: number };
 
   // Territory
   "territory:unlock": { userId: string };
   "territory:build": { userId: string };
   "territory:expand": { userId: string };
-  "territory:expanded": { userId: string; trigger?: string };
+  "territory:expanded": { userId: string; trigger?: string; buildingId?: string };
 
   // System
   "system:dailyReset": { userId: string };

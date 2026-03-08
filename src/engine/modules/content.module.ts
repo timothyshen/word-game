@@ -1,8 +1,16 @@
-import type { GameEngine, GameModule, GameEvent } from "../types";
+import type { GameEngine, GamePlugin } from "../types";
+import type { TypedGameEvent } from "../events";
 
-export class ContentModule implements GameModule {
+export class ContentModule implements GamePlugin {
   name = "content";
   dependencies = ["core"];
+  manifest = {
+    name: "content",
+    version: "1.0.0",
+    description: "Content unlock management",
+    provides: ["content:checkUnlocks"],
+    requires: ["player:levelUp", "character:levelUp", "breakthrough:complete"],
+  };
   private engine: GameEngine | null = null;
 
   async init(engine: GameEngine): Promise<void> {
@@ -21,11 +29,10 @@ export class ContentModule implements GameModule {
     }
   }
 
-  private handleLevelUp = async (event: GameEvent): Promise<void> => {
-    const { userId, newLevel } = event.payload as {
-      userId: string;
-      newLevel: number;
-    };
+  private handleLevelUp = async (
+    event: TypedGameEvent<"player:levelUp">,
+  ): Promise<void> => {
+    const { userId, newLevel } = event.payload;
     await this.engine?.events.emit(
       "content:checkUnlocks",
       { userId, newLevel },
@@ -34,13 +41,9 @@ export class ContentModule implements GameModule {
   };
 
   private handleCharacterLevelUp = async (
-    event: GameEvent,
+    event: TypedGameEvent<"character:levelUp">,
   ): Promise<void> => {
-    const { userId, newLevel } = event.payload as {
-      userId: string;
-      characterId: string;
-      newLevel: number;
-    };
+    const { userId, newLevel } = event.payload;
     await this.engine?.events.emit(
       "content:checkUnlocks",
       { userId, newLevel },
@@ -48,12 +51,10 @@ export class ContentModule implements GameModule {
     );
   };
 
-  private handleBreakthrough = async (event: GameEvent): Promise<void> => {
-    const { userId, newTier } = event.payload as {
-      userId: string;
-      target: string;
-      newTier: number;
-    };
+  private handleBreakthrough = async (
+    event: TypedGameEvent<"breakthrough:complete">,
+  ): Promise<void> => {
+    const { userId, newTier } = event.payload;
     await this.engine?.events.emit(
       "content:checkUnlocks",
       { userId, newTier },

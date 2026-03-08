@@ -1,8 +1,21 @@
-import type { GameEngine, GameModule, GameEvent } from "../types";
+import type { GameEngine, GamePlugin } from "../types";
+import type { TypedGameEvent } from "../events";
 
-export class TerritoryModule implements GameModule {
+export class TerritoryModule implements GamePlugin {
   name = "territory";
   dependencies = ["core", "economy"];
+  manifest = {
+    name: "territory",
+    version: "1.0.0",
+    description: "Territory management and expansion",
+    provides: ["territory:expanded"],
+    requires: [
+      "building:upgraded",
+      "territory:unlock",
+      "territory:build",
+      "territory:expand",
+    ],
+  };
   private engine: GameEngine | null = null;
 
   async init(engine: GameEngine): Promise<void> {
@@ -23,11 +36,10 @@ export class TerritoryModule implements GameModule {
     }
   }
 
-  private handleBuildingUpgraded = async (event: GameEvent): Promise<void> => {
-    const { userId, buildingId } = event.payload as {
-      userId: string;
-      buildingId: string;
-    };
+  private handleBuildingUpgraded = async (
+    event: TypedGameEvent<"building:upgraded">,
+  ): Promise<void> => {
+    const { userId, buildingId } = event.payload;
     await this.engine?.events.emit(
       "territory:expanded",
       { userId, buildingId },
@@ -35,8 +47,10 @@ export class TerritoryModule implements GameModule {
     );
   };
 
-  private handleTerritoryUnlock = async (event: GameEvent): Promise<void> => {
-    const { userId } = event.payload as { userId: string };
+  private handleTerritoryUnlock = async (
+    event: TypedGameEvent<"territory:unlock">,
+  ): Promise<void> => {
+    const { userId } = event.payload;
     await this.engine?.events.emit(
       "territory:expanded",
       { userId, trigger: "unlock" },
@@ -44,8 +58,10 @@ export class TerritoryModule implements GameModule {
     );
   };
 
-  private handleTerritoryBuild = async (event: GameEvent): Promise<void> => {
-    const { userId } = event.payload as { userId: string };
+  private handleTerritoryBuild = async (
+    event: TypedGameEvent<"territory:build">,
+  ): Promise<void> => {
+    const { userId } = event.payload;
     await this.engine?.events.emit(
       "territory:expanded",
       { userId, trigger: "build" },
@@ -53,8 +69,10 @@ export class TerritoryModule implements GameModule {
     );
   };
 
-  private handleTerritoryExpand = async (event: GameEvent): Promise<void> => {
-    const { userId } = event.payload as { userId: string };
+  private handleTerritoryExpand = async (
+    event: TypedGameEvent<"territory:expand">,
+  ): Promise<void> => {
+    const { userId } = event.payload;
     await this.engine?.events.emit(
       "territory:expanded",
       { userId, trigger: "expand" },

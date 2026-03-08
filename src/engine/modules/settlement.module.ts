@@ -1,8 +1,16 @@
-import type { GameEngine, GameModule, GameEvent } from "../types";
+import type { GameEngine, GamePlugin } from "../types";
+import type { TypedGameEvent } from "../events";
 
-export class SettlementModule implements GameModule {
+export class SettlementModule implements GamePlugin {
   name = "settlement";
   dependencies = ["core", "economy"];
+  manifest = {
+    name: "settlement",
+    version: "1.0.0",
+    description: "Daily settlement and reset system",
+    provides: ["settlement:daily"],
+    requires: ["system:dailyReset"],
+  };
   private engine: GameEngine | null = null;
 
   async init(engine: GameEngine): Promise<void> {
@@ -17,8 +25,10 @@ export class SettlementModule implements GameModule {
     }
   }
 
-  private handleDailyReset = async (event: GameEvent): Promise<void> => {
-    const { userId } = event.payload as { userId: string };
+  private handleDailyReset = async (
+    event: TypedGameEvent<"system:dailyReset">,
+  ): Promise<void> => {
+    const { userId } = event.payload;
     await this.engine?.events.emit(
       "settlement:daily",
       { userId },

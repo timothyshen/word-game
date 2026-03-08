@@ -1,13 +1,21 @@
-import type { GameEngine, GameModule, GameEvent } from "../types";
+import type { GameEngine, GamePlugin } from "../types";
+import type { TypedGameEvent } from "../events";
 
 export interface ExplorationConfig {
   maxEncountersPerDay?: number;
   encounterChance?: number;
 }
 
-export class ExplorationModule implements GameModule<ExplorationConfig> {
+export class ExplorationModule implements GamePlugin<ExplorationConfig> {
   name = "exploration";
   dependencies = ["core"];
+  manifest = {
+    name: "exploration",
+    version: "1.0.0",
+    description: "Exploration and encounter system",
+    provides: ["exploration:complete", "exploration:encounter"],
+    requires: ["exploration:start"],
+  };
   defaultConfig: ExplorationConfig = {
     maxEncountersPerDay: 10,
     encounterChance: 0.3,
@@ -28,21 +36,19 @@ export class ExplorationModule implements GameModule<ExplorationConfig> {
     }
   }
 
-  private handleStart = async (event: GameEvent): Promise<void> => {
-    const payload = event.payload as {
-      userId: string;
-      result?: unknown;
-      encounter?: { monsterType: string; monsterLevel: number };
-    };
+  private handleStart = async (
+    event: TypedGameEvent<"exploration:start">,
+  ): Promise<void> => {
+    const { userId, result, encounter } = event.payload;
     await this.engine?.events.emit(
       "exploration:complete",
-      { userId: payload.userId, result: payload.result },
+      { userId, result },
       "exploration",
     );
-    if (payload.encounter) {
+    if (encounter) {
       await this.engine?.events.emit(
         "exploration:encounter",
-        { userId: payload.userId, ...payload.encounter },
+        { userId, ...encounter },
         "exploration",
       );
     }
