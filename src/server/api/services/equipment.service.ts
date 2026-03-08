@@ -8,6 +8,12 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
+import { engine, ruleService } from "~/server/api/engine";
+
+async function calcFormula(ruleName: string, vars: Record<string, number>): Promise<number> {
+  const formula = await ruleService.getFormula(ruleName);
+  return engine.formulas.calculate(formula, vars);
+}
 
 const EQUIPMENT_SLOTS = [
   "mainHand", "offHand", "helmet", "chest", "belt",
@@ -224,18 +230,18 @@ export async function enhanceEquipment(db: FullDbClient, entities: IEntityManage
   if (!equipTemplate) throw new TRPCError({ code: "NOT_FOUND", message: "装备模板不存在" });
 
   const currentLevel = state.enhanceLevel;
-  if (currentLevel >= 10) throw new TRPCError({ code: "BAD_REQUEST", message: "装备已达最高强化等级" });
+  const maxEnhance = await ruleService.getConfig<{ value: number }>("equipment_max_enhance");
+  if (currentLevel >= maxEnhance.value) throw new TRPCError({ code: "BAD_REQUEST", message: "装备已达最高强化等级" });
 
-  const baseCost = { gold: 100, crystals: 5 };
-  const rarityMult: Record<string, number> = { "普通": 1, "精良": 1.5, "稀有": 2, "史诗": 3, "传说": 5 };
-  const mult = (rarityMult[equipTemplate.rarity] ?? 1) * (1 + currentLevel * 0.5);
-  const goldCost = Math.floor(baseCost.gold * mult);
-  const crystalsCost = Math.floor(baseCost.crystals * mult);
+  const rarityMultipliers = await ruleService.getConfig<Record<string, number>>("equipment_rarity_multipliers");
+  const mult = (rarityMultipliers[equipTemplate.rarity] ?? 1) * (1 + currentLevel * 0.5);
+  const goldCost = Math.floor(await calcFormula("equipment_enhance_cost", { baseGold: 100, rarityMult: rarityMultipliers[equipTemplate.rarity] ?? 1, currentLevel }));
+  const crystalsCost = Math.floor(5 * mult);
 
   if (player.gold < goldCost) throw new TRPCError({ code: "BAD_REQUEST", message: "金币不足" });
   if (player.crystals < crystalsCost) throw new TRPCError({ code: "BAD_REQUEST", message: "水晶不足" });
 
-  const successRate = Math.max(0.3, 1 - currentLevel * 0.08);
+  const successRate = await calcFormula("equipment_enhance_success", { currentLevel });
   const success = Math.random() < successRate;
 
   await updatePlayer(db, player.id, { gold: { decrement: goldCost }, crystals: { decrement: crystalsCost } });

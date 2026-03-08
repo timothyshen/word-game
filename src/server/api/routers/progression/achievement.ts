@@ -10,7 +10,12 @@ export const achievementRouter = createTRPCRouter({
   claim: protectedProcedure
     .input(z.object({ achievementId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return achievementService.claimAchievement(ctx.db, ctx.engine.entities, ctx.session.user.id, input.achievementId);
+      const result = await achievementService.claimAchievement(ctx.db, ctx.engine.entities, ctx.session.user.id, input.achievementId);
+      void ctx.engine.events.emit("achievement:claimed", {
+        userId: ctx.session.user.id,
+        achievementId: input.achievementId,
+      }, "achievement-router");
+      return result;
     }),
 
   getByCategory: protectedProcedure

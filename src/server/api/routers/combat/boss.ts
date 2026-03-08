@@ -10,7 +10,13 @@ export const bossRouter = createTRPCRouter({
   challenge: protectedProcedure
     .input(z.object({ bossId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return bossService.challengeBoss(ctx.db, ctx.engine.entities, ctx.session.user.id, input.bossId);
+      const result = await bossService.challengeBoss(ctx.db, ctx.engine.entities, ctx.session.user.id, input.bossId);
+      void ctx.engine.events.emit("boss:challenge", {
+        userId: ctx.session.user.id,
+        bossId: input.bossId,
+        victory: result.victory,
+      }, "boss-router");
+      return result;
     }),
 
   getDetail: protectedProcedure

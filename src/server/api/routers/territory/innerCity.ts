@@ -24,7 +24,7 @@ export const innerCityRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return innerCityService.placeBuilding(
+      const result = await innerCityService.placeBuilding(
         ctx.db,
         ctx.engine.entities,
         ctx.session.user.id,
@@ -32,12 +32,22 @@ export const innerCityRouter = createTRPCRouter({
         input.positionX,
         input.positionY,
       );
+      void ctx.engine.events.emit("territory:build", {
+        userId: ctx.session.user.id,
+        positionX: input.positionX,
+        positionY: input.positionY,
+      }, "innerCity-router");
+      return result;
     }),
 
   expandTerritory: protectedProcedure
     .input(z.object({ cardId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return innerCityService.expandTerritory(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
+      const result = await innerCityService.expandTerritory(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
+      void ctx.engine.events.emit("territory:expand", {
+        userId: ctx.session.user.id,
+      }, "innerCity-router");
+      return result;
     }),
 
   upgradeBuilding: protectedProcedure

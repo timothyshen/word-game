@@ -6,6 +6,7 @@ import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
 import { grantRandomCard } from "../utils/card-utils";
+import { engine, ruleService } from "~/server/api/engine";
 
 interface AltarType {
   id: string;
@@ -42,6 +43,23 @@ function rollRarity(weights: Record<string, number>): string {
     roll -= weight;
   }
   return "普通";
+}
+
+async function getAltarWeights(altarTypeId: string): Promise<Record<string, number>> {
+  const ruleMap: Record<string, string> = {
+    basic_altar: "altar_basic_weights",
+    sacred_altar: "altar_sacred_weights",
+    ancient_altar: "altar_ancient_weights",
+  };
+  const ruleName = ruleMap[altarTypeId];
+  if (!ruleName) return { "普通": 100 };
+
+  const weights = await ruleService.getWeights(ruleName);
+  const result: Record<string, number> = {};
+  for (const w of weights) {
+    result[w.value as string] = w.weight;
+  }
+  return result;
 }
 
 function getTodayString(): string {
@@ -96,7 +114,8 @@ export async function challengeGuardian(db: FullDbClient, userId: string, altarI
   const altarType = ALTAR_TYPES.find((t) => t.id === data.altarType);
   if (!altarType) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "祭坛类型无效" });
 
-  const staminaCost = 30;
+  const staminaConfig = await ruleService.getConfig<{ value: number }>("altar_stamina_cost");
+  const staminaCost = staminaConfig.value;
   if (player.stamina < staminaCost) throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
 
   await updatePlayer(db, player.id, { stamina: { decrement: staminaCost }, lastStaminaUpdate: new Date() });
@@ -106,7 +125,10 @@ export async function challengeGuardian(db: FullDbClient, userId: string, altarI
   const charactersPower = player.characters.reduce((sum, c) => sum + c.attack + c.defense + c.speed, 0);
   const bossPower = boss.attack + boss.defense * 0.5 + boss.hp * 0.01;
   const powerRatio = (playerPower + charactersPower) / bossPower;
-  const baseWinChance = Math.min(0.85, Math.max(0.15, powerRatio * 0.5));
+  const baseWinChance = await (async () => {
+    const formula = await ruleService.getFormula("altar_victory_formula");
+    return engine.formulas.calculate(formula, { powerRatio });
+  })();
   const victory = Math.random() < baseWinChance;
 
   if (victory) {
@@ -140,7 +162,8 @@ export async function collectDailyCard(db: FullDbClient, entities: IEntityManage
   const altarType = ALTAR_TYPES.find((t) => t.id === data.altarType);
   if (!altarType) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "祭坛类型无效" });
 
-  const rarity = rollRarity(altarType.cardRarityWeights);
+  const weights = await getAltarWeights(data.altarType);
+  const rarity = rollRarity(weights);
   const cardResult = await grantRandomCard(db, entities, player.id, rarity);
   if (!cardResult) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "没有可用卡牌" });
 
@@ -175,7 +198,8 @@ export async function collectAllDailyCards(db: FullDbClient, entities: IEntityMa
     const altarType = ALTAR_TYPES.find((t) => t.id === data.altarType);
     if (!altarType) continue;
 
-    const rarity = rollRarity(altarType.cardRarityWeights);
+    const weights = await getAltarWeights(data.altarType);
+    const rarity = rollRarity(weights);
     const cardResult = await grantRandomCard(db, entities, player.id, rarity);
     if (!cardResult) continue;
 

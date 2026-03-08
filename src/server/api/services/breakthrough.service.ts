@@ -6,6 +6,7 @@ import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
 import { parseCharacterState, type CharacterEntity } from "../utils/character-utils";
+import { engine, ruleService } from "~/server/api/engine";
 
 // 突破条件
 interface BreakthroughRequirement {
@@ -16,14 +17,29 @@ interface BreakthroughRequirement {
   specialItem?: string; // 特殊物品（如突破卡）
 }
 
-// 突破条件配置
-const BREAKTHROUGH_REQUIREMENTS: BreakthroughRequirement[] = [
-  { tier: 1, level: 10, gold: 500, crystals: 20 },
-  { tier: 2, level: 20, gold: 1500, crystals: 50 },
-  { tier: 3, level: 30, gold: 3000, crystals: 100, specialItem: "tier_3_breakthrough" },
-  { tier: 4, level: 40, gold: 5000, crystals: 200, specialItem: "tier_4_breakthrough" },
-  { tier: 5, level: 50, gold: 10000, crystals: 500, specialItem: "tier_5_breakthrough" },
-];
+// 从规则引擎获取突破条件
+async function getBreakthroughRequirement(tier: number): Promise<BreakthroughRequirement | null> {
+  try {
+    const config = await ruleService.getConfig<{ level: number; gold: number; crystals: number; item?: string }>(
+      `breakthrough_tier_${tier}`,
+    );
+    return {
+      tier,
+      level: config.level,
+      gold: config.gold,
+      crystals: config.crystals,
+      specialItem: config.item,
+    };
+  } catch {
+    return null; // No rule for this tier = max tier reached
+  }
+}
+
+// 从规则引擎计算技能槽位
+async function calcSkillSlots(tier: number): Promise<number> {
+  const slotsFormula = await ruleService.getFormula("player_skill_slots");
+  return engine.formulas.calculate(slotsFormula, { tier });
+}
 
 // ── Get Player Breakthrough Status ──
 
@@ -34,13 +50,14 @@ export async function getPlayerStatus(db: FullDbClient, userId: string) {
   }
 
   const currentTier = player.tier;
-  const nextRequirement = BREAKTHROUGH_REQUIREMENTS.find(r => r.tier === currentTier);
+  const nextRequirement = await getBreakthroughRequirement(currentTier);
+  const skillSlots = await calcSkillSlots(currentTier);
 
   if (!nextRequirement) {
     return {
       currentTier,
       maxTier: true,
-      skillSlots: currentTier * 6,
+      skillSlots,
       nextTierSlots: null,
       requirements: null,
       canBreakthrough: false,
@@ -51,12 +68,13 @@ export async function getPlayerStatus(db: FullDbClient, userId: string) {
   const meetsLevel = player.level >= nextRequirement.level;
   const meetsGold = player.gold >= nextRequirement.gold;
   const meetsCrystals = player.crystals >= nextRequirement.crystals;
+  const nextTierSlots = await calcSkillSlots(currentTier + 1);
 
   return {
     currentTier,
     maxTier: false,
-    skillSlots: currentTier * 6,
-    nextTierSlots: (currentTier + 1) * 6,
+    skillSlots,
+    nextTierSlots,
     requirements: nextRequirement,
     currentResources: {
       level: player.level,
@@ -76,7 +94,7 @@ export async function breakthroughPlayer(db: FullDbClient, userId: string) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  const requirement = BREAKTHROUGH_REQUIREMENTS.find(r => r.tier === player.tier);
+  const requirement = await getBreakthroughRequirement(player.tier);
   if (!requirement) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "已达最高职阶" });
   }
@@ -99,11 +117,14 @@ export async function breakthroughPlayer(db: FullDbClient, userId: string) {
     crystals: { decrement: requirement.crystals },
   });
 
+  const newTier = player.tier + 1;
+  const newSkillSlots = await calcSkillSlots(newTier);
+
   return {
     success: true,
-    newTier: player.tier + 1,
-    newSkillSlots: (player.tier + 1) * 6,
-    message: `恭喜突破到${player.tier + 1}阶！技能槽位增加到${(player.tier + 1) * 6}个`,
+    newTier,
+    newSkillSlots,
+    message: `恭喜突破到${newTier}阶！技能槽位增加到${newSkillSlots}个`,
   };
 }
 
@@ -128,7 +149,8 @@ export async function getCharacterStatus(db: FullDbClient, entities: IEntityMana
   const character = { id: entity.id, ...charState, character: charTemplate };
 
   const currentTier = character.tier;
-  const requirement = BREAKTHROUGH_REQUIREMENTS.find(r => r.tier === currentTier);
+  const requirement = await getBreakthroughRequirement(currentTier);
+  const skillSlots = await calcSkillSlots(currentTier);
 
   if (!requirement) {
     return {
@@ -136,7 +158,7 @@ export async function getCharacterStatus(db: FullDbClient, entities: IEntityMana
       characterName: character.character.name,
       currentTier,
       maxTier: true,
-      skillSlots: currentTier * 6,
+      skillSlots,
       requirements: null,
       canBreakthrough: false,
     };
@@ -145,14 +167,15 @@ export async function getCharacterStatus(db: FullDbClient, entities: IEntityMana
   const meetsLevel = character.level >= requirement.level;
   const meetsGold = player.gold >= requirement.gold;
   const meetsCrystals = player.crystals >= requirement.crystals;
+  const nextTierSlots = await calcSkillSlots(currentTier + 1);
 
   return {
     characterId: character.id,
     characterName: character.character.name,
     currentTier,
     maxTier: false,
-    skillSlots: currentTier * 6,
-    nextTierSlots: (currentTier + 1) * 6,
+    skillSlots,
+    nextTierSlots,
     requirements: requirement,
     currentStatus: {
       level: character.level,
@@ -184,7 +207,7 @@ export async function breakthroughCharacter(db: FullDbClient, entities: IEntityM
 
   const character = { id: entity.id, ...charState, character: charTemplate };
 
-  const requirement = BREAKTHROUGH_REQUIREMENTS.find(r => r.tier === character.tier);
+  const requirement = await getBreakthroughRequirement(character.tier);
   if (!requirement) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "角色已达最高职阶" });
   }
@@ -208,19 +231,22 @@ export async function breakthroughCharacter(db: FullDbClient, entities: IEntityM
 
   // 提升角色职阶并提高等级上限
   const newTier = character.tier + 1;
-  const newMaxLevel = character.maxLevel + 20; // 每阶增加20级上限
+  const levelCapIncrease = await ruleService.getConfig<{ value: number }>("breakthrough_level_cap_increase");
+  const newMaxLevel = character.maxLevel + levelCapIncrease.value;
 
   await entities.updateEntityState(character.id, {
     tier: newTier,
     maxLevel: newMaxLevel,
   });
 
+  const newSkillSlots = await calcSkillSlots(newTier);
+
   return {
     success: true,
     characterName: character.character.name,
     newTier,
     newMaxLevel,
-    newSkillSlots: newTier * 6,
+    newSkillSlots,
     message: `${character.character.name}突破到${newTier}阶！`,
   };
 }

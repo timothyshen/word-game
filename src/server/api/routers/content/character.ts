@@ -16,13 +16,25 @@ export const characterRouter = createTRPCRouter({
   levelUp: protectedProcedure
     .input(z.object({ characterId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return characterService.levelUp(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
+      const result = await characterService.levelUp(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
+      void ctx.engine.events.emit("character:levelUp", {
+        userId: ctx.session.user.id,
+        characterId: input.characterId,
+        newLevel: result.newLevel,
+      }, "character-router");
+      return result;
     }),
 
   addExp: protectedProcedure
     .input(z.object({ characterId: z.string(), amount: z.number().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      return characterService.addExp(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId, input.amount);
+      const result = await characterService.addExp(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId, input.amount);
+      void ctx.engine.events.emit("character:expGain", {
+        userId: ctx.session.user.id,
+        characterId: input.characterId,
+        amount: input.amount,
+      }, "character-router");
+      return result;
     }),
 
   heal: protectedProcedure

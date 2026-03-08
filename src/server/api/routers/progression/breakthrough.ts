@@ -8,7 +8,13 @@ export const breakthroughRouter = createTRPCRouter({
   }),
 
   breakthroughPlayer: protectedProcedure.mutation(async ({ ctx }) => {
-    return breakthroughService.breakthroughPlayer(ctx.db, ctx.session.user.id);
+    const result = await breakthroughService.breakthroughPlayer(ctx.db, ctx.session.user.id);
+    void ctx.engine.events.emit("breakthrough:complete", {
+      userId: ctx.session.user.id,
+      target: "player",
+      newTier: result.newTier,
+    }, "breakthrough-router");
+    return result;
   }),
 
   getCharacterStatus: protectedProcedure
@@ -20,6 +26,13 @@ export const breakthroughRouter = createTRPCRouter({
   breakthroughCharacter: protectedProcedure
     .input(z.object({ characterId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return breakthroughService.breakthroughCharacter(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
+      const result = await breakthroughService.breakthroughCharacter(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
+      void ctx.engine.events.emit("breakthrough:complete", {
+        userId: ctx.session.user.id,
+        target: "character",
+        characterId: input.characterId,
+        newTier: result.newTier,
+      }, "breakthrough-router");
+      return result;
     }),
 });

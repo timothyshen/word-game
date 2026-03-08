@@ -9,14 +9,17 @@ import { createSettlementLog, findSettlementHistory } from "../repositories/sett
 import { getCurrentGameDay } from "../utils/game-time";
 import { grantRandomCards } from "../utils/card-utils";
 import { addCardEntity } from "../utils/card-entity-utils";
+import { ruleService } from "~/server/api/engine";
 
 // ── Pure helpers ──
 
-function getGrade(score: number): string {
-  if (score >= 500) return "S";
-  if (score >= 400) return "A";
-  if (score >= 300) return "B";
-  if (score >= 200) return "C";
+async function getGrade(score: number): Promise<string> {
+  const thresholds = await ruleService.getConfig<Record<string, number>>("settlement_grade_thresholds");
+  // thresholds = { S: 500, A: 400, B: 300, C: 200 }
+  const grades = Object.entries(thresholds).sort((a, b) => b[1] - a[1]);
+  for (const [grade, threshold] of grades) {
+    if (score >= threshold) return grade;
+  }
   return "D";
 }
 
@@ -104,17 +107,17 @@ export async function getSettlementPreview(db: FullDbClient, userId: string) {
     {} as Record<number, typeof actions>,
   );
 
-  const dailyResults = Object.entries(actionsByDay).map(([day, dayActions]) => {
+  const dailyResults = await Promise.all(Object.entries(actionsByDay).map(async ([day, dayActions]) => {
     const totalScore = dayActions.reduce((sum, a) => sum + a.baseScore + a.bonus, 0);
     return {
       day: parseInt(day),
       totalScore,
-      grade: getGrade(totalScore),
+      grade: await getGrade(totalScore),
       rewards: calculateRewards(totalScore),
       breakdown: computeBreakdown(dayActions),
       actions: dayActions,
     };
-  });
+  }));
 
   return { pendingDays: currentDay - player.lastSettlementDay, dailyResults, currentStreakDays: player.streakDays };
 }
@@ -144,15 +147,20 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
   let newStreakDays = player.streakDays;
   const totalRewardCards: Array<{ rarity: string; count: number }> = [];
 
+  // Fetch config values once before the loop
+  const streakThreshold = await ruleService.getConfig<{ value: number }>("settlement_streak_threshold");
+  const streak3 = await ruleService.getConfig<{ rarity: string }>("settlement_streak_3_reward");
+  const streak7 = await ruleService.getConfig<{ rarity: string }>("settlement_streak_7_reward");
+
   for (let day = player.lastSettlementDay + 1; day <= currentDay; day++) {
     const dayActions = actionsByDay[day] ?? [];
     const totalScore = dayActions.reduce((sum, a) => sum + a.baseScore + a.bonus, 0);
-    const grade = getGrade(totalScore);
+    const grade = await getGrade(totalScore);
     const rewards = calculateRewards(totalScore);
     const breakdown = computeBreakdown(dayActions);
 
     // Streak tracking
-    if (totalScore >= 200) {
+    if (totalScore >= streakThreshold.value) {
       newStreakDays++;
     } else {
       newStreakDays = 0;
@@ -160,11 +168,11 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
 
     // Streak bonuses
     if (newStreakDays === 3) {
-      rewards.cards.push({ rarity: "稀有", count: 1 });
+      rewards.cards.push({ rarity: streak3.rarity, count: 1 });
       rewards.bonus.push("连续3日达标奖励");
     }
     if (newStreakDays === 7) {
-      rewards.cards.push({ rarity: "史诗", count: 1 });
+      rewards.cards.push({ rarity: streak7.rarity, count: 1 });
       rewards.bonus.push("连续7日达标奖励");
     }
 
@@ -202,13 +210,7 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
   }
 
   // Grant chest based on best grade
-  const GRADE_CHEST: Record<string, string | null> = {
-    D: null,
-    C: "普通宝箱",
-    B: "精良宝箱",
-    A: "稀有宝箱",
-    S: "史诗宝箱",
-  };
+  const GRADE_CHEST = await ruleService.getConfig<Record<string, string | null>>("settlement_grade_chests");
 
   let chestReward = null;
   if (settlementResults.length > 0) {

@@ -1,7 +1,7 @@
 /**
- * Player Repository — pure data access for Player, ActionLog, PlayerCharacter, PlayerCard, PlayerBuilding
+ * Player Repository — pure data access for Player, ActionLog
  */
-import type { Prisma, Player } from "../../../../generated/prisma";
+import type { Prisma } from "../../../../generated/prisma";
 import type { DbClient } from "./types";
 
 // ── Player queries ──
@@ -65,23 +65,12 @@ export function findCharacterTemplateByName(db: DbClient, name: string) {
   return db.character.findFirst({ where: { name } });
 }
 
-export function createPlayerCharacter(db: DbClient, data: Prisma.PlayerCharacterUncheckedCreateInput) {
-  return db.playerCharacter.create({ data });
-}
-
 // ── Card queries ──
 
 export function findCardsByNames(db: DbClient, names: string[]) {
   return db.card.findMany({
     where: { OR: names.map((name) => ({ name })) },
   });
-}
-
-export function createPlayerCard(
-  db: DbClient,
-  data: { playerId: string; cardId: string; quantity: number },
-) {
-  return db.playerCard.create({ data });
 }
 
 // ── ActionLog queries ──

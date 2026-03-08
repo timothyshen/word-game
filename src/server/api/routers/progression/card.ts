@@ -25,7 +25,13 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.useCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
+      const result = await cardService.useCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
+      void ctx.engine.events.emit("card:used", {
+        userId: ctx.session.user.id,
+        cardId: input.cardId,
+        action: "use",
+      }, "card-router");
+      return result;
     }),
 
   // 添加卡牌（内部使用，如奖励发放）
@@ -50,14 +56,26 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.useBuildingCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
+      const result = await cardService.useBuildingCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
+      void ctx.engine.events.emit("card:used", {
+        userId: ctx.session.user.id,
+        cardId: input.cardId,
+        action: "build",
+      }, "card-router");
+      return result;
     }),
 
   // 使用招募卡招募角色
   useRecruitCard: protectedProcedure
     .input(z.object({ cardId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return cardService.useRecruitCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
+      const result = await cardService.useRecruitCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
+      void ctx.engine.events.emit("card:used", {
+        userId: ctx.session.user.id,
+        cardId: input.cardId,
+        action: "recruit",
+      }, "card-router");
+      return result;
     }),
 
   // 使用道具卡
@@ -70,14 +88,26 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.useItemCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
+      const result = await cardService.useItemCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
+      void ctx.engine.events.emit("card:used", {
+        userId: ctx.session.user.id,
+        cardId: input.cardId,
+        action: "item",
+      }, "card-router");
+      return result;
     }),
 
   // 开启宝箱
   openChest: protectedProcedure
     .input(z.object({ cardId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return cardService.useChestCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
+      const result = await cardService.useChestCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
+      void ctx.engine.events.emit("card:used", {
+        userId: ctx.session.user.id,
+        cardId: input.cardId,
+        action: "chest",
+      }, "card-router");
+      return result;
     }),
 
   // 学习技能卡
@@ -90,6 +120,12 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.learnSkill(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
+      const result = await cardService.learnSkill(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
+      void ctx.engine.events.emit("card:used", {
+        userId: ctx.session.user.id,
+        cardId: input.cardId,
+        action: "skill",
+      }, "card-router");
+      return result;
     }),
 });

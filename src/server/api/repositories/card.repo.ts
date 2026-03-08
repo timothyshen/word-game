@@ -219,14 +219,3 @@ export async function createPlayerBuildingRecord(
 export function findCharacterTemplateById(db: DbClient, id: string) {
   return db.character.findUnique({ where: { id } });
 }
-
-export function createPlayerCharacterRecord(
-  db: DbClient,
-  data: {
-    playerId: string; characterId: string; level: number; tier: number;
-    hp: number; maxHp: number; mp: number; maxMp: number;
-    attack: number; defense: number; speed: number; luck: number;
-  },
-) {
-  return db.playerCharacter.create({ data, include: { character: true } });
-}

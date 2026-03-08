@@ -25,12 +25,18 @@ export const territoryRouter = createTRPCRouter({
   unlock: protectedProcedure
     .input(z.object({ positionX: z.number(), positionY: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      return territoryService.unlock(
+      const result = await territoryService.unlock(
         ctx.db,
         ctx.session.user.id,
         input.positionX,
         input.positionY,
       );
+      void ctx.engine.events.emit("territory:unlock", {
+        userId: ctx.session.user.id,
+        positionX: input.positionX,
+        positionY: input.positionY,
+      }, "territory-router");
+      return result;
     }),
 
   getTileDetail: protectedProcedure
