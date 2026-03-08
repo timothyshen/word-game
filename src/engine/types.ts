@@ -36,6 +36,22 @@ export interface GameModule<TConfig = void> {
   destroy?(): Promise<void>;
 }
 
+// ---- Plugin manifest -------------------------------------------------------
+
+export interface PluginManifest {
+  name: string;
+  version: string;
+  description?: string;
+  /** Events this plugin emits */
+  provides?: string[];
+  /** Events this plugin listens to */
+  requires?: string[];
+}
+
+export interface GamePlugin<TConfig = void> extends GameModule<TConfig> {
+  manifest: PluginManifest;
+}
+
 // ---- Sub-system interfaces -------------------------------------------------
 
 export interface IEventBus {
@@ -115,6 +131,8 @@ export interface GameEngine {
   modules: IModuleRegistry;
   state: IStateManager;
   entities: IEntityManager;
+  /** Register a module/plugin and return the engine for chaining */
+  use<TConfig>(plugin: GameModule<TConfig>, config?: TConfig): this;
 }
 
 // ---- Conditions & weighted random ------------------------------------------

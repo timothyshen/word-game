@@ -4,6 +4,7 @@
 
 import type {
   GameEngine,
+  GameModule,
   IEntityManager,
   IEventBus,
   IFormulaEngine,
@@ -28,12 +29,14 @@ export type {
   GameEngine,
   GameEvent,
   GameModule,
+  GamePlugin,
   IEntityManager,
   IEventBus,
   IFormulaEngine,
   IModuleRegistry,
   IRuleEngine,
   IStateManager,
+  PluginManifest,
   WeightedItem,
 } from "./types";
 
@@ -107,6 +110,12 @@ export class GameEngineImpl implements GameEngine {
         }),
       );
     }
+  }
+
+  /** Register a module/plugin and return the engine for chaining */
+  use<TConfig>(plugin: GameModule<TConfig>, config?: TConfig): this {
+    this.modules.register(plugin, config);
+    return this;
   }
 
   /** Start the engine — initialises all registered modules */

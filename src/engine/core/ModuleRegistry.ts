@@ -1,4 +1,4 @@
-import type { GameEngine, GameModule, IModuleRegistry } from "../types";
+import type { GameEngine, GameModule, GamePlugin, IModuleRegistry } from "../types";
 
 interface ModuleEntry {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,9 +33,41 @@ export class ModuleRegistry implements IModuleRegistry {
     const sorted = this.topologicalSort();
     this.initOrder = sorted;
 
+    this.validateManifests();
+
     for (const name of sorted) {
       const entry = this.modules.get(name)!;
       await entry.module.init(engine, entry.config);
+    }
+  }
+
+  /**
+   * Validate plugin manifests: warn if any required events are not provided
+   * by any registered plugin. Only checks modules that have a `manifest`.
+   */
+  private validateManifests(): void {
+    const allProvided = new Set<string>();
+    const requirements: Array<{ pluginName: string; event: string }> = [];
+
+    for (const entry of this.modules.values()) {
+      const plugin = entry.module as Partial<GamePlugin>;
+      if (plugin.manifest) {
+        for (const event of plugin.manifest.provides ?? []) {
+          allProvided.add(event);
+        }
+        for (const event of plugin.manifest.requires ?? []) {
+          requirements.push({ pluginName: plugin.manifest.name, event });
+        }
+      }
+    }
+
+    for (const { pluginName, event } of requirements) {
+      if (!allProvided.has(event)) {
+        console.warn(
+          `[ModuleRegistry] Plugin "${pluginName}" requires event "${event}", ` +
+          `but no registered plugin provides it`,
+        );
+      }
     }
   }
 

@@ -1,9 +1,16 @@
-import type { GameEngine, GameModule } from "../types";
+import type { GameEngine, GamePlugin } from "../types";
 import type { TypedGameEvent } from "../events";
 
-export class CombatModule implements GameModule {
+export class CombatModule implements GamePlugin {
   name = "combat";
   dependencies = ["core"];
+  manifest = {
+    name: "combat",
+    version: "1.0.0",
+    description: "Turn-based combat system",
+    provides: ["combat:started", "combat:victory", "combat:defeat"],
+    requires: ["combat:start", "combat:action"],
+  };
   private engine: GameEngine | null = null;
 
   async init(engine: GameEngine): Promise<void> {

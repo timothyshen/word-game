@@ -9,14 +9,15 @@ import { TerritoryModule } from "./territory.module";
 import { SettlementModule } from "./settlement.module";
 
 export function registerAllModules(engine: GameEngine): void {
-  engine.modules.register(new CoreModule());
-  engine.modules.register(new CombatModule());
-  engine.modules.register(new ExplorationModule());
-  engine.modules.register(new EconomyModule());
-  engine.modules.register(new ProgressionModule());
-  engine.modules.register(new ContentModule());
-  engine.modules.register(new TerritoryModule());
-  engine.modules.register(new SettlementModule());
+  engine
+    .use(new CoreModule())
+    .use(new CombatModule())
+    .use(new ExplorationModule())
+    .use(new EconomyModule())
+    .use(new ProgressionModule())
+    .use(new ContentModule())
+    .use(new TerritoryModule())
+    .use(new SettlementModule());
 }
 
 export {
