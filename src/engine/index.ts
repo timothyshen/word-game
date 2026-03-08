@@ -18,6 +18,8 @@ import { ModuleRegistry } from "./core/ModuleRegistry";
 import { RuleEngine } from "./core/RuleEngine";
 import { StateManager } from "./core/StateManager";
 import { EntityManager } from "./entity/EntityManager";
+import type { IEntityStore } from "./entity/IEntityStore";
+import type { IRuleStore } from "./rules/IRuleStore";
 
 // Re-export types
 export type {
@@ -35,6 +37,9 @@ export type {
   WeightedItem,
 } from "./types";
 
+export type { IEntityStore } from "./entity/IEntityStore";
+export type { IRuleStore } from "./rules/IRuleStore";
+
 // Re-export core classes
 export { EventBus } from "./core/EventBus";
 export { FormulaEngine } from "./core/FormulaEngine";
@@ -47,8 +52,12 @@ export { StateManager } from "./core/StateManager";
 // ---------------------------------------------------------------------------
 
 export interface CreateEngineOptions {
-  /** Database client — optional for now */
+  /** @deprecated Pass entityStore instead. Kept for backward compatibility. */
   db?: unknown;
+  /** Entity storage backend */
+  entityStore?: IEntityStore;
+  /** Rule storage backend */
+  ruleStore?: IRuleStore;
 }
 
 // ---------------------------------------------------------------------------
@@ -62,7 +71,6 @@ export class GameEngineImpl implements GameEngine {
   readonly modules: IModuleRegistry;
   readonly state: IStateManager;
   readonly entities: IEntityManager;
-  readonly db: unknown;
 
   constructor(options?: CreateEngineOptions) {
     this.events = new EventBus();
@@ -70,9 +78,34 @@ export class GameEngineImpl implements GameEngine {
     this.formulas = new FormulaEngine();
     this.rules = new RuleEngine(this.formulas);
     this.modules = new ModuleRegistry();
-    this.db = options?.db ?? null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.entities = new EntityManager(this.db as any);
+
+    // Resolve entity store: explicit store > auto-construct from db > throw-on-use stub
+    let entityStore = options?.entityStore;
+    if (!entityStore && options?.db) {
+      // Backward compatibility: auto-construct PrismaEntityStore from raw db client
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      const { PrismaEntityStore } = require("./entity/PrismaEntityStore") as typeof import("./entity/PrismaEntityStore");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      entityStore = new PrismaEntityStore(options.db as any);
+    }
+
+    if (entityStore) {
+      this.entities = new EntityManager(entityStore);
+    } else {
+      // No store provided — create a stub that will fail at runtime if used
+      this.entities = new EntityManager(
+        new Proxy({} as IEntityStore, {
+          get(_, prop) {
+            return () => {
+              throw new Error(
+                `EntityStore not configured. Cannot call ${String(prop)}. ` +
+                `Pass entityStore or db in CreateEngineOptions.`,
+              );
+            };
+          },
+        }),
+      );
+    }
   }
 
   /** Start the engine — initialises all registered modules */

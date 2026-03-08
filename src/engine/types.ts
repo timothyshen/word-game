@@ -95,8 +95,6 @@ export interface GameEngine {
   modules: IModuleRegistry;
   state: IStateManager;
   entities: IEntityManager;
-  /** Database client — kept generic until concrete implementation is chosen */
-  db: unknown;
 }
 
 // ---- Conditions & weighted random ------------------------------------------

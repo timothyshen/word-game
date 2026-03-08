@@ -4,6 +4,7 @@ import { StateManager } from "../../core/StateManager";
 import type { Condition, WeightedItem } from "../../types";
 import { GameRuleService } from "../GameRuleService";
 import type { GameRuleRecord } from "../GameRuleService";
+import type { IRuleStore } from "../IRuleStore";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -21,12 +22,13 @@ function makeRule(overrides: Partial<GameRuleRecord> = {}): GameRuleRecord {
   };
 }
 
-function createMockDb() {
+function createMockStore(): IRuleStore & {
+  findRuleByName: ReturnType<typeof vi.fn>;
+  findRulesByCategory: ReturnType<typeof vi.fn>;
+} {
   return {
-    gameRule: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-    },
+    findRuleByName: vi.fn(),
+    findRulesByCategory: vi.fn(),
   };
 }
 
@@ -35,35 +37,32 @@ function createMockDb() {
 // ---------------------------------------------------------------------------
 
 describe("GameRuleService", () => {
-  let mockDb: ReturnType<typeof createMockDb>;
+  let mockStore: ReturnType<typeof createMockStore>;
   let state: StateManager;
   let service: GameRuleService;
 
   beforeEach(() => {
-    mockDb = createMockDb();
+    mockStore = createMockStore();
     state = new StateManager();
-    // Cast mockDb as PrismaClient since we only use gameRule methods
-    service = new GameRuleService(mockDb as never, state);
+    service = new GameRuleService(mockStore, state);
   });
 
   // ---- getRule ------------------------------------------------------------
 
   it("should return and cache a rule", async () => {
     const rule = makeRule();
-    mockDb.gameRule.findUnique.mockResolvedValue(rule);
+    mockStore.findRuleByName.mockResolvedValue(rule);
 
     const result = await service.getRule("test_rule");
 
     expect(result).toEqual(rule);
-    expect(mockDb.gameRule.findUnique).toHaveBeenCalledWith({
-      where: { name: "test_rule" },
-    });
+    expect(mockStore.findRuleByName).toHaveBeenCalledWith("test_rule");
     // Verify it was cached
     expect(state.get<GameRuleRecord>("rule:test_rule")).toEqual(rule);
   });
 
   it("should throw for a missing rule", async () => {
-    mockDb.gameRule.findUnique.mockResolvedValue(null);
+    mockStore.findRuleByName.mockResolvedValue(null);
 
     await expect(service.getRule("nonexistent")).rejects.toThrow(
       "Game rule not found: nonexistent",
@@ -72,13 +71,13 @@ describe("GameRuleService", () => {
 
   it("should use cache on second call", async () => {
     const rule = makeRule();
-    mockDb.gameRule.findUnique.mockResolvedValue(rule);
+    mockStore.findRuleByName.mockResolvedValue(rule);
 
     await service.getRule("test_rule");
     await service.getRule("test_rule");
 
-    // DB should only be hit once
-    expect(mockDb.gameRule.findUnique).toHaveBeenCalledTimes(1);
+    // Store should only be hit once
+    expect(mockStore.findRuleByName).toHaveBeenCalledTimes(1);
   });
 
   // ---- getRulesByCategory -------------------------------------------------
@@ -88,16 +87,14 @@ describe("GameRuleService", () => {
       makeRule({ name: "rule_a" }),
       makeRule({ name: "rule_b" }),
     ];
-    mockDb.gameRule.findMany.mockResolvedValue(rules);
+    mockStore.findRulesByCategory.mockResolvedValue(rules);
 
     const result = await service.getRulesByCategory("player");
 
     expect(result).toHaveLength(2);
     expect(result[0]!.name).toBe("rule_a");
     expect(result[1]!.name).toBe("rule_b");
-    expect(mockDb.gameRule.findMany).toHaveBeenCalledWith({
-      where: { category: "player" },
-    });
+    expect(mockStore.findRulesByCategory).toHaveBeenCalledWith("player");
   });
 
   // ---- getFormula ---------------------------------------------------------
@@ -106,7 +103,7 @@ describe("GameRuleService", () => {
     const rule = makeRule({
       definition: '{"expression":"level * 10 + base"}',
     });
-    mockDb.gameRule.findUnique.mockResolvedValue(rule);
+    mockStore.findRuleByName.mockResolvedValue(rule);
 
     const formula = await service.getFormula("test_rule");
     expect(formula).toBe("level * 10 + base");
@@ -114,7 +111,7 @@ describe("GameRuleService", () => {
 
   it("should return raw string when definition is not JSON", async () => {
     const rule = makeRule({ definition: "level * 5" });
-    mockDb.gameRule.findUnique.mockResolvedValue(rule);
+    mockStore.findRuleByName.mockResolvedValue(rule);
 
     const formula = await service.getFormula("test_rule");
     expect(formula).toBe("level * 5");
@@ -129,7 +126,7 @@ describe("GameRuleService", () => {
     }
     const config: MyConfig = { maxLevel: 100, baseHp: 500 };
     const rule = makeRule({ definition: JSON.stringify(config) });
-    mockDb.gameRule.findUnique.mockResolvedValue(rule);
+    mockStore.findRuleByName.mockResolvedValue(rule);
 
     const result = await service.getConfig<MyConfig>("test_rule");
     expect(result).toEqual(config);
@@ -144,7 +141,7 @@ describe("GameRuleService", () => {
       { value: "legendary", weight: 5 },
     ];
     const rule = makeRule({ definition: JSON.stringify(weights) });
-    mockDb.gameRule.findUnique.mockResolvedValue(rule);
+    mockStore.findRuleByName.mockResolvedValue(rule);
 
     const result = await service.getWeights("test_rule");
     expect(result).toEqual(weights);
@@ -164,7 +161,7 @@ describe("GameRuleService", () => {
       ],
     };
     const rule = makeRule({ definition: JSON.stringify(condition) });
-    mockDb.gameRule.findUnique.mockResolvedValue(rule);
+    mockStore.findRuleByName.mockResolvedValue(rule);
 
     const result = await service.getCondition("test_rule");
     expect(result).toEqual(condition);
@@ -175,7 +172,7 @@ describe("GameRuleService", () => {
 
   it("should clear all cached rules", async () => {
     const rule = makeRule();
-    mockDb.gameRule.findUnique.mockResolvedValue(rule);
+    mockStore.findRuleByName.mockResolvedValue(rule);
 
     // Populate cache
     await service.getRule("test_rule");

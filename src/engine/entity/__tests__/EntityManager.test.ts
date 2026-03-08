@@ -1,37 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EntityManager } from "../EntityManager";
-import type { PrismaClient } from "@prisma/client";
+import type { IEntityStore } from "../IEntityStore";
 
-const mockDb = {
-  entitySchema: {
-    create: vi.fn(),
-    findUnique: vi.fn(),
-    findMany: vi.fn(),
-  },
-  entityTemplate: {
-    create: vi.fn(),
-    findUnique: vi.fn(),
-    findFirst: vi.fn(),
-    findMany: vi.fn(),
-  },
-  entity: {
-    create: vi.fn(),
-    findUnique: vi.fn(),
-    findFirst: vi.fn(),
-    findMany: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    deleteMany: vi.fn(),
-  },
-};
+function createMockStore() {
+  return {
+    createSchema: vi.fn(),
+    findSchemaByGameAndName: vi.fn(),
+    findSchemasByGame: vi.fn(),
+    createTemplate: vi.fn(),
+    findTemplateById: vi.fn(),
+    findTemplatesBySchema: vi.fn(),
+    findTemplateBySchemaAndName: vi.fn(),
+    createEntity: vi.fn(),
+    findEntityById: vi.fn(),
+    findEntitiesByOwner: vi.fn(),
+    findEntitiesByTemplate: vi.fn(),
+    findEntityByOwnerAndTemplate: vi.fn(),
+    updateEntityState: vi.fn(),
+    deleteEntity: vi.fn(),
+    deleteManyEntities: vi.fn(),
+  } satisfies Record<keyof IEntityStore, ReturnType<typeof vi.fn>>;
+}
+
+type MockStore = ReturnType<typeof createMockStore>;
+
+let mockStore: MockStore;
 
 function createManager(): EntityManager {
-  return new EntityManager(mockDb as unknown as PrismaClient);
+  return new EntityManager(mockStore);
 }
 
 describe("EntityManager", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockStore = createMockStore();
   });
 
   // ── Schema operations ──
@@ -39,47 +40,41 @@ describe("EntityManager", () => {
   it("createSchema stores components as JSON", async () => {
     const components = ["stats", "inventory"];
     const defaults = { stats: { hp: 100 } };
-    mockDb.entitySchema.create.mockResolvedValue({ id: "s1" });
+    mockStore.createSchema.mockResolvedValue({ id: "s1" });
 
     const mgr = createManager();
     await mgr.createSchema("game1", "character", components, defaults);
 
-    expect(mockDb.entitySchema.create).toHaveBeenCalledWith({
-      data: {
-        gameId: "game1",
-        name: "character",
-        components: JSON.stringify(components),
-        defaults: JSON.stringify(defaults),
-      },
+    expect(mockStore.createSchema).toHaveBeenCalledWith({
+      gameId: "game1",
+      name: "character",
+      components: JSON.stringify(components),
+      defaults: JSON.stringify(defaults),
     });
   });
 
   it("createSchema uses empty object for defaults when not provided", async () => {
-    mockDb.entitySchema.create.mockResolvedValue({ id: "s1" });
+    mockStore.createSchema.mockResolvedValue({ id: "s1" });
 
     const mgr = createManager();
     await mgr.createSchema("game1", "item", ["inventory"]);
 
-    expect(mockDb.entitySchema.create).toHaveBeenCalledWith({
-      data: {
-        gameId: "game1",
-        name: "item",
-        components: JSON.stringify(["inventory"]),
-        defaults: "{}",
-      },
+    expect(mockStore.createSchema).toHaveBeenCalledWith({
+      gameId: "game1",
+      name: "item",
+      components: JSON.stringify(["inventory"]),
+      defaults: "{}",
     });
   });
 
   it("getSchema by gameId + name", async () => {
     const schema = { id: "s1", gameId: "game1", name: "character" };
-    mockDb.entitySchema.findUnique.mockResolvedValue(schema);
+    mockStore.findSchemaByGameAndName.mockResolvedValue(schema);
 
     const mgr = createManager();
     const result = await mgr.getSchema("game1", "character");
 
-    expect(mockDb.entitySchema.findUnique).toHaveBeenCalledWith({
-      where: { gameId_name: { gameId: "game1", name: "character" } },
-    });
+    expect(mockStore.findSchemaByGameAndName).toHaveBeenCalledWith("game1", "character");
     expect(result).toEqual(schema);
   });
 
@@ -87,7 +82,7 @@ describe("EntityManager", () => {
 
   it("createTemplate stores data as JSON", async () => {
     const data = { stats: { hp: 50, maxHp: 50, mp: 10, maxMp: 10, atk: 5, def: 3, spd: 2 } };
-    mockDb.entityTemplate.create.mockResolvedValue({ id: "t1" });
+    mockStore.createTemplate.mockResolvedValue({ id: "t1" });
 
     const mgr = createManager();
     await mgr.createTemplate("s1", "goblin", data, {
@@ -96,33 +91,29 @@ describe("EntityManager", () => {
       description: "A small goblin",
     });
 
-    expect(mockDb.entityTemplate.create).toHaveBeenCalledWith({
-      data: {
-        schemaId: "s1",
-        name: "goblin",
-        data: JSON.stringify(data),
-        icon: "goblin.png",
-        rarity: "common",
-        description: "A small goblin",
-      },
+    expect(mockStore.createTemplate).toHaveBeenCalledWith({
+      schemaId: "s1",
+      name: "goblin",
+      data: JSON.stringify(data),
+      icon: "goblin.png",
+      rarity: "common",
+      description: "A small goblin",
     });
   });
 
   it("createTemplate uses defaults for missing opts", async () => {
-    mockDb.entityTemplate.create.mockResolvedValue({ id: "t1" });
+    mockStore.createTemplate.mockResolvedValue({ id: "t1" });
 
     const mgr = createManager();
     await mgr.createTemplate("s1", "goblin", { hp: 10 });
 
-    expect(mockDb.entityTemplate.create).toHaveBeenCalledWith({
-      data: {
-        schemaId: "s1",
-        name: "goblin",
-        data: JSON.stringify({ hp: 10 }),
-        icon: "",
-        rarity: null,
-        description: "",
-      },
+    expect(mockStore.createTemplate).toHaveBeenCalledWith({
+      schemaId: "s1",
+      name: "goblin",
+      data: JSON.stringify({ hp: 10 }),
+      icon: "",
+      rarity: null,
+      description: "",
     });
   });
 
@@ -130,46 +121,39 @@ describe("EntityManager", () => {
 
   it("createEntity with initial state", async () => {
     const initialState = { stats: { hp: 100 } };
-    mockDb.entity.create.mockResolvedValue({ id: "e1" });
+    mockStore.createEntity.mockResolvedValue({ id: "e1" });
 
     const mgr = createManager();
     await mgr.createEntity("t1", "player1", initialState);
 
-    expect(mockDb.entityTemplate.findUnique).not.toHaveBeenCalled();
-    expect(mockDb.entity.create).toHaveBeenCalledWith({
-      data: {
-        templateId: "t1",
-        ownerId: "player1",
-        state: JSON.stringify(initialState),
-      },
+    expect(mockStore.findTemplateById).not.toHaveBeenCalled();
+    expect(mockStore.createEntity).toHaveBeenCalledWith({
+      templateId: "t1",
+      ownerId: "player1",
+      state: JSON.stringify(initialState),
     });
   });
 
   it("createEntity without initial state uses template defaults", async () => {
     const templateData = { stats: { hp: 50 } };
     const schemaDefaults = { stats: { hp: 10 }, inventory: { items: [], capacity: 5 } };
-    mockDb.entityTemplate.findUnique.mockResolvedValue({
+    mockStore.findTemplateById.mockResolvedValue({
       id: "t1",
       data: JSON.stringify(templateData),
       schema: { defaults: JSON.stringify(schemaDefaults) },
     });
-    mockDb.entity.create.mockResolvedValue({ id: "e1" });
+    mockStore.createEntity.mockResolvedValue({ id: "e1" });
 
     const mgr = createManager();
     await mgr.createEntity("t1", "player1");
 
-    expect(mockDb.entityTemplate.findUnique).toHaveBeenCalledWith({
-      where: { id: "t1" },
-      include: { schema: true },
-    });
+    expect(mockStore.findTemplateById).toHaveBeenCalledWith("t1");
     // Template data overrides schema defaults
     const expectedState = { ...schemaDefaults, ...templateData };
-    expect(mockDb.entity.create).toHaveBeenCalledWith({
-      data: {
-        templateId: "t1",
-        ownerId: "player1",
-        state: JSON.stringify(expectedState),
-      },
+    expect(mockStore.createEntity).toHaveBeenCalledWith({
+      templateId: "t1",
+      ownerId: "player1",
+      state: JSON.stringify(expectedState),
     });
   });
 
@@ -178,67 +162,55 @@ describe("EntityManager", () => {
       id: "e1",
       template: { id: "t1", schema: { id: "s1", name: "character" } },
     };
-    mockDb.entity.findUnique.mockResolvedValue(entity);
+    mockStore.findEntityById.mockResolvedValue(entity);
 
     const mgr = createManager();
     const result = await mgr.getEntity("e1");
 
-    expect(mockDb.entity.findUnique).toHaveBeenCalledWith({
-      where: { id: "e1" },
-      include: { template: { include: { schema: true } } },
-    });
+    expect(mockStore.findEntityById).toHaveBeenCalledWith("e1");
     expect(result).toEqual(entity);
   });
 
   it("getEntitiesByOwner returns matching entities", async () => {
     const entities = [{ id: "e1" }, { id: "e2" }];
-    mockDb.entity.findMany.mockResolvedValue(entities);
+    mockStore.findEntitiesByOwner.mockResolvedValue(entities);
 
     const mgr = createManager();
     const result = await mgr.getEntitiesByOwner("player1");
 
-    expect(mockDb.entity.findMany).toHaveBeenCalledWith({
-      where: { ownerId: "player1" },
-      include: { template: { include: { schema: true } } },
-    });
+    expect(mockStore.findEntitiesByOwner).toHaveBeenCalledWith("player1", undefined);
     expect(result).toEqual(entities);
   });
 
   it("getEntitiesByOwner filters by schemaName", async () => {
-    mockDb.entity.findMany.mockResolvedValue([]);
+    mockStore.findEntitiesByOwner.mockResolvedValue([]);
 
     const mgr = createManager();
     await mgr.getEntitiesByOwner("player1", "character");
 
-    expect(mockDb.entity.findMany).toHaveBeenCalledWith({
-      where: {
-        ownerId: "player1",
-        template: { schema: { name: "character" } },
-      },
-      include: { template: { include: { schema: true } } },
-    });
+    expect(mockStore.findEntitiesByOwner).toHaveBeenCalledWith("player1", "character");
   });
 
   it("updateEntityState merges partial state", async () => {
     const currentState = { stats: { hp: 100 }, inventory: { items: [] } };
-    mockDb.entity.findUnique.mockResolvedValue({
+    mockStore.findEntityById.mockResolvedValue({
       id: "e1",
       state: JSON.stringify(currentState),
     });
-    mockDb.entity.update.mockResolvedValue({ id: "e1" });
+    mockStore.updateEntityState.mockResolvedValue({ id: "e1" });
 
     const mgr = createManager();
     await mgr.updateEntityState("e1", { stats: { hp: 50 } });
 
     const expectedState = { ...currentState, stats: { hp: 50 } };
-    expect(mockDb.entity.update).toHaveBeenCalledWith({
-      where: { id: "e1" },
-      data: { state: JSON.stringify(expectedState) },
-    });
+    expect(mockStore.updateEntityState).toHaveBeenCalledWith(
+      "e1",
+      JSON.stringify(expectedState),
+    );
   });
 
   it("updateEntityState throws for missing entity", async () => {
-    mockDb.entity.findUnique.mockResolvedValue(null);
+    mockStore.findEntityById.mockResolvedValue(null);
 
     const mgr = createManager();
     await expect(
@@ -247,14 +219,12 @@ describe("EntityManager", () => {
   });
 
   it("deleteEntity calls delete", async () => {
-    mockDb.entity.delete.mockResolvedValue({ id: "e1" });
+    mockStore.deleteEntity.mockResolvedValue({ id: "e1" });
 
     const mgr = createManager();
     await mgr.deleteEntity("e1");
 
-    expect(mockDb.entity.delete).toHaveBeenCalledWith({
-      where: { id: "e1" },
-    });
+    expect(mockStore.deleteEntity).toHaveBeenCalledWith("e1");
   });
 
   // ── Component helpers ──
@@ -263,7 +233,7 @@ describe("EntityManager", () => {
     const state = {
       stats: { hp: 100, maxHp: 100, mp: 50, maxMp: 50, atk: 10, def: 5, spd: 3 },
     };
-    mockDb.entity.findUnique.mockResolvedValue({
+    mockStore.findEntityById.mockResolvedValue({
       id: "e1",
       state: JSON.stringify(state),
     });
@@ -275,7 +245,7 @@ describe("EntityManager", () => {
   });
 
   it("getEntityComponent returns undefined for missing entity", async () => {
-    mockDb.entity.findUnique.mockResolvedValue(null);
+    mockStore.findEntityById.mockResolvedValue(null);
 
     const mgr = createManager();
     const result = await mgr.getEntityComponent("missing", "stats");
@@ -287,26 +257,24 @@ describe("EntityManager", () => {
     const currentState = {
       stats: { hp: 100, maxHp: 100, mp: 50, maxMp: 50, atk: 10, def: 5, spd: 3 },
     };
-    mockDb.entity.findUnique.mockResolvedValue({
+    mockStore.findEntityById.mockResolvedValue({
       id: "e1",
       state: JSON.stringify(currentState),
     });
-    mockDb.entity.update.mockResolvedValue({ id: "e1" });
+    mockStore.updateEntityState.mockResolvedValue({ id: "e1" });
 
     const newStats = { hp: 80, maxHp: 100, mp: 50, maxMp: 50, atk: 10, def: 5, spd: 3 };
     const mgr = createManager();
     await mgr.setEntityComponent("e1", "stats", newStats);
 
-    expect(mockDb.entity.update).toHaveBeenCalledWith({
-      where: { id: "e1" },
-      data: {
-        state: JSON.stringify({ stats: newStats }),
-      },
-    });
+    expect(mockStore.updateEntityState).toHaveBeenCalledWith(
+      "e1",
+      JSON.stringify({ stats: newStats }),
+    );
   });
 
   it("setEntityComponent throws for missing entity", async () => {
-    mockDb.entity.findUnique.mockResolvedValue(null);
+    mockStore.findEntityById.mockResolvedValue(null);
 
     const mgr = createManager();
     await expect(
@@ -320,49 +288,40 @@ describe("EntityManager", () => {
 
   it("getEntitiesByTemplate returns entities for a template", async () => {
     const entities = [{ id: "e1" }, { id: "e2" }];
-    mockDb.entity.findMany.mockResolvedValue(entities);
+    mockStore.findEntitiesByTemplate.mockResolvedValue(entities);
 
     const mgr = createManager();
     const result = await mgr.getEntitiesByTemplate("t1");
 
-    expect(mockDb.entity.findMany).toHaveBeenCalledWith({
-      where: { templateId: "t1" },
-      include: { template: { include: { schema: true } } },
-    });
+    expect(mockStore.findEntitiesByTemplate).toHaveBeenCalledWith("t1");
     expect(result).toEqual(entities);
   });
 
   it("findEntityByOwnerAndTemplate returns first match", async () => {
     const entity = { id: "e1", ownerId: "p1", templateId: "t1" };
-    mockDb.entity.findFirst.mockResolvedValue(entity);
+    mockStore.findEntityByOwnerAndTemplate.mockResolvedValue(entity);
 
     const mgr = createManager();
     const result = await mgr.findEntityByOwnerAndTemplate("p1", "t1");
 
-    expect(mockDb.entity.findFirst).toHaveBeenCalledWith({
-      where: { ownerId: "p1", templateId: "t1" },
-      include: { template: { include: { schema: true } } },
-    });
+    expect(mockStore.findEntityByOwnerAndTemplate).toHaveBeenCalledWith("p1", "t1");
     expect(result).toEqual(entity);
   });
 
   it("getTemplateBySchemaAndName returns template by schema and name", async () => {
     const template = { id: "t1", name: "goblin", schemaId: "s1" };
-    mockDb.entityTemplate.findFirst.mockResolvedValue(template);
+    mockStore.findTemplateBySchemaAndName.mockResolvedValue(template);
 
     const mgr = createManager();
     const result = await mgr.getTemplateBySchemaAndName("s1", "goblin");
 
-    expect(mockDb.entityTemplate.findFirst).toHaveBeenCalledWith({
-      where: { schemaId: "s1", name: "goblin" },
-      include: { schema: true },
-    });
+    expect(mockStore.findTemplateBySchemaAndName).toHaveBeenCalledWith("s1", "goblin");
     expect(result).toEqual(template);
   });
 
   it("createManyEntities creates multiple entities", async () => {
-    mockDb.entity.create.mockResolvedValueOnce({ id: "e1" });
-    mockDb.entity.create.mockResolvedValueOnce({ id: "e2" });
+    mockStore.createEntity.mockResolvedValueOnce({ id: "e1" });
+    mockStore.createEntity.mockResolvedValueOnce({ id: "e2" });
 
     const mgr = createManager();
     const result = await mgr.createManyEntities([
@@ -371,18 +330,16 @@ describe("EntityManager", () => {
     ]);
 
     expect(result).toHaveLength(2);
-    expect(mockDb.entity.create).toHaveBeenCalledTimes(2);
+    expect(mockStore.createEntity).toHaveBeenCalledTimes(2);
   });
 
   it("deleteManyEntities deletes by ids", async () => {
-    mockDb.entity.deleteMany.mockResolvedValue({ count: 3 });
+    mockStore.deleteManyEntities.mockResolvedValue({ count: 3 });
 
     const mgr = createManager();
     await mgr.deleteManyEntities(["e1", "e2", "e3"]);
 
-    expect(mockDb.entity.deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ["e1", "e2", "e3"] } },
-    });
+    expect(mockStore.deleteManyEntities).toHaveBeenCalledWith(["e1", "e2", "e3"]);
   });
 
   it("queryEntitiesByState filters entities by state fields", async () => {
@@ -391,7 +348,7 @@ describe("EntityManager", () => {
       { id: "e2", state: JSON.stringify({ status: "working", level: 3 }) },
       { id: "e3", state: JSON.stringify({ status: "idle", level: 2 }) },
     ];
-    mockDb.entity.findMany.mockResolvedValue(entities);
+    mockStore.findEntitiesByOwner.mockResolvedValue(entities);
 
     const mgr = createManager();
     const result = await mgr.queryEntitiesByState("p1", "character", { status: "idle" });
@@ -405,7 +362,7 @@ describe("EntityManager", () => {
     const entities = [
       { id: "e1", state: JSON.stringify({ status: "working" }) },
     ];
-    mockDb.entity.findMany.mockResolvedValue(entities);
+    mockStore.findEntitiesByOwner.mockResolvedValue(entities);
 
     const mgr = createManager();
     const result = await mgr.queryEntitiesByState("p1", "character", { status: "idle" });

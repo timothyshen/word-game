@@ -46,7 +46,6 @@ function createMockEngine(): GameEngine {
     modules: {} as GameEngine["modules"],
     state: {} as GameEngine["state"],
     entities: {} as GameEngine["entities"],
-    db: null,
   };
 }
 

@@ -1,6 +1,5 @@
-import type { PrismaClient } from "@prisma/client";
-
 import type { Condition, IStateManager, WeightedItem } from "../types";
+import type { IRuleStore } from "./IRuleStore";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,7 +26,7 @@ const CACHE_TTL = 300_000; // 5 minutes
 
 export class GameRuleService {
   constructor(
-    private readonly db: PrismaClient,
+    private readonly store: IRuleStore,
     private readonly state: IStateManager,
   ) {}
 
@@ -38,22 +37,13 @@ export class GameRuleService {
     const cached = this.state.get<GameRuleRecord>(cacheKey);
     if (cached) return cached;
 
-    const rule = await this.db.gameRule.findUnique({ where: { name } });
+    const rule = await this.store.findRuleByName(name);
     if (!rule) {
       throw new Error(`Game rule not found: ${name}`);
     }
 
-    const record: GameRuleRecord = {
-      id: rule.id,
-      name: rule.name,
-      category: rule.category,
-      ruleType: rule.ruleType,
-      definition: rule.definition,
-      description: rule.description,
-    };
-
-    this.state.set(cacheKey, record, CACHE_TTL);
-    return record;
+    this.state.set(cacheKey, rule, CACHE_TTL);
+    return rule;
   }
 
   async getRulesByCategory(category: string): Promise<GameRuleRecord[]> {
@@ -61,16 +51,7 @@ export class GameRuleService {
     const cached = this.state.get<GameRuleRecord[]>(cacheKey);
     if (cached) return cached;
 
-    const rules = await this.db.gameRule.findMany({ where: { category } });
-
-    const records: GameRuleRecord[] = rules.map((r: GameRuleRecord) => ({
-      id: r.id,
-      name: r.name,
-      category: r.category,
-      ruleType: r.ruleType,
-      definition: r.definition,
-      description: r.description,
-    }));
+    const records = await this.store.findRulesByCategory(category);
 
     this.state.set(cacheKey, records, CACHE_TTL);
     return records;

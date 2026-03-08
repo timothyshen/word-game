@@ -40,20 +40,21 @@ describe("GameEngineImpl", () => {
       expect(engine.formulas).toBeInstanceOf(FormulaEngine);
       expect(engine.rules).toBeInstanceOf(RuleEngine);
       expect(engine.modules).toBeInstanceOf(ModuleRegistry);
-      expect(engine.db).toBeNull();
+      expect(engine.entities).toBeDefined();
     });
 
-    it("should accept a db option", () => {
-      const fakeDb = { query: vi.fn() };
-      const engine = createEngine({ db: fakeDb });
+    it("should create engine with entityStore option", () => {
+      const fakeStore = { createSchema: vi.fn() };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const engine = createEngine({ entityStore: fakeStore as any });
 
-      expect(engine.db).toBe(fakeDb);
+      expect(engine.entities).toBeDefined();
     });
 
-    it("should default db to null when not provided", () => {
+    it("should create engine without any options", () => {
       const engine = createEngine({});
 
-      expect(engine.db).toBeNull();
+      expect(engine.entities).toBeDefined();
     });
   });
 
