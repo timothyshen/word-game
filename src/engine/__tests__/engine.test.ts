@@ -66,7 +66,7 @@ describe("GameEngineImpl", () => {
       engine.modules.register(mod);
       await engine.start();
 
-      expect(mod.init).toHaveBeenCalledWith(engine);
+      expect(mod.init).toHaveBeenCalledWith(engine, undefined);
     });
 
     it("should initialise all registered modules", async () => {

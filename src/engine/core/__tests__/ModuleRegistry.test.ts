@@ -69,8 +69,8 @@ describe("ModuleRegistry", () => {
 
     await registry.initAll(fakeEngine);
 
-    expect(a.init).toHaveBeenCalledWith(fakeEngine);
-    expect(b.init).toHaveBeenCalledWith(fakeEngine);
+    expect(a.init).toHaveBeenCalledWith(fakeEngine, undefined);
+    expect(b.init).toHaveBeenCalledWith(fakeEngine, undefined);
   });
 
   it("should respect dependency order (A depends on B → B inits first)", async () => {
@@ -169,5 +169,40 @@ describe("ModuleRegistry", () => {
     await registry.destroyAll();
 
     expect(withDestroy.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("should pass merged config to init", async () => {
+    const registry = new ModuleRegistry();
+
+    interface TestConfig {
+      maxItems?: number;
+      rate?: number;
+    }
+
+    const mod: GameModule<TestConfig> = {
+      name: "configurable",
+      defaultConfig: { maxItems: 5, rate: 0.5 },
+      init: vi.fn(async () => {}),
+    };
+
+    registry.register(mod, { rate: 0.8 });
+
+    await registry.initAll(fakeEngine);
+
+    expect(mod.init).toHaveBeenCalledWith(fakeEngine, {
+      maxItems: 5,
+      rate: 0.8,
+    });
+  });
+
+  it("should pass undefined config when no default or override provided", async () => {
+    const registry = new ModuleRegistry();
+    const mod = makeModule("plain");
+
+    registry.register(mod);
+
+    await registry.initAll(fakeEngine);
+
+    expect(mod.init).toHaveBeenCalledWith(fakeEngine, undefined);
   });
 });

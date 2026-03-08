@@ -1,22 +1,32 @@
 import type { GameEngine, GameModule, IModuleRegistry } from "../types";
 
+interface ModuleEntry {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  module: GameModule<any>;
+  config: unknown;
+}
+
 export class ModuleRegistry implements IModuleRegistry {
-  private modules = new Map<string, GameModule>();
+  private modules = new Map<string, ModuleEntry>();
   private initOrder: string[] = [];
 
-  register(module: GameModule): void {
+  register<TConfig>(module: GameModule<TConfig>, config?: TConfig): void {
     if (this.modules.has(module.name)) {
       throw new Error(`Module "${module.name}" is already registered`);
     }
-    this.modules.set(module.name, module);
+    const mergedConfig =
+      module.defaultConfig !== undefined || config !== undefined
+        ? { ...module.defaultConfig, ...config }
+        : undefined;
+    this.modules.set(module.name, { module, config: mergedConfig });
   }
 
   get(name: string): GameModule | undefined {
-    return this.modules.get(name);
+    return this.modules.get(name)?.module;
   }
 
   getAll(): GameModule[] {
-    return Array.from(this.modules.values());
+    return Array.from(this.modules.values()).map((e) => e.module);
   }
 
   async initAll(engine: GameEngine): Promise<void> {
@@ -24,8 +34,8 @@ export class ModuleRegistry implements IModuleRegistry {
     this.initOrder = sorted;
 
     for (const name of sorted) {
-      const mod = this.modules.get(name)!;
-      await mod.init(engine);
+      const entry = this.modules.get(name)!;
+      await entry.module.init(engine, entry.config);
     }
   }
 
@@ -33,9 +43,9 @@ export class ModuleRegistry implements IModuleRegistry {
     const reversed = [...this.initOrder].reverse();
 
     for (const name of reversed) {
-      const mod = this.modules.get(name);
-      if (mod?.destroy) {
-        await mod.destroy();
+      const entry = this.modules.get(name);
+      if (entry?.module.destroy) {
+        await entry.module.destroy();
       }
     }
   }
@@ -55,8 +65,8 @@ export class ModuleRegistry implements IModuleRegistry {
     }
 
     // Build graph: edge from dependency -> dependent
-    for (const [name, mod] of this.modules) {
-      for (const dep of mod.dependencies ?? []) {
+    for (const [name, entry] of this.modules) {
+      for (const dep of entry.module.dependencies ?? []) {
         if (!this.modules.has(dep)) {
           throw new Error(
             `Module "${name}" depends on "${dep}", which is not registered`,

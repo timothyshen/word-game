@@ -1,12 +1,23 @@
 import type { GameEngine, GameModule, GameEvent } from "../types";
 
-export class ExplorationModule implements GameModule {
+export interface ExplorationConfig {
+  maxEncountersPerDay?: number;
+  encounterChance?: number;
+}
+
+export class ExplorationModule implements GameModule<ExplorationConfig> {
   name = "exploration";
   dependencies = ["core"];
+  defaultConfig: ExplorationConfig = {
+    maxEncountersPerDay: 10,
+    encounterChance: 0.3,
+  };
   private engine: GameEngine | null = null;
+  private config: ExplorationConfig = this.defaultConfig;
 
-  async init(engine: GameEngine): Promise<void> {
+  async init(engine: GameEngine, config?: ExplorationConfig): Promise<void> {
     this.engine = engine;
+    if (config) this.config = config;
     engine.events.on("exploration:start", this.handleStart);
   }
 

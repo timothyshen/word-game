@@ -21,13 +21,15 @@ export type EventHandler = (event: GameEvent) => Promise<void> | void;
 
 // ---- Modules ---------------------------------------------------------------
 
-export interface GameModule {
+export interface GameModule<TConfig = void> {
   /** Unique module identifier */
   name: string;
   /** Names of modules this one depends on */
   dependencies?: string[];
+  /** Default configuration values for this module */
+  defaultConfig?: TConfig;
   /** Called once during engine startup */
-  init(engine: GameEngine): Promise<void>;
+  init(engine: GameEngine, config?: TConfig): Promise<void>;
   /** Optional — called when an event is dispatched */
   handleEvent?(event: GameEvent): Promise<void>;
   /** Optional — cleanup on engine shutdown */
@@ -75,7 +77,7 @@ export interface IRuleEngine {
 }
 
 export interface IModuleRegistry {
-  register(module: GameModule): void;
+  register<TConfig>(module: GameModule<TConfig>, config?: TConfig): void;
   get(name: string): GameModule | undefined;
   getAll(): GameModule[];
   initAll(engine: GameEngine): Promise<void>;
