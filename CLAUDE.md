@@ -1,249 +1,267 @@
-# 诸天领域 - 项目文档
+# World of Realms - Project Documentation
 
-> **必须使用 Bun** - 本项目强制使用 bun 作为包管理器和运行时，禁止使用 npm/yarn/pnpm。所有命令都应使用 `bun` 而非 `npm`。
+> **Must use Bun** - This project requires bun as the package manager and runtime. Do not use npm/yarn/pnpm. All commands should use `bun`.
 
-## 项目概述
+## Overview
 
-这是一个基于 T3 Stack 的领主养成类文字游戏，玩家作为领主管理领地、招募角色、探索世界、挑战Boss。
+A T3 Stack-based lord management text game where players manage territory, recruit characters, explore worlds, and challenge bosses.
 
-### 技术栈
-- **框架**: Next.js 15 (App Router)
-- **语言**: TypeScript
-- **样式**: Tailwind CSS
-- **数据库**: SQLite (Prisma ORM)
+### Tech Stack
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: SQLite (Prisma ORM)
 - **API**: tRPC
-- **认证**: 简易邮箱认证 (dev-session cookie)
-- **测试**: Vitest
-- **UI组件**: shadcn/ui
-- **包管理**: Bun (必须使用 bun，不要使用 npm/yarn/pnpm)
+- **Auth**: Simple email auth (dev-session cookie)
+- **Testing**: Vitest
+- **UI**: shadcn/ui
+- **Package Manager**: Bun (required)
 
-## 项目结构
+## Project Structure
 
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── admin/             # 管理后台
-│   ├── game/              # 游戏主页面
-│   └── login/             # 登录/注册页面
+│   ├── admin/             # Admin dashboard
+│   ├── game/              # Main game page
+│   └── login/             # Login/register
 ├── components/
-│   ├── game/              # 游戏组件
-│   │   ├── panels/        # 各类面板组件
+│   ├── game/              # Game components
+│   │   ├── panels/        # Panel components
+│   │   ├── outer-city/    # Outer city components
 │   │   └── IsometricMap.tsx
-│   └── ui/                # shadcn/ui 组件
+│   └── ui/                # shadcn/ui components
+├── engine/                 # Game engine (ECS, rules, modules)
+│   ├── entity/            # Entity system (EntityManager)
+│   ├── modules/           # Game modules (progression, territory, etc.)
+│   ├── rules/             # Rule engine + seed rules
+│   └── formulas/          # Formula engine
 ├── server/
 │   └── api/
-│       ├── routers/       # tRPC 路由器
-│       ├── __tests__/     # 单元测试
-│       └── trpc.ts        # tRPC 配置
-└── trpc/                  # tRPC 客户端配置
+│       ├── routers/       # tRPC routers (grouped by domain)
+│       ├── services/      # Business logic services
+│       ├── repositories/  # Data access layer
+│       ├── utils/         # Shared utilities
+│       └── __tests__/     # Unit tests
+└── trpc/                  # tRPC client config
 ```
 
-## 认证系统
+## Auth System
 
-### 测试账号
-- **邮箱**: `test@test.com`
-- **用户名**: 测试玩家
-- **角色名**: 测试领主
-- **等级**: 5
+### Test Account
+- **Email**: `test@test.com`
+- **Username**: Test Player
+- **Character**: Test Lord
+- **Level**: 5
 
-### 认证路由 (`auth.ts`)
-- `register` - 注册新用户（邮箱、用户名、角色名）
-- `login` - 邮箱登录
-- `me` - 获取当前用户信息
-- `logout` - 登出
+### Auth Routes (`auth.ts`)
+- `register` - Register new user (email, username, character name)
+- `login` - Email login
+- `me` - Get current user info
+- `logout` - Logout
 
-认证使用 `dev-session` cookie 存储用户ID，有效期7天。
+Auth uses a `dev-session` cookie storing user ID, valid for 7 days.
 
-## 管理后台
+## Admin Dashboard
 
-访问 `/admin` 可管理游戏数据：
+Access `/admin` to manage game data:
 
-| 功能 | 路径 | 说明 |
-|------|------|------|
-| 卡牌管理 | `/admin/cards` | CRUD 卡牌模板 |
-| 剧情管理 | `/admin/stories` | 管理章节和节点 |
-| 冒险事件 | `/admin/adventures` | 管理探索事件 |
-| 统计概览 | `/admin` | 查看数据统计 |
+| Feature | Path | Description |
+|---------|------|-------------|
+| Cards | `/admin/cards` | CRUD card templates |
+| Stories | `/admin/stories` | Manage chapters and nodes |
+| Adventures | `/admin/adventures` | Manage exploration events |
+| Overview | `/admin` | View statistics |
 
-## 核心系统
+## Core Systems
 
-### 1. 玩家系统 (`player.ts`)
-- 玩家状态管理（等级、资源、属性）
-- 体力自动回复（基于时间计算）
-- 角色管理、技能管理
+### 1. Player System (`player.ts`)
+- Player state management (level, resources, attributes)
+- Stamina auto-recovery (time-based calculation)
+- Character management, skill management
 
-### 2. 结算系统 (`settlement.ts`)
-- 每日结算（行动分数 → 评级 → 奖励）
-- 连续达标奖励机制
-- 卡牌实际发放
+### 2. Settlement System (`settlement.ts`)
+- Daily settlement (action score -> grade -> rewards)
+- Consecutive achievement bonus mechanism
+- Card distribution
 
-### 3. 战斗系统 (`combat.ts`)
-- 回合制文字选择战斗
-- 技能系统（攻击、重击、防御、火焰术、治疗术、逃跑）
-- Buff/Debuff 机制
-- 战斗奖励（经验、金币、卡牌掉落）
+### 3. Combat System (`combat.ts`)
+- Turn-based text combat
+- Skill system (attack, heavy strike, defend, fireball, heal, flee)
+- Buff/debuff mechanics
+- Combat rewards (exp, gold, card drops)
 
-### 4. 卡牌祭坛 (`altar.ts`)
-- 抽卡（单抽/十连抽，普通/高级）
-- 卡牌合成（品质提升）
-- 卡牌献祭（获得水晶/金币）
-- 保底机制
+### 4. Card Altar (`altar.ts`)
+- Gacha draws (single/10x, normal/premium)
+- Card synthesis (quality upgrade)
+- Card sacrifice (gain crystals/gold)
+- Pity system
 
-### 5. 装备系统 (`equipment.ts`)
-- 11槽位装备（主手、副手、头盔、胸甲、腰带、手套、腿甲、鞋子、项链、戒指×2）
-- 装备穿戴/卸下
-- 装备强化（成功率递减）
+### 5. Equipment System (`equipment.ts`)
+- 11 equipment slots (main hand, off hand, helmet, chest, belt, gloves, pants, boots, necklace, ring x2)
+- Equip/unequip
+- Enhancement (decreasing success rate)
 
-### 6. 职阶突破 (`breakthrough.ts`)
-- 玩家/角色职阶提升
-- 技能槽位增加（tier × 6）
-- 等级上限提升
+### 6. Tier Breakthrough (`breakthrough.ts`)
+- Player/character tier advancement
+- Skill slot increase (tier x 6)
+- Level cap increase
 
-### 7. 职业系统 (`profession.ts`)
-- 职业学习与加成
-- 玩家职业、角色职业
+### 7. Profession System (`profession.ts`)
+- Profession learning and bonuses
+- Player professions, character professions
 
-### 8. 传送门系统 (`portal.ts`)
-- 诸天世界（主位面、火焰位面、寒冰位面、暗影位面、天界）
-- 世界传送
-- 解锁条件检查
+### 8. Portal System (`portal.ts`)
+- Realm worlds (Main, Fire, Ice, Shadow, Celestial)
+- World teleportation
+- Unlock condition checks
 
-### 9. 剧情系统 (`story.ts`)
-- 章节式剧情
-- 选择分支
-- 剧情奖励
+### 9. Story System (`story.ts`)
+- Chapter-based storyline
+- Choice branches
+- Story rewards
 
-### 10. Boss系统 (`boss.ts`)
-- 周Boss挑战
-- 次数限制
-- 丰厚奖励
+### 10. Boss System (`boss.ts`)
+- Weekly boss challenges
+- Attempt limits
+- Rich rewards
 
-### 11. 探索系统 (`exploration.ts`)
-- 野外探索
-- 随机事件
-- 野外设施
+### 11. Exploration System (`exploration.ts`)
+- Wilderness exploration
+- Random events
+- Wilderness facilities
 
-### 12. 建筑系统 (`building.ts`)
-- 建筑建造/升级
-- 资源产出计算
-- 工人分配
+### 12. Building System (`building.ts`)
+- Building construction/upgrade
+- Resource output calculation
+- Worker assignment
 
-### 13. 卡牌系统 (`card.ts`)
-- 卡牌使用（建筑卡、招募卡、技能卡、道具卡）
-- 卡牌背包管理
+### 13. Card System (`card.ts`)
+- Card usage (building, recruit, skill, item cards)
+- Card inventory management
 
-### 14. 管理系统 (`admin.ts`)
-- 卡牌CRUD（创建、查询、更新、删除）
-- 剧情章节/节点管理
-- 冒险事件管理
-- 数据统计
+### 14. Admin System (`admin.ts`)
+- Card CRUD
+- Story chapter/node management
+- Adventure event management
+- Data statistics
 
-## 数据库模型
+## Database Models
 
-### 核心模型
-- `Player` - 玩家存档
-- `PlayerCharacter` - 角色实例
-- `PlayerCard` - 玩家卡牌
-- `PlayerBuilding` - 玩家建筑
-- `PlayerEquipment` - 玩家装备
+### Entity System (ECS)
+All player-owned instances (characters, cards, buildings, equipment) use the Entity system:
+- `Entity` - Runtime instance with JSON state
+- `EntityTemplate` - Template defining defaults
+- `EntitySchema` - Schema defining components
 
-### 模板模型
-- `Character` - 角色模板
-- `Card` - 卡牌模板
-- `Building` - 建筑模板
-- `Equipment` - 装备模板
-- `Skill` - 技能模板
-- `Profession` - 职业模板
+### Template Models (kept as Prisma models)
+- `Character` - Character templates
+- `Card` - Card templates
+- `Building` - Building templates
+- `Equipment` - Equipment templates
+- `Skill` - Skill templates
+- `Profession` - Profession templates
 
-### 进度模型
-- `StoryProgress` - 剧情进度
-- `ActionLog` - 行动记录
-- `SettlementLog` - 结算记录
-- `BossStatus` - Boss状态
+### Junction Tables (FK to Entity)
+- `CharacterSkill` - Skills learned by character entities
+- `CharacterProfession` - Professions held by character entities
+- `HeroInstance` - Outer city hero instances (references character Entity)
 
-## 前端面板
+### Progress Models
+- `StoryProgress` - Story progress
+- `ActionLog` - Action records
+- `SettlementLog` - Settlement records
+- `BossStatus` - Boss status
 
-| 面板 | 文件 | 功能 |
-|------|------|------|
-| 结算面板 | `SettlementPanel.tsx` | 每日结算、奖励领取 |
-| 经济面板 | `EconomyPanel.tsx` | 资源总览、产出统计 |
-| 战斗面板 | `CombatPanel.tsx` | 回合制战斗界面 |
-| 祭坛面板 | `AltarPanel.tsx` | 抽卡、合成、献祭 |
-| 装备面板 | `EquipmentPanel.tsx` | 11槽位装备管理 |
-| 角色详情 | `CharacterDetailPanel.tsx` | 角色信息 |
-| 建筑详情 | `BuildingDetailPanel.tsx` | 建筑升级、工人分配 |
+### Engine Models
+- `Game` - Game instance
+- `GameRule` - Rules (formulas, configs, weights)
 
-## 开发命令
+## Frontend Panels
 
-**重要：本项目必须使用 bun，禁止使用 npm/yarn/pnpm**
+| Panel | File | Function |
+|-------|------|----------|
+| Settlement | `SettlementPanel.tsx` | Daily settlement, reward collection |
+| Economy | `EconomyPanel.tsx` | Resource overview, output stats |
+| Combat | `CombatPanel.tsx` | Turn-based combat UI |
+| Altar | `AltarPanel.tsx` | Gacha, synthesis, sacrifice |
+| Equipment | `EquipmentPanel.tsx` | 11-slot equipment management |
+| Character Detail | `CharacterDetailPanel.tsx` | Character info |
+| Building Detail | `BuildingDetailPanel.tsx` | Building upgrade, worker assignment |
+
+## Development Commands
+
+**Important: This project requires bun. Do not use npm/yarn/pnpm.**
 
 ```bash
-# 开发
+# Development
 bun dev
 
-# 构建
+# Build
 bun run build
 
-# 数据库迁移
+# Database migration
 bun prisma db push
 
-# 数据库可视化
+# Database GUI
 bun prisma studio
 
-# 类型检查
+# Type checking
 bun run typecheck
 
-# 运行测试
+# Run tests
 bun test
 
-# 运行测试并生成覆盖率报告
+# Run tests with coverage
 bun run test:coverage
 
-# 数据库初始化（含测试账号）
+# Database seed (includes test account)
 bun prisma db seed
 
-# 安装依赖
+# Install dependencies
 bun install
 ```
 
-## 稀有度颜色
+## Rarity Colors
 
-| 稀有度 | 颜色代码 |
-|--------|----------|
-| 普通 | `#888` |
-| 精良 | `#4a9` |
-| 稀有 | `#59b` |
-| 史诗 | `#e67e22` |
-| 传说 | `#c9a227` |
+| Rarity | Color Code |
+|--------|------------|
+| Common | `#888` |
+| Fine | `#4a9` |
+| Rare | `#59b` |
+| Epic | `#e67e22` |
+| Legendary | `#c9a227` |
 
-## 测试
+## Testing
 
-使用 Vitest 进行单元测试，测试文件位于 `src/server/api/__tests__/`。
+Unit tests use Vitest, located in `src/server/api/__tests__/`.
 
-| 测试文件 | 覆盖范围 |
-|----------|----------|
-| `admin.test.ts` | 管理后台 CRUD 操作 |
-| `story.test.ts` | 剧情系统 |
-| `exploration.test.ts` | 探索系统 |
+| Test File | Coverage |
+|-----------|----------|
+| `admin.test.ts` | Admin CRUD operations |
+| `story.test.ts` | Story system |
+| `exploration.test.ts` | Exploration system |
 
-测试使用 Mock Prisma Client，详见 `helpers.ts`。
+Tests use a Mock Prisma Client, see `helpers.ts`.
 
-## 注意事项
+## Important Notes
 
-1. **包管理器**: 必须使用 bun，禁止使用 npm/yarn/pnpm
-2. **体力系统**: 体力基于时间自动回复，`calculateCurrentStamina` 函数在 `player.ts` 中
-3. **结算系统**: 需要玩家手动领取奖励，不是自动发放
-4. **战斗系统**: 使用内存存储战斗状态，生产环境应改用 Redis
-5. **Boss系统**: 每周一重置挑战次数
-6. **API调用**: 使用 tRPC hooks (`useQuery`, `useMutation`)
-7. **认证**: 使用简易邮箱认证，cookie名为 `dev-session`
+1. **Package manager**: Must use bun, never npm/yarn/pnpm
+2. **Stamina system**: Time-based auto-recovery via `calculateCurrentStamina` in `player.ts`
+3. **Settlement system**: Players must manually claim rewards
+4. **Combat system**: Uses in-memory state storage; should use Redis in production
+5. **Boss system**: Weekly attempt reset on Monday
+6. **API calls**: Use tRPC hooks (`useQuery`, `useMutation`)
+7. **Auth**: Simple email auth, cookie name `dev-session`
+8. **Entity system**: All player instances (characters, cards, buildings, equipment) stored as Entity records with JSON state
+9. **Rule engine**: Game constants defined as `GameRule` records, accessed via `ruleService.getConfig/getFormula/getWeights`
 
-## 待优化项
+## TODO
 
-- [ ] 战斗状态持久化（当前使用内存Map）
-- [ ] 添加更多剧情章节
-- [ ] 添加更多Boss
-- [ ] 添加更多职业
-- [ ] 完善装备掉落系统
-- [ ] 添加公会系统
-- [ ] 添加PVP系统
+- [ ] Persist combat state (currently using in-memory Map)
+- [ ] Add more story chapters
+- [ ] Add more bosses
+- [ ] Add more professions
+- [ ] Improve equipment drop system
+- [ ] Add guild system
+- [ ] Add PVP system
