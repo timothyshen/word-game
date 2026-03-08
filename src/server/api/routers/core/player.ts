@@ -24,7 +24,16 @@ export const playerRouter = createTRPCRouter({
   }),
 
   levelUp: protectedProcedure.mutation(async ({ ctx }) => {
-    return playerService.levelUp(ctx.db, ctx.session.user.id);
+    const result = await playerService.levelUp(ctx.db, ctx.session.user.id);
+    void ctx.engine.events.emit("player:expGain", {
+      userId: ctx.session.user.id,
+      amount: result.expUsed,
+    }, "player-router");
+    void ctx.engine.events.emit("player:levelUp", {
+      userId: ctx.session.user.id,
+      newLevel: result.newLevel,
+    }, "player-router");
+    return result;
   }),
 
   updateStats: protectedProcedure

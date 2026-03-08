@@ -11,7 +11,11 @@ export const settlementRouter = createTRPCRouter({
   }),
 
   executeSettlement: protectedProcedure.mutation(async ({ ctx }) => {
-    return settlementService.executeSettlement(ctx.db, ctx.session.user.id);
+    const result = await settlementService.executeSettlement(ctx.db, ctx.session.user.id);
+    void ctx.engine.events.emit("system:dailyReset", {
+      userId: ctx.session.user.id,
+    }, "settlement-router");
+    return result;
   }),
 
   getHistory: protectedProcedure.query(async ({ ctx }) => {

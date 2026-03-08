@@ -27,7 +27,12 @@ export const explorationRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return explorationService.exploreArea(ctx.db, ctx.session.user.id, input);
+      const result = await explorationService.exploreArea(ctx.db, ctx.session.user.id, input);
+      void ctx.engine.events.emit("exploration:start", {
+        userId: ctx.session.user.id,
+        result: { areaName: result.areaName },
+      }, "exploration-router");
+      return result;
     }),
 
   // 触发探索事件（进入已探索区域）
@@ -56,7 +61,12 @@ export const explorationRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return explorationService.handleEventChoice(ctx.db, ctx.session.user.id, input);
+      const result = await explorationService.handleEventChoice(ctx.db, ctx.session.user.id, input);
+      void ctx.engine.events.emit("exploration:start", {
+        userId: ctx.session.user.id,
+        result: { type: "event", rewards: result.rewards },
+      }, "exploration-router");
+      return result;
     }),
 
   // 使用野外设施

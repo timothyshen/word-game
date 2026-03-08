@@ -11,7 +11,13 @@ export const combatRouter = createTRPCRouter({
       characterId: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
-      return combatService.startCombat(ctx.db, ctx.session.user.id, input);
+      const result = await combatService.startCombat(ctx.db, ctx.session.user.id, input);
+      void ctx.engine.events.emit("combat:start", {
+        userId: ctx.session.user.id,
+        combatId: result.combatId,
+        monsterLevel: input.monsterLevel,
+      }, "combat-router");
+      return result;
     }),
 
   getCombatStatus: protectedProcedure
@@ -36,7 +42,17 @@ export const combatRouter = createTRPCRouter({
       actionId: z.string(),
     }))
     .mutation(async ({ ctx, input }) => {
-      return combatService.executeAction(ctx.db, ctx.session.user.id, input.combatId, input.actionId);
+      const result = await combatService.executeAction(ctx.db, ctx.session.user.id, input.combatId, input.actionId);
+      void ctx.engine.events.emit("combat:action", {
+        userId: ctx.session.user.id,
+        combatId: input.combatId,
+        actionId: input.actionId,
+        result: {
+          status: result.status,
+          rewards: result.rewards,
+        },
+      }, "combat-router");
+      return result;
     }),
 
   endCombat: protectedProcedure

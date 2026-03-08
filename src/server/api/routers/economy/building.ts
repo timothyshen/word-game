@@ -16,7 +16,13 @@ export const buildingRouter = createTRPCRouter({
   upgrade: protectedProcedure
     .input(z.object({ buildingId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return buildingService.upgradeBuilding(ctx.db, ctx.session.user.id, input.buildingId);
+      const result = await buildingService.upgradeBuilding(ctx.db, ctx.session.user.id, input.buildingId);
+      void ctx.engine.events.emit("building:upgrade", {
+        userId: ctx.session.user.id,
+        buildingId: input.buildingId,
+        newLevel: result.newLevel,
+      }, "building-router");
+      return result;
     }),
 
   assignCharacter: protectedProcedure

@@ -358,9 +358,40 @@ export function createMockDb() {
 export type MockDb = ReturnType<typeof createMockDb>;
 
 // Create test context for admin router (requires admin session)
+// Mock engine for test contexts
+function createMockEngineForTests() {
+  return {
+    events: {
+      on: vi.fn(),
+      off: vi.fn(),
+      emit: vi.fn(async () => {}),
+    },
+    rules: {},
+    formulas: { calculate: vi.fn(() => 0) },
+    modules: {},
+    state: { get: vi.fn(), set: vi.fn(), delete: vi.fn(), clear: vi.fn() },
+    entities: {},
+    db: null,
+  };
+}
+
+function createMockRuleServiceForTests() {
+  return {
+    getRule: vi.fn(),
+    getRulesByCategory: vi.fn(),
+    invalidateCache: vi.fn(),
+    getFormula: vi.fn(),
+    getConfig: vi.fn(),
+    getWeights: vi.fn(),
+    getCondition: vi.fn(),
+  };
+}
+
 export function createTestContextForAdmin(db: MockDb) {
   return {
     db,
+    engine: createMockEngineForTests(),
+    ruleService: createMockRuleServiceForTests(),
     session: {
       user: {
         id: "admin-user-id",
@@ -376,6 +407,8 @@ export function createTestContextForAdmin(db: MockDb) {
 export function createTestContextForPlayer(db: MockDb, userId: string) {
   return {
     db,
+    engine: createMockEngineForTests(),
+    ruleService: createMockRuleServiceForTests(),
     session: {
       user: { id: userId, name: "Test User", email: "test@test.com" },
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
