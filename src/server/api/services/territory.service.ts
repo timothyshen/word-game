@@ -3,7 +3,9 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
+import { findBuildingEntityByPosition, parseBuildingState } from "../utils/building-utils";
 
 // 地形类型
 const TERRAIN_TYPES = ["grass", "forest", "mountain", "water", "desert"] as const;
@@ -284,6 +286,7 @@ export async function unlock(
 
 export async function getTileDetail(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   positionX: number,
   positionY: number,
@@ -300,17 +303,21 @@ export async function getTileDetail(
     },
   });
 
-  // 获取该格子上的建筑
-  const building = await db.playerBuilding.findUnique({
-    where: {
-      playerId_positionX_positionY: {
-        playerId: player.id,
-        positionX,
-        positionY,
-      },
-    },
-    include: { building: true },
-  });
+  // 获取该格子上的建筑 (via Entity system)
+  const buildingEntity = await findBuildingEntityByPosition(entities, player.id, positionX, positionY);
+  let building = null;
+  if (buildingEntity) {
+    const state = parseBuildingState(buildingEntity);
+    const template = await db.building.findUnique({ where: { id: state.buildingId } });
+    if (template) {
+      building = {
+        id: buildingEntity.id,
+        name: template.name,
+        icon: template.icon,
+        level: state.level,
+      };
+    }
+  }
 
   return {
     tile: tile ?? {
@@ -319,13 +326,6 @@ export async function getTileDetail(
       unlocked: positionX === 0 && positionY === 0,
       terrain: "grass",
     },
-    building: building
-      ? {
-          id: building.id,
-          name: building.building.name,
-          icon: building.building.icon,
-          level: building.level,
-        }
-      : null,
+    building,
   };
 }

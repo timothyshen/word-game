@@ -3,7 +3,10 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
+import { addCardEntity, findCardEntityByCardId, parseCardState, consumeCardEntity } from "../utils/card-entity-utils";
+import * as cardRepo from "../repositories/card.repo";
 
 interface ShopItem {
   id: string;
@@ -65,7 +68,7 @@ export async function getItems(db: FullDbClient, userId: string, category: strin
   return { items, playerResources: { gold: player.gold, crystals: player.crystals } };
 }
 
-export async function buyItem(db: FullDbClient, userId: string, itemId: string, quantity: number) {
+export async function buyItem(db: FullDbClient, entities: IEntityManager, userId: string, itemId: string, quantity: number) {
   const player = await getPlayerOrThrow(db, userId);
 
   const item = SHOP_ITEMS.find((i) => i.id === itemId);
@@ -139,14 +142,7 @@ export async function buyItem(db: FullDbClient, userId: string, itemId: string, 
       const grantedCards: Array<{ name: string; rarity: string }> = [];
       for (let i = 0; i < quantity; i++) {
         const card = cards[Math.floor(Math.random() * cards.length)]!;
-        const existing = await db.playerCard.findUnique({
-          where: { playerId_cardId: { playerId: player.id, cardId: card.id } },
-        });
-        if (existing) {
-          await db.playerCard.update({ where: { id: existing.id }, data: { quantity: { increment: 1 } } });
-        } else {
-          await db.playerCard.create({ data: { playerId: player.id, cardId: card.id, quantity: 1 } });
-        }
+        await addCardEntity(db, entities, player.id, card.id, 1);
         grantedCards.push({ name: card.name, rarity: card.rarity });
       }
       result = { cardsGranted: grantedCards };
@@ -156,13 +152,10 @@ export async function buyItem(db: FullDbClient, userId: string, itemId: string, 
   return { success: true, itemName: item.name, quantity, cost: { gold: totalGold, crystals: totalCrystals }, ...result };
 }
 
-export async function sellCard(db: FullDbClient, userId: string, cardId: string, quantity: number) {
+export async function sellCard(db: FullDbClient, entities: IEntityManager, userId: string, cardId: string, quantity: number) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const playerCard = await db.playerCard.findFirst({
-    where: { playerId: player.id, cardId },
-    include: { card: true },
-  });
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, cardId);
   if (!playerCard || playerCard.quantity < quantity) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "卡牌数量不足" });
   }
@@ -176,9 +169,9 @@ export async function sellCard(db: FullDbClient, userId: string, cardId: string,
   const totalCrystals = price.crystals * quantity;
 
   if (playerCard.quantity === quantity) {
-    await db.playerCard.delete({ where: { id: playerCard.id } });
+    await cardRepo.deletePlayerCard(entities, playerCard.id);
   } else {
-    await db.playerCard.update({ where: { id: playerCard.id }, data: { quantity: { decrement: quantity } } });
+    await cardRepo.updatePlayerCardQuantity(entities, playerCard.id, playerCard.quantity - quantity);
   }
 
   await updatePlayer(db, player.id, { gold: { increment: totalGold }, crystals: { increment: totalCrystals } });
@@ -186,13 +179,10 @@ export async function sellCard(db: FullDbClient, userId: string, cardId: string,
   return { success: true, cardName: playerCard.card.name, cardRarity: playerCard.card.rarity, quantity, gained: { gold: totalGold, crystals: totalCrystals } };
 }
 
-export async function getSellPrice(db: FullDbClient, userId: string, cardId: string) {
+export async function getSellPrice(db: FullDbClient, entities: IEntityManager, userId: string, cardId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const playerCard = await db.playerCard.findFirst({
-    where: { playerId: player.id, cardId },
-    include: { card: true },
-  });
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, cardId);
   if (!playerCard) throw new TRPCError({ code: "NOT_FOUND", message: "未拥有该卡牌" });
 
   const rarityPrices: Record<string, { gold: number; crystals: number }> = {

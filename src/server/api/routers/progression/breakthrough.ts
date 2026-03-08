@@ -14,12 +14,12 @@ export const breakthroughRouter = createTRPCRouter({
   getCharacterStatus: protectedProcedure
     .input(z.object({ characterId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return breakthroughService.getCharacterStatus(ctx.db, ctx.session.user.id, input.characterId);
+      return breakthroughService.getCharacterStatus(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
     }),
 
   breakthroughCharacter: protectedProcedure
     .input(z.object({ characterId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return breakthroughService.breakthroughCharacter(ctx.db, ctx.session.user.id, input.characterId);
+      return breakthroughService.breakthroughCharacter(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
     }),
 });

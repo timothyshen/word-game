@@ -12,18 +12,18 @@ export const shopRouter = createTRPCRouter({
   buy: protectedProcedure
     .input(z.object({ itemId: z.string(), quantity: z.number().min(1).default(1) }))
     .mutation(async ({ ctx, input }) => {
-      return shopService.buyItem(ctx.db, ctx.session.user.id, input.itemId, input.quantity);
+      return shopService.buyItem(ctx.db, ctx.engine.entities, ctx.session.user.id, input.itemId, input.quantity);
     }),
 
   sell: protectedProcedure
     .input(z.object({ cardId: z.string(), quantity: z.number().min(1).default(1) }))
     .mutation(async ({ ctx, input }) => {
-      return shopService.sellCard(ctx.db, ctx.session.user.id, input.cardId, input.quantity);
+      return shopService.sellCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId, input.quantity);
     }),
 
   getSellPrice: protectedProcedure
     .input(z.object({ cardId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return shopService.getSellPrice(ctx.db, ctx.session.user.id, input.cardId);
+      return shopService.getSellPrice(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
     }),
 });

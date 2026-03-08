@@ -16,11 +16,11 @@ export const altarRouter = createTRPCRouter({
   collectDailyCard: protectedProcedure
     .input(z.object({ altarId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return altarService.collectDailyCard(ctx.db, ctx.session.user.id, input.altarId);
+      return altarService.collectDailyCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input.altarId);
     }),
 
   collectAllDailyCards: protectedProcedure.mutation(async ({ ctx }) => {
-    return altarService.collectAllDailyCards(ctx.db, ctx.session.user.id);
+    return altarService.collectAllDailyCards(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   getAltarTypes: protectedProcedure.query(() => {

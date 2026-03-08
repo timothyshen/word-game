@@ -38,6 +38,7 @@ export const territoryRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       return territoryService.getTileDetail(
         ctx.db,
+        ctx.engine.entities,
         ctx.session.user.id,
         input.positionX,
         input.positionY,

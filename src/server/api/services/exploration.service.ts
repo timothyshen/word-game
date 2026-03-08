@@ -3,6 +3,7 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
 import * as exploRepo from "../repositories/exploration.repo";
 import { upsertUnlockFlag } from "../repositories/card.repo";
@@ -394,6 +395,7 @@ export async function triggerEvent(
 
 export async function handleEventChoice(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: {
     eventType: string;
@@ -449,7 +451,7 @@ export async function handleEventChoice(
     }
     // Grant cards
     for (const cardReward of resolved.cardsGranted) {
-      await grantRandomCards(db, playerId, cardReward.rarity, cardReward.count);
+      await grantRandomCards(db, entities, playerId, cardReward.rarity, cardReward.count);
     }
     return resolved;
   }
@@ -472,7 +474,7 @@ export async function handleEventChoice(
 
     if (eventRewards.cards && eventRewards.cards.length > 0) {
       for (const cardReward of eventRewards.cards) {
-        await grantRandomCards(db, playerId, cardReward.rarity, cardReward.count);
+        await grantRandomCards(db, entities, playerId, cardReward.rarity, cardReward.count);
       }
     }
   }
@@ -572,7 +574,7 @@ export async function handleEventChoice(
           let cardDrop = false;
           if (rewards.cards && rewards.cards.length > 0) {
             for (const cardReward of rewards.cards) {
-              const granted = await grantRandomCards(db, player.id, cardReward.rarity, cardReward.count);
+              const granted = await grantRandomCards(db, entities, player.id, cardReward.rarity, cardReward.count);
               if (granted.length > 0) cardDrop = true;
             }
           }

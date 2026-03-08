@@ -25,6 +25,6 @@ export const combatRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return worldCombatService.performAction(ctx.db, ctx.session.user.id, input);
+      return worldCombatService.performAction(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 });

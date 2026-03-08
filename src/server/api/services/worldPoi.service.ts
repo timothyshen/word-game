@@ -2,11 +2,13 @@
 
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { getInnerCityBonuses } from "./worldHelpers";
 
 // ===== interact: 与POI互动 =====
 export async function interact(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: { heroId: string; poiId: string },
 ) {
@@ -92,6 +94,7 @@ export async function interact(
 // ===== harvest: 采集资源 =====
 export async function harvest(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: { heroId: string; poiId: string },
 ) {
@@ -131,7 +134,7 @@ export async function harvest(
 
   // ===== 神殿：祈祷获得buff =====
   if (poi.type === "shrine") {
-    return handleShrine(db, hero, poi);
+    return handleShrine(db, entities, hero, poi);
   }
 
   // ===== 商队：随机交易 =====
@@ -190,7 +193,7 @@ export async function refreshResources(db: FullDbClient) {
 // ===== Private helpers =====
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleShrine(db: FullDbClient, hero: any, poi: any) {
+async function handleShrine(db: FullDbClient, entities: IEntityManager, hero: any, poi: any) {
   const staminaCost = 5;
   if (hero.stamina < staminaCost) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
@@ -216,10 +219,7 @@ async function handleShrine(db: FullDbClient, hero: any, poi: any) {
   } else if (poi.resourceType === "attack") {
     // 临时增加攻击力 - 更新角色基础攻击
     const boostAmount = poi.resourceAmount ?? 5;
-    await db.playerCharacter.update({
-      where: { id: hero.characterId },
-      data: { attack: hero.character.attack + boostAmount },
-    });
+    await entities.updateEntityState(hero.characterId, { attack: hero.character.attack + boostAmount });
     message = `战神祝福！攻击力+${boostAmount}`;
   } else {
     message = "获得神殿祝福";

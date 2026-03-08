@@ -4,19 +4,19 @@ import * as buildingService from "../../services/building.service";
 
 export const buildingRouter = createTRPCRouter({
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    return buildingService.getAllBuildings(ctx.db, ctx.session.user.id);
+    return buildingService.getAllBuildings(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   getById: protectedProcedure
     .input(z.object({ buildingId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return buildingService.getBuildingById(ctx.db, ctx.session.user.id, input.buildingId);
+      return buildingService.getBuildingById(ctx.db, ctx.engine.entities, ctx.session.user.id, input.buildingId);
     }),
 
   upgrade: protectedProcedure
     .input(z.object({ buildingId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const result = await buildingService.upgradeBuilding(ctx.db, ctx.session.user.id, input.buildingId);
+      const result = await buildingService.upgradeBuilding(ctx.db, ctx.engine.entities, ctx.session.user.id, input.buildingId);
       void ctx.engine.events.emit("building:upgrade", {
         userId: ctx.session.user.id,
         buildingId: input.buildingId,
@@ -28,14 +28,14 @@ export const buildingRouter = createTRPCRouter({
   assignCharacter: protectedProcedure
     .input(z.object({ buildingId: z.string(), characterId: z.string().nullable() }))
     .mutation(async ({ ctx, input }) => {
-      return buildingService.assignCharacter(ctx.db, ctx.session.user.id, input.buildingId, input.characterId);
+      return buildingService.assignCharacter(ctx.db, ctx.engine.entities, ctx.session.user.id, input.buildingId, input.characterId);
     }),
 
   calculateDailyOutput: protectedProcedure.query(async ({ ctx }) => {
-    return buildingService.calculateDailyOutput(ctx.db, ctx.session.user.id);
+    return buildingService.calculateDailyOutput(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   collectDailyOutput: protectedProcedure.mutation(async ({ ctx }) => {
-    return buildingService.collectDailyOutput(ctx.db, ctx.session.user.id);
+    return buildingService.collectDailyOutput(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 });

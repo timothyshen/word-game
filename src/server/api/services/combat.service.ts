@@ -4,6 +4,7 @@
 import { TRPCError } from "@trpc/server";
 import { engine, ruleService } from "~/server/api/engine";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
 import * as combatRepo from "../repositories/combat.repo";
 import { getCurrentGameDay } from "../utils/game-time";
@@ -11,6 +12,7 @@ import { upsertUnlockFlag } from "../repositories/card.repo";
 import { grantRandomCard, rollRarity } from "../utils/card-utils";
 import { grantRandomEquipment, getEquipmentDropTable } from "../utils/equipment-utils";
 import { calculateCurrentStamina } from "../utils/player-utils";
+import { parseCharacterState, type CharacterEntity } from "../utils/character-utils";
 import {
   calculateDamage,
   resolveSkillEffect,
@@ -200,6 +202,7 @@ async function getPlayerOrThrow(db: FullDbClient, userId: string) {
 
 export async function startCombat(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   options: {
     monsterLevel: number;
@@ -208,11 +211,36 @@ export async function startCombat(
     characterId?: string;
   },
 ) {
-  const player = await combatRepo.findPlayerWithCharacters(db, userId, options.characterId);
+  const playerBase = await findPlayerByUserId(db, userId);
 
-  if (!player) {
+  if (!playerBase) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
+  const player = playerBase as typeof playerBase & { characters: Array<{ id: string; hp: number; maxHp: number; mp: number; maxMp: number; attack: number; defense: number; speed: number; character: { name: string } }> };
+
+  // Fetch character from entity system if characterId provided
+  const charEntities: typeof player.characters = [];
+  if (options.characterId) {
+    const entity = (await entities.getEntity(options.characterId)) as CharacterEntity | null;
+    if (entity && entity.ownerId === player.id && entity.template?.schema?.name === "character") {
+      const state = parseCharacterState(entity);
+      const charTemplate = await db.character.findUnique({ where: { id: state.characterId } });
+      if (charTemplate) {
+        charEntities.push({
+          id: entity.id,
+          hp: state.hp,
+          maxHp: state.maxHp,
+          mp: state.mp,
+          maxMp: state.maxMp,
+          attack: state.attack,
+          defense: state.defense,
+          speed: state.speed,
+          character: { name: charTemplate.name },
+        });
+      }
+    }
+  }
+  player.characters = charEntities;
 
   const existingCombat = await combatRepo.findActiveCombat(db, player.id);
 
@@ -407,6 +435,7 @@ export async function getActions(db: FullDbClient, userId: string, combatId: str
 
 export async function executeAction(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   combatId: string,
   actionId: string,
@@ -543,7 +572,7 @@ export async function executeAction(
 
     // Card drop
     if (Math.random() < rewards.cardChance) {
-      const droppedCard = await grantRandomCard(db, player.id, rewards.cardRarity);
+      const droppedCard = await grantRandomCard(db, entities, player.id, rewards.cardRarity);
       if (droppedCard) {
         newLogs.push(`🃏 获得卡牌：${droppedCard.name}（${droppedCard.rarity}）`);
       }
@@ -553,7 +582,7 @@ export async function executeAction(
     const equipDrop = getEquipmentDropTable(monster.level);
     if (Math.random() < equipDrop.chance) {
       const eqRarity = rollRarity(equipDrop.pool);
-      const droppedEquipment = await grantRandomEquipment(db, player.id, eqRarity);
+      const droppedEquipment = await grantRandomEquipment(db, entities, player.id, eqRarity);
       if (droppedEquipment) {
         newLogs.push(`⚔️ 获得装备：${droppedEquipment.name}（${droppedEquipment.rarity}）`);
       }

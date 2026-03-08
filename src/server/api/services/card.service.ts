@@ -3,12 +3,14 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
 import * as cardRepo from "../repositories/card.repo";
 import { getCurrentGameDay } from "../utils/game-time";
 import { parseCardEffect, resolveCardEffect } from "~/shared/effects";
 import type { CardEffect, CardDbAdapter, CardContext } from "~/shared/effects";
 import type { PrismaClient } from "../../../../generated/prisma";
+import { getCharacterTemplateId, parseCharacterState, type CharacterEntity } from "../utils/character-utils";
 
 // ── Helpers ──
 
@@ -19,7 +21,7 @@ async function getPlayerOrThrow(db: FullDbClient, userId: string) {
 }
 
 /** Create a CardDbAdapter from Prisma context for use with resolveCardEffect */
-function createCardDbAdapter(db: PrismaClient, playerId: string): CardDbAdapter {
+function createCardDbAdapter(db: PrismaClient, entities: IEntityManager, playerId: string): CardDbAdapter {
   return {
     async getPlayer(id) {
       const p = await db.player.findUnique({ where: { id } });
@@ -29,11 +31,13 @@ function createCardDbAdapter(db: PrismaClient, playerId: string): CardDbAdapter 
       await db.player.update({ where: { id }, data });
     },
     async getCharacter(id) {
-      const c = await db.playerCharacter.findUnique({ where: { id } });
-      return c ? { id: c.id, hp: c.hp, maxHp: c.maxHp, mp: c.mp, maxMp: c.maxMp } : null;
+      const entity = (await entities.getEntity(id)) as CharacterEntity | null;
+      if (!entity) return null;
+      const state = parseCharacterState(entity);
+      return { id: entity.id, hp: state.hp, maxHp: state.maxHp, mp: state.mp, maxMp: state.maxMp };
     },
     async updateCharacter(id, data) {
-      await db.playerCharacter.update({ where: { id }, data });
+      await entities.updateEntityState(id, data);
     },
     async getBuilding(id) {
       const b = await cardRepo.findBuildingTemplateById(db, id);
@@ -53,8 +57,26 @@ function createCardDbAdapter(db: PrismaClient, playerId: string): CardDbAdapter 
       return s ? { id: s.id, name: s.name } : null;
     },
     async createPlayerCharacter(data) {
-      const pc = await db.playerCharacter.create({ data: data as Parameters<typeof db.playerCharacter.create>[0]["data"] });
-      return pc.id;
+      const charData = data as Record<string, unknown>;
+      const templateId = await getCharacterTemplateId(db, entities);
+      const entity = (await entities.createEntity(templateId, charData.playerId as string, {
+        characterId: charData.characterId as string,
+        level: (charData.level as number) ?? 1,
+        exp: 0,
+        maxLevel: 10,
+        tier: 1,
+        hp: charData.hp as number,
+        maxHp: charData.maxHp as number,
+        mp: charData.mp as number,
+        maxMp: charData.maxMp as number,
+        attack: charData.attack as number,
+        defense: charData.defense as number,
+        speed: charData.speed as number,
+        luck: charData.luck as number,
+        status: "idle",
+        workingAt: null,
+      })) as { id: string };
+      return entity.id;
     },
     async createPlayerSkill(data) {
       const ps = await db.playerSkill.create({ data: data as Parameters<typeof db.playerSkill.create>[0]["data"] });
@@ -68,10 +90,10 @@ function createCardDbAdapter(db: PrismaClient, playerId: string): CardDbAdapter 
 
 // ── Service Functions ──
 
-export async function getAllCards(db: FullDbClient, userId: string) {
+export async function getAllCards(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const playerCards = await cardRepo.findPlayerCards(db, player.id);
+  const playerCards = await cardRepo.findPlayerCards(db, entities, player.id);
 
   return playerCards.map(pc => ({
     id: pc.id,
@@ -82,12 +104,13 @@ export async function getAllCards(db: FullDbClient, userId: string) {
 
 export async function getCardsByType(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   type: "building" | "recruit" | "skill" | "enhance" | "item" | "expansion",
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const playerCards = await cardRepo.findPlayerCardsByType(db, player.id, type);
+  const playerCards = await cardRepo.findPlayerCardsByType(db, entities, player.id, type);
 
   return playerCards.map(pc => ({
     id: pc.id,
@@ -98,13 +121,14 @@ export async function getCardsByType(
 
 export async function useCard(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: { cardId: string; quantity: number; targetId?: string },
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
   // 检查玩家是否拥有该卡牌
-  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, input.cardId);
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, input.cardId);
 
   if (!playerCard || playerCard.quantity < input.quantity) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "卡牌数量不足" });
@@ -112,9 +136,9 @@ export async function useCard(
 
   // 减少卡牌数量
   if (playerCard.quantity === input.quantity) {
-    await cardRepo.deletePlayerCard(db, playerCard.id);
+    await cardRepo.deletePlayerCard(entities, playerCard.id);
   } else {
-    await cardRepo.updatePlayerCardQuantity(db, playerCard.id, playerCard.quantity - input.quantity);
+    await cardRepo.updatePlayerCardQuantity(entities, playerCard.id, playerCard.quantity - input.quantity);
   }
 
   // 根据卡牌类型执行效果
@@ -137,6 +161,7 @@ export async function useCard(
 
 export async function addCard(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: { cardId: string; quantity: number },
 ) {
@@ -149,12 +174,12 @@ export async function addCard(
   }
 
   // 更新或创建玩家卡牌记录
-  const existingPlayerCard = await cardRepo.findPlayerCardUnique(db, player.id, input.cardId);
+  const existingPlayerCard = await cardRepo.findPlayerCardUnique(entities, player.id, input.cardId);
 
   if (existingPlayerCard) {
-    await cardRepo.updatePlayerCardQuantity(db, existingPlayerCard.id, existingPlayerCard.quantity + input.quantity);
+    await cardRepo.updatePlayerCardQuantity(entities, existingPlayerCard.id, existingPlayerCard.quantity + input.quantity);
   } else {
-    await cardRepo.createPlayerCardRecord(db, player.id, input.cardId, input.quantity);
+    await cardRepo.createPlayerCardRecord(db, entities, player.id, input.cardId, input.quantity);
   }
 
   await cardRepo.upsertUnlockFlag(db, player.id, "card_system");
@@ -178,19 +203,19 @@ export async function addCard(
 
 export async function useBuildingCard(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: { cardId: string; positionX: number; positionY: number },
 ) {
   const player = await db.player.findUnique({
     where: { userId },
-    include: { buildings: true },
   });
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
   // 获取卡牌
-  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, input.cardId);
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, input.cardId);
 
   if (!playerCard || playerCard.quantity < 1) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "没有该建筑卡" });
@@ -210,7 +235,7 @@ export async function useBuildingCard(
   }
 
   // 检查位置是否已有建筑
-  const existingBuilding = await cardRepo.findPlayerBuildingByPosition(db, player.id, input.positionX, input.positionY);
+  const existingBuilding = await cardRepo.findPlayerBuildingByPosition(entities, player.id, input.positionX, input.positionY);
 
   if (existingBuilding) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "该位置已有建筑" });
@@ -218,14 +243,15 @@ export async function useBuildingCard(
 
   // 检查是否已有同类型建筑（特殊建筑只能建一个）
   if (building.slot === "special" || building.slot === "core") {
-    const sameBuilding = player.buildings.find(b => b.buildingId === buildingId);
+    const { findBuildingEntityByBuildingId } = await import("../utils/building-utils");
+    const sameBuilding = await findBuildingEntityByBuildingId(entities, player.id, buildingId);
     if (sameBuilding) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "已有该建筑，无法重复建造" });
     }
   }
 
   // 创建建筑
-  const newBuilding = await cardRepo.createPlayerBuildingRecord(db, {
+  const newBuilding = await cardRepo.createPlayerBuildingRecord(db, entities, {
     playerId: player.id,
     buildingId,
     level: 1,
@@ -241,7 +267,7 @@ export async function useBuildingCard(
   }
 
   // 消耗卡牌
-  await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
+  await cardRepo.consumeCard(entities, playerCard.id, playerCard.quantity);
 
   // 记录行动分数
   await createActionLog(db, {
@@ -267,19 +293,14 @@ export async function useBuildingCard(
 
 export async function useRecruitCard(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   cardId: string,
 ) {
-  const player = await db.player.findUnique({
-    where: { userId },
-    include: { characters: true },
-  });
-  if (!player) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
-  }
+  const player = await getPlayerOrThrow(db, userId);
 
   // 获取卡牌
-  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, cardId);
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, cardId);
 
   if (!playerCard || playerCard.quantity < 1) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "没有该招募卡" });
@@ -298,11 +319,13 @@ export async function useRecruitCard(
     throw new TRPCError({ code: "NOT_FOUND", message: "角色模板不存在" });
   }
 
-  // 创建角色实例
-  const newCharacter = await cardRepo.createPlayerCharacterRecord(db, {
-    playerId: player.id,
+  // 创建角色实例 via Entity system
+  const templateId = await getCharacterTemplateId(db, entities);
+  const newCharacter = (await entities.createEntity(templateId, player.id, {
     characterId,
     level: 1,
+    exp: 0,
+    maxLevel: 10,
     tier: 1,
     hp: character.baseHp,
     maxHp: character.baseHp,
@@ -312,12 +335,14 @@ export async function useRecruitCard(
     defense: character.baseDefense,
     speed: character.baseSpeed,
     luck: character.baseLuck,
-  });
+    status: "idle",
+    workingAt: null,
+  })) as { id: string };
 
   await cardRepo.upsertUnlockFlag(db, player.id, "recruit_system");
 
   // 消耗卡牌
-  await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
+  await cardRepo.consumeCard(entities, playerCard.id, playerCard.quantity);
 
   // 计算稀有度加成
   const rarityBonus: Record<string, number> = {
@@ -347,18 +372,19 @@ export async function useRecruitCard(
     recruited: true,
     characterName: character.name,
     rarity: character.rarity,
-    playerCharacter: newCharacter,
+    playerCharacterId: newCharacter.id,
   };
 }
 
 export async function useChestCard(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   cardId: string,
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, cardId);
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, cardId);
   if (!playerCard || playerCard.quantity < 1) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "没有该宝箱" });
   }
@@ -369,9 +395,9 @@ export async function useChestCard(
   const effects = JSON.parse(playerCard.card.effects) as { draws: number; pool: Record<string, number> };
 
   const { openChest } = await import("../utils/card-utils");
-  const grantedCards = await openChest(db as Parameters<typeof openChest>[0], player.id, effects.draws, effects.pool);
+  const grantedCards = await openChest(db as Parameters<typeof openChest>[0], entities, player.id, effects.draws, effects.pool);
 
-  await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
+  await cardRepo.consumeCard(entities, playerCard.id, playerCard.quantity);
 
   return {
     opened: true,
@@ -383,13 +409,14 @@ export async function useChestCard(
 
 export async function useItemCard(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: { cardId: string; targetType: "player" | "character"; targetId?: string },
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
   // 获取卡牌
-  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, input.cardId);
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, input.cardId);
 
   if (!playerCard || playerCard.quantity < 1) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "没有该道具卡" });
@@ -404,7 +431,7 @@ export async function useItemCard(
 
   if (typedEffect) {
     // Use the unified card resolver
-    const adapter = createCardDbAdapter(db, player.id);
+    const adapter = createCardDbAdapter(db, entities, player.id);
     const cardCtx: CardContext = {
       playerId: player.id,
       targetId: input.targetId,
@@ -421,22 +448,21 @@ export async function useItemCard(
     const legacyEffects = JSON.parse(playerCard.card.effects) as Record<string, unknown>;
 
     if (input.targetType === "character" && input.targetId) {
-      const character = await db.playerCharacter.findFirst({
-        where: { id: input.targetId, playerId: player.id },
-      });
-      if (!character) {
+      const entity = (await entities.getEntity(input.targetId)) as CharacterEntity | null;
+      if (!entity || entity.ownerId !== player.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
       }
+      const charState = parseCharacterState(entity);
 
       const heal = legacyEffects.heal as number | undefined;
       const type = legacyEffects.type as string | undefined;
       if (heal && type === "hp") {
-        const newHp = Math.min(character.hp + heal, character.maxHp);
-        await db.playerCharacter.update({ where: { id: character.id }, data: { hp: newHp } });
+        const newHp = Math.min(charState.hp + heal, charState.maxHp);
+        await entities.updateEntityState(entity.id, { hp: newHp });
         result = { healed: heal, newHp };
       } else if (heal && type === "mp") {
-        const newMp = Math.min(character.mp + heal, character.maxMp);
-        await db.playerCharacter.update({ where: { id: character.id }, data: { mp: newMp } });
+        const newMp = Math.min(charState.mp + heal, charState.maxMp);
+        await entities.updateEntityState(entity.id, { mp: newMp });
         result = { restored: heal, newMp };
       } else {
         result = { message: "道具效果已应用", effects: legacyEffects };
@@ -447,7 +473,7 @@ export async function useItemCard(
   }
 
   // 消耗卡牌
-  await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
+  await cardRepo.consumeCard(entities, playerCard.id, playerCard.quantity);
 
   return {
     used: true,
@@ -458,6 +484,7 @@ export async function useItemCard(
 
 export async function learnSkill(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: { cardId: string; targetType: "player" | "character"; targetId?: string },
 ) {
@@ -470,7 +497,7 @@ export async function learnSkill(
   }
 
   // 获取卡牌
-  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, input.cardId);
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, input.cardId);
 
   if (!playerCard || playerCard.quantity < 1) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "没有该技能卡" });
@@ -519,23 +546,22 @@ export async function learnSkill(
       throw new TRPCError({ code: "BAD_REQUEST", message: "需要指定角色" });
     }
 
-    const character = await db.playerCharacter.findFirst({
-      where: {
-        id: input.targetId,
-        playerId: player.id,
-      },
-      include: { learnedSkills: true },
-    });
-
-    if (!character) {
+    const charEntity = (await entities.getEntity(input.targetId)) as CharacterEntity | null;
+    if (!charEntity || charEntity.ownerId !== player.id) {
       throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
     }
+    const charState = parseCharacterState(charEntity);
 
-    const skillSlots = character.tier * 6;
-    const currentSkillCount = character.learnedSkills.length;
+    // Load character skills from junction table
+    const characterSkills = await db.characterSkill.findMany({
+      where: { playerCharacterId: charEntity.id },
+    });
+
+    const skillSlots = charState.tier * 6;
+    const currentSkillCount = characterSkills.length;
 
     // 检查是否已学习
-    const existingSkill = await cardRepo.findCharacterSkillUnique(db, character.id, skillId);
+    const existingSkill = await cardRepo.findCharacterSkillUnique(db, charEntity.id, skillId);
 
     if (existingSkill) {
       // 升级
@@ -545,12 +571,12 @@ export async function learnSkill(
         throw new TRPCError({ code: "BAD_REQUEST", message: "角色技能槽已满" });
       }
 
-      await cardRepo.createCharacterSkillRecord(db, character.id, skillId, 1);
+      await cardRepo.createCharacterSkillRecord(db, charEntity.id, skillId, 1);
     }
   }
 
   // 消耗卡牌
-  await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
+  await cardRepo.consumeCard(entities, playerCard.id, playerCard.quantity);
 
   return {
     learned: true,

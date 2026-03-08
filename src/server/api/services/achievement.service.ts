@@ -3,8 +3,10 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
 import { grantRandomCard } from "../utils/card-utils";
+import { findPlayerBuildings } from "../repositories/building.repo";
 
 // 成就定义
 interface Achievement {
@@ -262,11 +264,10 @@ function getProgress(
 
 // ── Get All Achievements ──
 
-export async function getAllAchievements(db: FullDbClient, userId: string) {
+export async function getAllAchievements(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await db.player.findUnique({
     where: { userId },
     include: {
-      buildings: true,
       characters: true,
       cards: true,
       achievements: true,
@@ -277,6 +278,13 @@ export async function getAllAchievements(db: FullDbClient, userId: string) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
+  // Load buildings from entity system
+  const buildingEntities = await findPlayerBuildings(db, entities, player.id);
+  const playerWithBuildings = {
+    ...player,
+    buildings: buildingEntities.map(b => ({ level: b.level })),
+  };
+
   // 获取统计数据
   const exploredAreasCount = await db.exploredArea.count({
     where: { playerId: player.id },
@@ -285,7 +293,7 @@ export async function getAllAchievements(db: FullDbClient, userId: string) {
   const claimedIds = new Set(player.achievements.map((a) => a.achievementId));
 
   return ACHIEVEMENTS.filter((a) => !a.hidden).map((achievement) => {
-    const progress = getProgress(achievement.condition, player, exploredAreasCount);
+    const progress = getProgress(achievement.condition, playerWithBuildings, exploredAreasCount);
     const isCompleted = progress >= achievement.condition.value;
     const isClaimed = claimedIds.has(achievement.id);
 
@@ -307,11 +315,10 @@ export async function getAllAchievements(db: FullDbClient, userId: string) {
 
 // ── Claim Achievement ──
 
-export async function claimAchievement(db: FullDbClient, userId: string, achievementId: string) {
+export async function claimAchievement(db: FullDbClient, entities: IEntityManager, userId: string, achievementId: string) {
   const player = await db.player.findUnique({
     where: { userId },
     include: {
-      buildings: true,
       characters: true,
       cards: true,
       achievements: true,
@@ -321,6 +328,13 @@ export async function claimAchievement(db: FullDbClient, userId: string, achieve
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
+
+  // Load buildings from entity system
+  const buildingEntities = await findPlayerBuildings(db, entities, player.id);
+  const playerWithBuildings = {
+    ...player,
+    buildings: buildingEntities.map(b => ({ level: b.level })),
+  };
 
   const achievement = ACHIEVEMENTS.find((a) => a.id === achievementId);
   if (!achievement) {
@@ -340,7 +354,7 @@ export async function claimAchievement(db: FullDbClient, userId: string, achieve
     where: { playerId: player.id },
   });
 
-  const progress = getProgress(achievement.condition, player, exploredAreasCount);
+  const progress = getProgress(achievement.condition, playerWithBuildings, exploredAreasCount);
   if (progress < achievement.condition.value) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "成就未完成" });
   }
@@ -367,7 +381,7 @@ export async function claimAchievement(db: FullDbClient, userId: string, achieve
   // 发放卡牌奖励
   let cardReward = null;
   if (rewards.cardRarity) {
-    const result = await grantRandomCard(db, player.id, rewards.cardRarity);
+    const result = await grantRandomCard(db, entities, player.id, rewards.cardRarity);
     if (result) {
       cardReward = { name: result.name, rarity: result.rarity };
     }
@@ -396,13 +410,13 @@ export async function claimAchievement(db: FullDbClient, userId: string, achieve
 
 export async function getByCategory(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   category: "building" | "combat" | "exploration" | "collection" | "special",
 ) {
   const player = await db.player.findUnique({
     where: { userId },
     include: {
-      buildings: true,
       characters: true,
       cards: true,
       achievements: true,
@@ -413,6 +427,13 @@ export async function getByCategory(
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
+  // Load buildings from entity system
+  const buildingEntities = await findPlayerBuildings(db, entities, player.id);
+  const playerWithBuildings = {
+    ...player,
+    buildings: buildingEntities.map(b => ({ level: b.level })),
+  };
+
   const exploredAreasCount = await db.exploredArea.count({
     where: { playerId: player.id },
   });
@@ -421,7 +442,7 @@ export async function getByCategory(
 
   return ACHIEVEMENTS.filter((a) => a.category === category && !a.hidden).map(
     (achievement) => {
-      const progress = getProgress(achievement.condition, player, exploredAreasCount);
+      const progress = getProgress(achievement.condition, playerWithBuildings, exploredAreasCount);
       const isCompleted = progress >= achievement.condition.value;
       const isClaimed = claimedIds.has(achievement.id);
 

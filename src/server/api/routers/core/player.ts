@@ -6,11 +6,11 @@ import { findPlayerByUserId } from "../../repositories/player.repo";
 
 export const playerRouter = createTRPCRouter({
   getOrCreate: protectedProcedure.query(async ({ ctx }) => {
-    return playerService.getOrCreatePlayer(ctx.db, ctx.session.user.id, ctx.session.user.name ?? "旅行者");
+    return playerService.getOrCreatePlayer(ctx.db, ctx.engine.entities, ctx.session.user.id, ctx.session.user.name ?? "旅行者");
   }),
 
   getStatus: protectedProcedure.query(async ({ ctx }) => {
-    return playerService.getPlayerStatus(ctx.db, ctx.session.user.id);
+    return playerService.getPlayerStatus(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   consumeStamina: protectedProcedure

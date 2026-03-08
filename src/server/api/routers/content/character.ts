@@ -4,25 +4,25 @@ import * as characterService from "../../services/character.service";
 
 export const characterRouter = createTRPCRouter({
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    return characterService.getAllCharacters(ctx.db, ctx.session.user.id);
+    return characterService.getAllCharacters(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   getById: protectedProcedure
     .input(z.object({ characterId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return characterService.getCharacterById(ctx.db, ctx.session.user.id, input.characterId);
+      return characterService.getCharacterById(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
     }),
 
   levelUp: protectedProcedure
     .input(z.object({ characterId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return characterService.levelUp(ctx.db, ctx.session.user.id, input.characterId);
+      return characterService.levelUp(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
     }),
 
   addExp: protectedProcedure
     .input(z.object({ characterId: z.string(), amount: z.number().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      return characterService.addExp(ctx.db, ctx.session.user.id, input.characterId, input.amount);
+      return characterService.addExp(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId, input.amount);
     }),
 
   heal: protectedProcedure
@@ -34,7 +34,7 @@ export const characterRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return characterService.heal(ctx.db, ctx.session.user.id, input.characterId, input.type, input.amount);
+      return characterService.heal(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId, input.type, input.amount);
     }),
 
   assignToBuilding: protectedProcedure
@@ -45,11 +45,11 @@ export const characterRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return characterService.assignToBuilding(ctx.db, ctx.session.user.id, input.characterId, input.buildingId);
+      return characterService.assignToBuilding(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId, input.buildingId);
     }),
 
   getIdle: protectedProcedure.query(async ({ ctx }) => {
-    return characterService.getIdleCharacters(ctx.db, ctx.session.user.id);
+    return characterService.getIdleCharacters(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   updateStatus: protectedProcedure
@@ -60,6 +60,6 @@ export const characterRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return characterService.updateStatus(ctx.db, ctx.session.user.id, input.characterId, input.status);
+      return characterService.updateStatus(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId, input.status);
     }),
 });

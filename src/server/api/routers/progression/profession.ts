@@ -14,7 +14,7 @@ export const professionRouter = createTRPCRouter({
   getCharacterProfession: protectedProcedure
     .input(z.object({ characterId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return professionService.getCharacterProfession(ctx.db, ctx.session.user.id, input.characterId);
+      return professionService.getCharacterProfession(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
     }),
 
   learnPlayerProfession: protectedProcedure
@@ -30,7 +30,7 @@ export const professionRouter = createTRPCRouter({
     }))
     .mutation(async ({ ctx, input }) => {
       return professionService.learnCharacterProfession(
-        ctx.db, ctx.session.user.id, input.characterId, input.professionId,
+        ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId, input.professionId,
       );
     }),
 });

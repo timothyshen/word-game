@@ -3,6 +3,7 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
 import { grantRandomCard } from "../utils/card-utils";
 
@@ -122,7 +123,7 @@ export async function challengeGuardian(db: FullDbClient, userId: string, altarI
   return { victory: false, bossName: boss.name, message: `败给了${boss.name}...提升实力后再来挑战吧！` };
 }
 
-export async function collectDailyCard(db: FullDbClient, userId: string, altarId: string) {
+export async function collectDailyCard(db: FullDbClient, entities: IEntityManager, userId: string, altarId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
   const altar = await db.wildernessFacility.findFirst({
@@ -140,7 +141,7 @@ export async function collectDailyCard(db: FullDbClient, userId: string, altarId
   if (!altarType) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "祭坛类型无效" });
 
   const rarity = rollRarity(altarType.cardRarityWeights);
-  const cardResult = await grantRandomCard(db, player.id, rarity);
+  const cardResult = await grantRandomCard(db, entities, player.id, rarity);
   if (!cardResult) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "没有可用卡牌" });
 
   data.lastCollectedDate = today;
@@ -157,7 +158,7 @@ export async function collectDailyCard(db: FullDbClient, userId: string, altarId
   return { success: true, altarName: altar.name, card: cardResult, message: `从${altar.name}获得了${cardResult.rarity}卡牌：${cardResult.name}` };
 }
 
-export async function collectAllDailyCards(db: FullDbClient, userId: string) {
+export async function collectAllDailyCards(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
   const altars = await db.wildernessFacility.findMany({
@@ -175,7 +176,7 @@ export async function collectAllDailyCards(db: FullDbClient, userId: string) {
     if (!altarType) continue;
 
     const rarity = rollRarity(altarType.cardRarityWeights);
-    const cardResult = await grantRandomCard(db, player.id, rarity);
+    const cardResult = await grantRandomCard(db, entities, player.id, rarity);
     if (!cardResult) continue;
 
     data.lastCollectedDate = today;

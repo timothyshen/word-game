@@ -9,14 +9,14 @@ export const poiRouter = createTRPCRouter({
   interact: protectedProcedure
     .input(z.object({ heroId: z.string(), poiId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return poiService.interact(ctx.db, ctx.session.user.id, input);
+      return poiService.interact(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 
   // 采集资源
   harvest: protectedProcedure
     .input(z.object({ heroId: z.string(), poiId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return poiService.harvest(ctx.db, ctx.session.user.id, input);
+      return poiService.harvest(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 
   // 刷新资源（定时任务或手动触发）

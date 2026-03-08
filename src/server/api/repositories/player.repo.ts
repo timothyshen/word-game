@@ -33,7 +33,6 @@ export function findPlayerWithFullDetails(db: DbClient, userId: string) {
         },
       },
       cards: { include: { card: true } },
-      buildings: { include: { building: true } },
       learnedSkills: { include: { skill: true } },
       unlockFlags: true,
     },
@@ -58,13 +57,6 @@ export function updatePlayer(db: DbClient, playerId: string, data: Prisma.Player
 
 export function findBuildingTemplateByName(db: DbClient, name: string) {
   return db.building.findFirst({ where: { name } });
-}
-
-export function createPlayerBuilding(
-  db: DbClient,
-  data: { playerId: string; buildingId: string; level: number; positionX: number; positionY: number },
-) {
-  return db.playerBuilding.create({ data });
 }
 
 // ── Character template queries ──

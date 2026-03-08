@@ -73,9 +73,15 @@ export interface IEntityManager {
   createTemplate(schemaId: string, name: string, data: Record<string, unknown>, opts?: { icon?: string; rarity?: string; description?: string }): Promise<unknown>;
   getTemplate(id: string): Promise<unknown>;
   getTemplatesBySchema(schemaId: string): Promise<unknown[]>;
+  getTemplateBySchemaAndName(schemaId: string, name: string): Promise<unknown>;
   createEntity(templateId: string, ownerId: string, initialState?: Record<string, unknown>): Promise<unknown>;
   getEntity(id: string): Promise<unknown>;
   getEntitiesByOwner(ownerId: string, schemaName?: string): Promise<unknown[]>;
+  getEntitiesByTemplate(templateId: string): Promise<unknown[]>;
+  findEntityByOwnerAndTemplate(ownerId: string, templateId: string): Promise<unknown>;
+  createManyEntities(entries: Array<{ templateId: string; ownerId: string; state?: Record<string, unknown> }>): Promise<unknown[]>;
+  deleteManyEntities(ids: string[]): Promise<unknown>;
+  queryEntitiesByState(ownerId: string, schemaName: string, stateFilter: Record<string, unknown>): Promise<unknown[]>;
   updateEntityState(id: string, partialState: Record<string, unknown>): Promise<unknown>;
   deleteEntity(id: string): Promise<unknown>;
 }

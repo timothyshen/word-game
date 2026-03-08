@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import type { Player } from "../../../../generated/prisma";
 import { engine, ruleService } from "~/server/api/engine";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import {
   findPlayerByUserId,
   findPlayerWithProfession,
@@ -12,16 +13,17 @@ import {
   createPlayer,
   updatePlayer,
   findBuildingTemplateByName,
-  createPlayerBuilding,
   findCharacterTemplateByName,
-  createPlayerCharacter,
   findCardsByNames,
-  createPlayerCard,
   findActionLogs,
   createActionLog,
 } from "../repositories/player.repo";
+import { addCardEntity } from "../utils/card-entity-utils";
+import { createBuildingEntity } from "../utils/building-utils";
+import { findPlayerBuildings } from "../repositories/building.repo";
 import { upsertUnlockFlag } from "../repositories/card.repo";
 import { getCurrentGameDay } from "../utils/game-time";
+import { getCharacterTemplateId } from "../utils/character-utils";
 import { computeHints } from "./hint.service";
 
 // ── Formula helper ──
@@ -55,7 +57,7 @@ export async function getPlayerOrThrow(db: FullDbClient, userId: string): Promis
   return player;
 }
 
-export async function getOrCreatePlayer(db: FullDbClient, userId: string, name: string) {
+export async function getOrCreatePlayer(db: FullDbClient, entities: IEntityManager, userId: string, name: string) {
   let player = await findPlayerWithProfession(db, userId);
 
   if (!player) {
@@ -76,9 +78,9 @@ export async function getOrCreatePlayer(db: FullDbClient, userId: string, name: 
       charisma: 14,
     });
 
-    await initializePlayerBuildings(db, player.id);
-    await initializePlayerCharacter(db, player.id);
-    await initializePlayerCards(db, player.id);
+    await initializePlayerBuildings(db, entities, player.id);
+    await initializePlayerCharacter(db, entities, player.id);
+    await initializePlayerCards(db, entities, player.id);
 
     await upsertUnlockFlag(db, player.id, "building_system");
     await upsertUnlockFlag(db, player.id, "card_system");
@@ -97,24 +99,26 @@ export async function getOrCreatePlayer(db: FullDbClient, userId: string, name: 
   return { ...player, skillSlots, currentGameDay: getCurrentGameDay() };
 }
 
-async function initializePlayerBuildings(db: FullDbClient, playerId: string) {
+async function initializePlayerBuildings(db: FullDbClient, entities: IEntityManager, playerId: string) {
   const mainCastle = await findBuildingTemplateByName(db, "主城堡");
   if (mainCastle) {
-    await createPlayerBuilding(db, { playerId, buildingId: mainCastle.id, level: 1, positionX: 0, positionY: 0 });
+    await createBuildingEntity(db, entities, playerId, { buildingId: mainCastle.id, level: 1, positionX: 0, positionY: 0 });
   }
   const farmland = await findBuildingTemplateByName(db, "农田");
   if (farmland) {
-    await createPlayerBuilding(db, { playerId, buildingId: farmland.id, level: 1, positionX: 1, positionY: 0 });
+    await createBuildingEntity(db, entities, playerId, { buildingId: farmland.id, level: 1, positionX: 1, positionY: 0 });
   }
 }
 
-async function initializePlayerCharacter(db: FullDbClient, playerId: string) {
+async function initializePlayerCharacter(db: FullDbClient, entities: IEntityManager, playerId: string) {
   const lordCharacter = await findCharacterTemplateByName(db, "流浪剑士");
   if (lordCharacter) {
-    await createPlayerCharacter(db, {
-      playerId,
+    const templateId = await getCharacterTemplateId(db, entities);
+    await entities.createEntity(templateId, playerId, {
       characterId: lordCharacter.id,
       level: 1,
+      exp: 0,
+      maxLevel: 10,
       tier: 1,
       hp: lordCharacter.baseHp,
       maxHp: lordCharacter.baseHp,
@@ -124,20 +128,22 @@ async function initializePlayerCharacter(db: FullDbClient, playerId: string) {
       defense: lordCharacter.baseDefense,
       speed: lordCharacter.baseSpeed,
       luck: lordCharacter.baseLuck,
+      status: "idle",
+      workingAt: null,
     });
   }
 }
 
-async function initializePlayerCards(db: FullDbClient, playerId: string) {
+async function initializePlayerCards(db: FullDbClient, entities: IEntityManager, playerId: string) {
   const starterCards = await findCardsByNames(db, ["回复药水", "经验书"]);
   for (const card of starterCards) {
-    await createPlayerCard(db, { playerId, cardId: card.id, quantity: 3 });
+    await addCardEntity(db, entities, playerId, card.id, 3);
   }
 }
 
 // ── Status ──
 
-export async function getPlayerStatus(db: FullDbClient, userId: string) {
+export async function getPlayerStatus(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await findPlayerWithFullDetails(db, userId);
   if (!player) throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
 
@@ -147,14 +153,27 @@ export async function getPlayerStatus(db: FullDbClient, userId: string) {
 
   const currentGameDay = getCurrentGameDay();
 
+  // Load buildings from entity system
+  const buildingEntities = await findPlayerBuildings(db, entities, player.id);
+  const buildings = buildingEntities.map(b => ({
+    id: b.id,
+    buildingId: b.buildingId,
+    level: b.level,
+    positionX: b.positionX,
+    positionY: b.positionY,
+    assignedCharId: b.assignedCharId,
+    building: b.building,
+  }));
+
   const skillSlots = await calcFormula("player_skill_slots", { tier: player.tier });
   return {
     ...player,
+    buildings,
     stamina,
     skillSlots,
     currentGameDay,
     unlockedSystems: player.unlockFlags.map(f => f.flagName),
-    hints: computeHints(player, currentGameDay),
+    hints: computeHints({ ...player, buildings }, currentGameDay),
   };
 }
 

@@ -1,5 +1,7 @@
 /** Admin Repository — pure data access for Card, StoryChapter, StoryNode, Adventure, Building, Character, Skill, Equipment, Profession, OuterCityPOI, Stats */
+import type { IEntityManager } from "~/engine/types";
 import type { DbClient } from "./types";
+import { type CharacterEntity, parseCharacterState } from "../utils/character-utils";
 
 // ===== Card =====
 
@@ -27,7 +29,9 @@ export function updateCard(
 }
 
 export async function deleteCard(db: DbClient, id: string) {
-  await db.playerCard.deleteMany({ where: { cardId: id } });
+  // Card entities are stored in the Entity system with cardId in JSON state.
+  // Orphaned entities (referencing a deleted Card template) are harmless
+  // and will be filtered out by service functions (findPlayerCards checks card template existence).
   return db.card.delete({ where: { id } });
 }
 
@@ -202,7 +206,13 @@ export function updateCharacter(
   return db.character.update({ where: { id }, data });
 }
 
-export async function deleteCharacter(db: DbClient, id: string) {
+export async function deleteCharacter(db: DbClient, entities: IEntityManager, id: string) {
+  // Find all character entities that reference this template
+  // We need to find entities across all owners with this characterId in state
+  // Use entity template's schema to find all character entities, then filter
+  const allCharEntities = (await entities.getEntitiesByTemplate("")) as CharacterEntity[];
+  // Since we can't query by state across all owners easily,
+  // clean up the old Prisma records and entity records
   const pcs = await db.playerCharacter.findMany({
     where: { characterId: id },
     select: { id: true },
@@ -212,9 +222,34 @@ export async function deleteCharacter(db: DbClient, id: string) {
     await db.heroInstance.deleteMany({ where: { characterId: { in: pcIds } } });
     await db.characterSkill.deleteMany({ where: { playerCharacterId: { in: pcIds } } });
     await db.characterProfession.deleteMany({ where: { playerCharacterId: { in: pcIds } } });
-    await db.equippedItem.deleteMany({ where: { playerCharacterId: { in: pcIds } } });
     await db.playerCharacter.deleteMany({ where: { characterId: id } });
   }
+
+  // Also clean up entity records with matching characterId in state
+  // Get all entity records and filter by state.characterId
+  const entityRecords = await db.entity.findMany({
+    include: { template: { include: { schema: true } } },
+  });
+  const charEntityIds = entityRecords
+    .filter((e) => {
+      if (e.template?.schema?.name !== "character") return false;
+      try {
+        const state = parseCharacterState(e);
+        return state.characterId === id;
+      } catch {
+        return false;
+      }
+    })
+    .map((e) => e.id);
+
+  if (charEntityIds.length > 0) {
+    // Clean up junction tables referencing these entity IDs
+    await db.characterSkill.deleteMany({ where: { playerCharacterId: { in: charEntityIds } } });
+    await db.characterProfession.deleteMany({ where: { playerCharacterId: { in: charEntityIds } } });
+    await db.heroInstance.deleteMany({ where: { characterId: { in: charEntityIds } } });
+    await entities.deleteManyEntities(charEntityIds);
+  }
+
   return db.character.delete({ where: { id } });
 }
 
@@ -282,15 +317,9 @@ export function updateEquipment(
 }
 
 export async function deleteEquipment(db: DbClient, id: string) {
-  const pes = await db.playerEquipment.findMany({
-    where: { equipmentId: id },
-    select: { id: true },
-  });
-  const peIds = pes.map((pe) => pe.id);
-  if (peIds.length > 0) {
-    await db.equippedItem.deleteMany({ where: { playerEquipmentId: { in: peIds } } });
-    await db.playerEquipment.deleteMany({ where: { equipmentId: id } });
-  }
+  // Equipment entities are stored in the Entity system with equipmentId in JSON state.
+  // Orphaned entities (referencing a deleted Equipment template) are harmless
+  // and will be filtered out by service functions.
   return db.equipment.delete({ where: { id } });
 }
 

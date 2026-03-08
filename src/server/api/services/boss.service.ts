@@ -3,9 +3,11 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
 import { getCurrentGameDay, getWeekStartDate } from "../utils/game-time";
 import { grantRandomEquipment } from "../utils/equipment-utils";
+import { addCardEntity } from "../utils/card-entity-utils";
 
 async function getPlayerOrThrow(db: FullDbClient, userId: string) {
   const player = await findPlayerByUserId(db, userId);
@@ -64,7 +66,7 @@ export async function getAllBosses(db: FullDbClient, userId: string) {
   });
 }
 
-export async function challengeBoss(db: FullDbClient, userId: string, bossId: string) {
+export async function challengeBoss(db: FullDbClient, entities: IEntityManager, userId: string, bossId: string) {
   const player = await db.player.findUnique({
     where: { userId },
     include: { characters: { include: { character: true } } },
@@ -200,16 +202,12 @@ export async function challengeBoss(db: FullDbClient, userId: string, bossId: st
     let droppedChest = null;
     const chestCard = await db.card.findFirst({ where: { name: chestName, type: "chest" } });
     if (chestCard) {
-      await db.playerCard.upsert({
-        where: { playerId_cardId: { playerId: player.id, cardId: chestCard.id } },
-        update: { quantity: { increment: 1 } },
-        create: { playerId: player.id, cardId: chestCard.id, quantity: 1 },
-      });
+      await addCardEntity(db, entities, player.id, chestCard.id, 1);
       droppedChest = { name: chestCard.name, rarity: chestCard.rarity, icon: chestCard.icon };
     }
 
     // 装备掉落 (100% on victory)
-    const droppedEquipment = await grantRandomEquipment(db, player.id, boss.rewardEquipRarity);
+    const droppedEquipment = await grantRandomEquipment(db, entities, player.id, boss.rewardEquipRarity);
 
     return {
       victory: true,

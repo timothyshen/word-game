@@ -183,8 +183,8 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
                       <span>{b.building.name}</span>
                       <span className="text-xs text-[#c9a227]">Lv.{b.level}</span>
                     </div>
-                    <span className={`text-xs ${b.status === "working" ? "text-[#4a9]" : "text-[#666]"}`}>
-                      {b.status === "working" ? "运作中" : "空闲"}
+                    <span className={`text-xs ${b.assignedCharId ? "text-[#4a9]" : "text-[#666]"}`}>
+                      {b.assignedCharId ? "运作中" : "空闲"}
                     </span>
                   </div>
                 ))}

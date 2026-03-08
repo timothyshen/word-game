@@ -57,19 +57,14 @@ export const authRouter = createTRPCRouter({
         },
       });
 
-      // 初始化主城堡
+      // 初始化主城堡 (via Entity system)
+      const { createBuildingEntity } = await import("../../utils/building-utils");
       const mainCastle = await ctx.db.building.findFirst({
         where: { name: "主城堡" },
       });
       if (mainCastle) {
-        await ctx.db.playerBuilding.create({
-          data: {
-            playerId: player.id,
-            buildingId: mainCastle.id,
-            level: 1,
-            positionX: 0,
-            positionY: 0,
-          },
+        await createBuildingEntity(ctx.db, ctx.engine.entities, player.id, {
+          buildingId: mainCastle.id, level: 1, positionX: 0, positionY: 0,
         });
       }
 
@@ -78,41 +73,39 @@ export const authRouter = createTRPCRouter({
         where: { name: "农田" },
       });
       if (farmland) {
-        await ctx.db.playerBuilding.create({
-          data: {
-            playerId: player.id,
-            buildingId: farmland.id,
-            level: 1,
-            positionX: 1,
-            positionY: 0,
-          },
+        await createBuildingEntity(ctx.db, ctx.engine.entities, player.id, {
+          buildingId: farmland.id, level: 1, positionX: 1, positionY: 0,
         });
       }
 
-      // 创建玩家初始角色（流浪剑士）
+      // 创建玩家初始角色（流浪剑士）via Entity system
       const lordCharacter = await ctx.db.character.findFirst({
         where: { name: "流浪剑士" },
       });
       if (lordCharacter) {
-        await ctx.db.playerCharacter.create({
-          data: {
-            playerId: player.id,
-            characterId: lordCharacter.id,
-            level: 1,
-            tier: 1,
-            hp: lordCharacter.baseHp,
-            maxHp: lordCharacter.baseHp,
-            mp: lordCharacter.baseMp,
-            maxMp: lordCharacter.baseMp,
-            attack: lordCharacter.baseAttack,
-            defense: lordCharacter.baseDefense,
-            speed: lordCharacter.baseSpeed,
-            luck: lordCharacter.baseLuck,
-          },
+        const { getCharacterTemplateId } = await import("../../utils/character-utils");
+        const templateId = await getCharacterTemplateId(ctx.db, ctx.engine.entities);
+        await ctx.engine.entities.createEntity(templateId, player.id, {
+          characterId: lordCharacter.id,
+          level: 1,
+          exp: 0,
+          maxLevel: 10,
+          tier: 1,
+          hp: lordCharacter.baseHp,
+          maxHp: lordCharacter.baseHp,
+          mp: lordCharacter.baseMp,
+          maxMp: lordCharacter.baseMp,
+          attack: lordCharacter.baseAttack,
+          defense: lordCharacter.baseDefense,
+          speed: lordCharacter.baseSpeed,
+          luck: lordCharacter.baseLuck,
+          status: "idle",
+          workingAt: null,
         });
       }
 
       // 给玩家一些初始卡牌
+      const { addCardEntity } = await import("../../utils/card-entity-utils");
       const starterCards = await ctx.db.card.findMany({
         where: {
           OR: [
@@ -122,13 +115,7 @@ export const authRouter = createTRPCRouter({
         },
       });
       for (const card of starterCards) {
-        await ctx.db.playerCard.create({
-          data: {
-            playerId: player.id,
-            cardId: card.id,
-            quantity: 3,
-          },
-        });
+        await addCardEntity(ctx.db, ctx.engine.entities, player.id, card.id, 3);
       }
 
       return {

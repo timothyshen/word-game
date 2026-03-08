@@ -137,6 +137,57 @@ export class EntityManager {
     return this.db.entity.delete({ where: { id } });
   }
 
+  // ── Extended query operations ──
+
+  async getEntitiesByTemplate(templateId: string) {
+    return this.db.entity.findMany({
+      where: { templateId },
+      include: { template: { include: { schema: true } } },
+    });
+  }
+
+  async findEntityByOwnerAndTemplate(ownerId: string, templateId: string) {
+    return this.db.entity.findFirst({
+      where: { ownerId, templateId },
+      include: { template: { include: { schema: true } } },
+    });
+  }
+
+  async getTemplateBySchemaAndName(schemaId: string, name: string) {
+    return this.db.entityTemplate.findFirst({
+      where: { schemaId, name },
+      include: { schema: true },
+    });
+  }
+
+  async createManyEntities(
+    entries: Array<{ templateId: string; ownerId: string; state?: Record<string, unknown> }>,
+  ) {
+    const results = [];
+    for (const entry of entries) {
+      results.push(await this.createEntity(entry.templateId, entry.ownerId, entry.state));
+    }
+    return results;
+  }
+
+  async deleteManyEntities(ids: string[]) {
+    return this.db.entity.deleteMany({ where: { id: { in: ids } } });
+  }
+
+  async queryEntitiesByState(
+    ownerId: string,
+    schemaName: string,
+    stateFilter: Record<string, unknown>,
+  ) {
+    const entities = await this.getEntitiesByOwner(ownerId, schemaName);
+    return entities.filter((entity: { state: string }) => {
+      const state = JSON.parse(entity.state) as Record<string, unknown>;
+      return Object.entries(stateFilter).every(
+        ([key, value]) => state[key] === value,
+      );
+    });
+  }
+
   // ── Component helpers ──
 
   async getEntityComponent<K extends ComponentName>(

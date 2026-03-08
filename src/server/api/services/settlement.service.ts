@@ -3,10 +3,12 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, findActionLogs, updatePlayer } from "../repositories/player.repo";
 import { createSettlementLog, findSettlementHistory } from "../repositories/settlement.repo";
 import { getCurrentGameDay } from "../utils/game-time";
 import { grantRandomCards } from "../utils/card-utils";
+import { addCardEntity } from "../utils/card-entity-utils";
 
 // ── Pure helpers ──
 
@@ -117,7 +119,7 @@ export async function getSettlementPreview(db: FullDbClient, userId: string) {
   return { pendingDays: currentDay - player.lastSettlementDay, dailyResults, currentStreakDays: player.streakDays };
 }
 
-export async function executeSettlement(db: FullDbClient, userId: string) {
+export async function executeSettlement(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
   const currentDay = getCurrentGameDay();
 
@@ -195,7 +197,7 @@ export async function executeSettlement(db: FullDbClient, userId: string) {
   // Grant card rewards
   const grantedCards: Array<{ name: string; rarity: string }> = [];
   for (const reward of totalRewardCards) {
-    const cards = await grantRandomCards(db, player.id, reward.rarity, reward.count);
+    const cards = await grantRandomCards(db, entities, player.id, reward.rarity, reward.count);
     grantedCards.push(...cards);
   }
 
@@ -219,11 +221,7 @@ export async function executeSettlement(db: FullDbClient, userId: string) {
     if (chestName) {
       const chestCard = await db.card.findFirst({ where: { name: chestName, type: "chest" } });
       if (chestCard) {
-        await db.playerCard.upsert({
-          where: { playerId_cardId: { playerId: player.id, cardId: chestCard.id } },
-          update: { quantity: { increment: 1 } },
-          create: { playerId: player.id, cardId: chestCard.id, quantity: 1 },
-        });
+        await addCardEntity(db, entities, player.id, chestCard.id, 1);
         chestReward = { name: chestCard.name, rarity: chestCard.rarity, icon: chestCard.icon };
       }
     }

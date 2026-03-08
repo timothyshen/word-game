@@ -3,6 +3,7 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
 import {
   findPlayerBuildings,
@@ -42,10 +43,10 @@ async function getPlayerOrThrow(db: FullDbClient, userId: string) {
   return player;
 }
 
-export async function getAllBuildings(db: FullDbClient, userId: string) {
+export async function getAllBuildings(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const buildings = await findPlayerBuildings(db, player.id);
+  const buildings = await findPlayerBuildings(db, entities, player.id);
 
   return buildings.map((pb) => ({
     ...pb,
@@ -55,15 +56,15 @@ export async function getAllBuildings(db: FullDbClient, userId: string) {
   }));
 }
 
-export async function getBuildingById(db: FullDbClient, userId: string, buildingId: string) {
+export async function getBuildingById(db: FullDbClient, entities: IEntityManager, userId: string, buildingId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const building = await findPlayerBuildingById(db, buildingId, player.id);
+  const building = await findPlayerBuildingById(db, entities, buildingId, player.id);
   if (!building) throw new TRPCError({ code: "NOT_FOUND", message: "建筑不存在" });
 
   let assignedCharacter = null;
   if (building.assignedCharId) {
-    assignedCharacter = await findAssignedCharacter(db, building.assignedCharId);
+    assignedCharacter = await findAssignedCharacter(db, entities, building.assignedCharId);
   }
 
   return {
@@ -75,10 +76,10 @@ export async function getBuildingById(db: FullDbClient, userId: string, building
   };
 }
 
-export async function upgradeBuilding(db: FullDbClient, userId: string, buildingId: string) {
+export async function upgradeBuilding(db: FullDbClient, entities: IEntityManager, userId: string, buildingId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const playerBuilding = await findPlayerBuildingById(db, buildingId, player.id);
+  const playerBuilding = await findPlayerBuildingById(db, entities, buildingId, player.id);
   if (!playerBuilding) throw new TRPCError({ code: "NOT_FOUND", message: "建筑不存在" });
   if (playerBuilding.level >= playerBuilding.building.maxLevel) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "建筑已达最高等级" });
@@ -96,7 +97,7 @@ export async function upgradeBuilding(db: FullDbClient, userId: string, building
   });
 
   const newLevel = playerBuilding.level + 1;
-  const updated = await updatePlayerBuildingLevel(db, playerBuilding.id, newLevel);
+  const updated = await updatePlayerBuildingLevel(db, entities, playerBuilding.id, newLevel);
 
   const baseScore = await calcFormula("building_upgrade_score", { level: newLevel });
   await createActionLog(db, {
@@ -121,43 +122,44 @@ export async function upgradeBuilding(db: FullDbClient, userId: string, building
 
 export async function assignCharacter(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   buildingId: string,
   characterId: string | null,
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const playerBuilding = await findPlayerBuildingById(db, buildingId, player.id);
+  const playerBuilding = await findPlayerBuildingById(db, entities, buildingId, player.id);
   if (!playerBuilding) throw new TRPCError({ code: "NOT_FOUND", message: "建筑不存在" });
 
   if (characterId === null) {
     if (playerBuilding.assignedCharId) {
-      await updateCharacterStatus(db, playerBuilding.assignedCharId, "idle", null);
+      await updateCharacterStatus(entities, playerBuilding.assignedCharId, "idle", null);
     }
-    await updatePlayerBuildingAssignment(db, playerBuilding.id, { assignedCharId: null, status: "idle" });
+    await updatePlayerBuildingAssignment(entities, playerBuilding.id, { assignedCharId: null });
     return { assigned: false, message: "已取消角色分配" };
   }
 
-  const character = await findCharacterWithTemplate(db, characterId, player.id);
+  const character = await findCharacterWithTemplate(db, entities, characterId, player.id);
   if (!character) throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
   if (character.status === "working") {
     throw new TRPCError({ code: "BAD_REQUEST", message: "角色正在其他地方工作" });
   }
 
   if (playerBuilding.assignedCharId && playerBuilding.assignedCharId !== characterId) {
-    await updateCharacterStatus(db, playerBuilding.assignedCharId, "idle", null);
+    await updateCharacterStatus(entities, playerBuilding.assignedCharId, "idle", null);
   }
 
-  await updatePlayerBuildingAssignment(db, playerBuilding.id, { assignedCharId: characterId, status: "working" });
-  await updateCharacterStatus(db, character.id, "working", playerBuilding.building.name);
+  await updatePlayerBuildingAssignment(entities, playerBuilding.id, { assignedCharId: characterId });
+  await updateCharacterStatus(entities, character.id, "working", playerBuilding.building.name);
 
   return { assigned: true, characterName: character.character.name, buildingName: playerBuilding.building.name };
 }
 
-export async function calculateDailyOutput(db: FullDbClient, userId: string) {
+export async function calculateDailyOutput(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const buildings = await findPlayerBuildings(db, player.id);
+  const buildings = await findPlayerBuildings(db, entities, player.id);
 
   const totalOutput: Record<string, number> = { gold: 0, wood: 0, stone: 0, food: 0, crystals: 0 };
   const breakdown: Array<{ buildingName: string; icon: string; level: number; hasWorker: boolean; output: Record<string, number> }> = [];
@@ -172,7 +174,7 @@ export async function calculateDailyOutput(db: FullDbClient, userId: string) {
     }
   }
 
-  const characters = await findAllPlayerCharacters(db, player.id);
+  const characters = await findAllPlayerCharacters(entities, player.id);
   const foodConfig = await ruleService.getConfig<{ value: number }>("building_food_consumption");
   const consumption: Record<string, number> = { food: characters.length * foodConfig.value };
   const netOutput: Record<string, number> = {};
@@ -183,10 +185,10 @@ export async function calculateDailyOutput(db: FullDbClient, userId: string) {
   return { totalOutput, consumption, netOutput, breakdown };
 }
 
-export async function collectDailyOutput(db: FullDbClient, userId: string) {
+export async function collectDailyOutput(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const buildings = await findPlayerBuildings(db, player.id);
+  const buildings = await findPlayerBuildings(db, entities, player.id);
 
   const totalOutput: Record<string, number> = { gold: 0, wood: 0, stone: 0, food: 0 };
   for (const pb of buildings) {
@@ -196,7 +198,7 @@ export async function collectDailyOutput(db: FullDbClient, userId: string) {
     }
   }
 
-  const characters = await findAllPlayerCharacters(db, player.id);
+  const characters = await findAllPlayerCharacters(entities, player.id);
   const foodConfig = await ruleService.getConfig<{ value: number }>("building_food_consumption");
   const foodConsumption = characters.length * foodConfig.value;
 

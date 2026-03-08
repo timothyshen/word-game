@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import type { IEntityManager } from "~/engine/types";
 import { rollRarity } from "./card-utils";
 
 export interface EquipmentDropResult {
@@ -24,13 +25,47 @@ export function getEquipmentDropTable(monsterLevel: number): {
   return { chance: 0.08, pool: { "普通": 100 } };
 }
 
+/** Cached equipment template ID to avoid repeated lookups */
+let cachedEquipmentTemplateId: string | null = null;
+
+/**
+ * Find or create the generic equipment EntityTemplate.
+ * All equipment entities share this template; the actual equipment type
+ * is differentiated via the equipmentId in state.
+ */
+async function getEquipmentTemplateId(db: PrismaClient, entityManager: IEntityManager): Promise<string> {
+  if (cachedEquipmentTemplateId) return cachedEquipmentTemplateId;
+
+  // Find the equipment schema
+  const game = await db.game.findFirst({ where: { name: "诸天领域" } });
+  if (!game) throw new Error("Game not found");
+
+  const schema = await entityManager.getSchema(game.id, "equipment") as { id: string } | null;
+  if (!schema) throw new Error("Equipment entity schema not found");
+
+  // Find or create the generic equipment template
+  let template = await entityManager.getTemplateBySchemaAndName(schema.id, "generic-equipment") as { id: string } | null;
+  if (!template) {
+    template = await entityManager.createTemplate(
+      schema.id,
+      "generic-equipment",
+      { enhanceLevel: 0, equippedBy: null, slot: null, equipmentId: "" },
+      { description: "Generic equipment entity template" },
+    ) as { id: string };
+  }
+
+  cachedEquipmentTemplateId = template.id;
+  return template.id;
+}
+
 /**
  * Grant a random equipment of the given rarity to a player.
- * Creates a new PlayerEquipment instance (unequipped).
+ * Creates a new equipment Entity instance (unequipped).
  * Returns equipment info if granted, null if no equipment of that rarity exists.
  */
 export async function grantRandomEquipment(
   db: PrismaClient,
+  entityManager: IEntityManager,
   playerId: string,
   rarity: string,
 ): Promise<EquipmentDropResult | null> {
@@ -39,8 +74,12 @@ export async function grantRandomEquipment(
 
   const template = templates[Math.floor(Math.random() * templates.length)]!;
 
-  await db.playerEquipment.create({
-    data: { playerId, equipmentId: template.id },
+  const entityTemplateId = await getEquipmentTemplateId(db, entityManager);
+  await entityManager.createEntity(entityTemplateId, playerId, {
+    enhanceLevel: 0,
+    equippedBy: null,
+    slot: null,
+    equipmentId: template.id,
   });
 
   return {

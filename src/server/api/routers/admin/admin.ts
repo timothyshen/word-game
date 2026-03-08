@@ -276,7 +276,7 @@ export const adminRouter = createTRPCRouter({
 
   deleteCharacter: adminProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(({ ctx, input }) => adminService.deleteCharacter(ctx.db, input.id)),
+    .mutation(({ ctx, input }) => adminService.deleteCharacter(ctx.db, ctx.engine.entities, input.id)),
 
   // ===== Skill CRUD =====
 

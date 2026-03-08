@@ -1,29 +1,31 @@
 // 英雄管理服务
 
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { TRPCError } from "@trpc/server";
 import { getInnerCityBonuses } from "./worldHelpers";
+import { type CharacterEntity } from "../utils/character-utils";
 
 const FOOD_COST = 10;
 const BASE_STAMINA_RESTORE = 30;
 
-export async function deploy(db: FullDbClient, userId: string, characterId: string) {
+export async function deploy(db: FullDbClient, entities: IEntityManager, userId: string, characterId: string) {
   const player = await db.player.findFirst({ where: { userId } });
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  // 检查角色是否属于玩家
-  const character = await db.playerCharacter.findFirst({
-    where: { id: characterId, playerId: player.id },
-    include: { heroInstance: true },
-  });
-
-  if (!character) {
+  // 检查角色是否属于玩家 (via Entity system)
+  const charEntity = (await entities.getEntity(characterId)) as CharacterEntity | null;
+  if (!charEntity || charEntity.ownerId !== player.id || charEntity.template?.schema?.name !== "character") {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
   }
 
-  if (character.heroInstance) {
+  // Check if character already has a hero instance
+  const existingHero = await db.heroInstance.findFirst({
+    where: { characterId, playerId: player.id },
+  });
+  if (existingHero) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "角色已在外城" });
   }
 

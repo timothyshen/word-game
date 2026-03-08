@@ -3,6 +3,7 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
 import {
   parseStatModifiers,
@@ -11,6 +12,7 @@ import {
 } from "~/shared/effects";
 import type { Condition, StatModifier } from "~/shared/effects";
 import type { ConditionContext } from "~/shared/effects/condition-checker";
+import { parseCharacterState, type CharacterEntity } from "../utils/character-utils";
 
 // ── Private helpers ──
 
@@ -113,37 +115,38 @@ export async function getPlayerProfession(db: FullDbClient, userId: string) {
 
 // ── Get Character Profession ──
 
-export async function getCharacterProfession(db: FullDbClient, userId: string, characterId: string) {
+export async function getCharacterProfession(db: FullDbClient, entities: IEntityManager, userId: string, characterId: string) {
   const player = await findPlayerByUserId(db, userId);
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  const character = await db.playerCharacter.findFirst({
-    where: { id: characterId, playerId: player.id },
-    include: {
-      character: true,
-      profession: {
-        include: { profession: true },
-      },
-    },
-  });
-
-  if (!character) {
+  const entity = (await entities.getEntity(characterId)) as CharacterEntity | null;
+  if (!entity || entity.ownerId !== player.id || entity.template?.schema?.name !== "character") {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
   }
+  const charState = parseCharacterState(entity);
+  const charTemplate = await db.character.findUnique({ where: { id: charState.characterId } });
+  if (!charTemplate) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "角色模板不存在" });
+  }
+
+  const profession = await db.characterProfession.findFirst({
+    where: { playerCharacterId: entity.id },
+    include: { profession: true },
+  });
 
   return {
-    characterId: character.id,
-    characterName: character.character.name,
-    baseClass: character.character.baseClass,
-    hasProfession: !!character.profession,
-    profession: character.profession ? {
-      id: character.profession.profession.id,
-      name: character.profession.profession.name,
-      description: character.profession.profession.description,
-      bonuses: parseBonuses(character.profession.profession.bonuses),
-      obtainedAt: character.profession.obtainedAt,
+    characterId: entity.id,
+    characterName: charTemplate.name,
+    baseClass: charTemplate.baseClass,
+    hasProfession: !!profession,
+    profession: profession ? {
+      id: profession.profession.id,
+      name: profession.profession.name,
+      description: profession.profession.description,
+      bonuses: parseBonuses(profession.profession.bonuses),
+      obtainedAt: profession.obtainedAt,
     } : null,
   };
 }
@@ -203,6 +206,7 @@ export async function learnPlayerProfession(db: FullDbClient, userId: string, pr
 
 export async function learnCharacterProfession(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   characterId: string,
   professionId: string,
@@ -212,18 +216,24 @@ export async function learnCharacterProfession(
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  const character = await db.playerCharacter.findFirst({
-    where: { id: characterId, playerId: player.id },
-    include: { profession: true, character: true },
-  });
-
-  if (!character) {
+  const entity = (await entities.getEntity(characterId)) as CharacterEntity | null;
+  if (!entity || entity.ownerId !== player.id || entity.template?.schema?.name !== "character") {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
   }
+  const charState = parseCharacterState(entity);
+  const charTemplate = await db.character.findUnique({ where: { id: charState.characterId } });
+  if (!charTemplate) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "角色模板不存在" });
+  }
 
-  if (character.profession) {
+  const existingProfession = await db.characterProfession.findFirst({
+    where: { playerCharacterId: entity.id },
+  });
+  if (existingProfession) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "角色已有职业" });
   }
+
+  const character = { id: entity.id, ...charState, character: charTemplate };
 
   const profession = await db.profession.findUnique({
     where: { id: professionId },

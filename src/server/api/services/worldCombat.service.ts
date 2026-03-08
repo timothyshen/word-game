@@ -3,6 +3,7 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { getInnerCityBonuses } from "./worldHelpers";
 
 // ===== Constants =====
@@ -126,6 +127,7 @@ export async function startCombat(
 
 export async function performAction(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   input: {
     heroId: string;
@@ -255,12 +257,12 @@ export async function performAction(
       },
     });
 
-    await db.playerCharacter.update({
-      where: { id: hero.characterId },
-      data: {
-        exp: { increment: expReward },
-      },
-    });
+    // Update character exp via entity system
+    const charEntity = await entities.getEntity(hero.characterId) as { id: string; state: string } | null;
+    if (charEntity) {
+      const charState = JSON.parse(charEntity.state) as { exp: number };
+      await entities.updateEntityState(hero.characterId, { exp: charState.exp + expReward });
+    }
 
     logs.push(`胜利！获得 ${goldReward} 金币，${expReward} 经验${extraMessage}`);
 
@@ -282,10 +284,8 @@ export async function performAction(
       data: { status: "idle", stamina: Math.max(0, hero.stamina - 30) },
     });
 
-    await db.playerCharacter.update({
-      where: { id: hero.characterId },
-      data: { hp: Math.floor(hero.character.maxHp * 0.3) },
-    });
+    // Update character HP via entity system
+    await entities.updateEntityState(hero.characterId, { hp: Math.floor(hero.character.maxHp * 0.3) });
 
     logs.push("战斗失败...英雄撤退");
 

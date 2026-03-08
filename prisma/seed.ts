@@ -688,21 +688,54 @@ async function main() {
 
     const cardsToGive = [...buildingCards, ...expansionCards, ...itemCards];
 
-    for (const card of cardsToGive) {
-      await prisma.playerCard.upsert({
-        where: {
-          playerId_cardId: {
-            playerId: testPlayerRecord.id,
-            cardId: card.id,
-          },
-        },
-        update: { quantity: 3 },
-        create: {
-          playerId: testPlayerRecord.id,
-          cardId: card.id,
-          quantity: 3,
-        },
+    // Grant cards via Entity system
+    const game = await prisma.game.findFirst({ where: { name: "诸天领域" } });
+    if (game) {
+      const cardSchema = await prisma.entitySchema.findUnique({
+        where: { gameId_name: { gameId: game.id, name: "card" } },
       });
+      if (cardSchema) {
+        let cardTemplate = await prisma.entityTemplate.findFirst({
+          where: { schemaId: cardSchema.id, name: "generic-card" },
+        });
+        if (!cardTemplate) {
+          cardTemplate = await prisma.entityTemplate.create({
+            data: {
+              schemaId: cardSchema.id,
+              name: "generic-card",
+              data: JSON.stringify({ cardId: "", quantity: 0 }),
+              description: "Generic card entity template",
+            },
+          });
+        }
+        for (const card of cardsToGive) {
+          // Check if any existing entity has this cardId in state
+          const allCardEntities = await prisma.entity.findMany({
+            where: {
+              ownerId: testPlayerRecord.id,
+              templateId: cardTemplate.id,
+            },
+          });
+          const matchingEntity = allCardEntities.find(e => {
+            const state = JSON.parse(e.state) as { cardId: string };
+            return state.cardId === card.id;
+          });
+          if (matchingEntity) {
+            await prisma.entity.update({
+              where: { id: matchingEntity.id },
+              data: { state: JSON.stringify({ cardId: card.id, quantity: 3 }) },
+            });
+          } else {
+            await prisma.entity.create({
+              data: {
+                templateId: cardTemplate.id,
+                ownerId: testPlayerRecord.id,
+                state: JSON.stringify({ cardId: card.id, quantity: 3 }),
+              },
+            });
+          }
+        }
+      }
     }
     console.log(`Gave ${cardsToGive.length} card types to test player`);
 
@@ -712,46 +745,67 @@ async function main() {
 
     const recruitedChars: string[] = [];
 
-    if (swordsman) {
-      const pc = await prisma.playerCharacter.create({
-        data: {
-          playerId: testPlayerRecord.id,
-          characterId: swordsman.id,
-          level: 3,
-          exp: 200,
-          hp: swordsman.baseHp,
-          maxHp: swordsman.baseHp,
-          mp: swordsman.baseMp,
-          maxMp: swordsman.baseMp,
-          attack: swordsman.baseAttack,
-          defense: swordsman.baseDefense,
-          speed: swordsman.baseSpeed,
-          luck: swordsman.baseLuck,
-          status: "idle",
-        },
+    // Grant characters via Entity system
+    const charSchema = await prisma.entitySchema.findUnique({
+      where: { gameId_name: { gameId: game!.id, name: "character" } },
+    });
+    if (charSchema) {
+      let charTemplate = await prisma.entityTemplate.findFirst({
+        where: { schemaId: charSchema.id, name: "generic-character" },
       });
-      recruitedChars.push(pc.id);
-    }
+      if (!charTemplate) {
+        charTemplate = await prisma.entityTemplate.create({
+          data: {
+            schemaId: charSchema.id,
+            name: "generic-character",
+            data: JSON.stringify({
+              characterId: "", level: 1, exp: 0, maxLevel: 10, tier: 1,
+              hp: 100, maxHp: 100, mp: 50, maxMp: 50,
+              attack: 10, defense: 5, speed: 8, luck: 5,
+              status: "idle", workingAt: null,
+            }),
+            description: "Generic character entity template",
+          },
+        });
+      }
 
-    if (farmer) {
-      const pc = await prisma.playerCharacter.create({
-        data: {
-          playerId: testPlayerRecord.id,
-          characterId: farmer.id,
-          level: 2,
-          exp: 80,
-          hp: farmer.baseHp,
-          maxHp: farmer.baseHp,
-          mp: farmer.baseMp,
-          maxMp: farmer.baseMp,
-          attack: farmer.baseAttack,
-          defense: farmer.baseDefense,
-          speed: farmer.baseSpeed,
-          luck: farmer.baseLuck,
-          status: "idle",
-        },
-      });
-      recruitedChars.push(pc.id);
+      if (swordsman) {
+        const pc = await prisma.entity.create({
+          data: {
+            templateId: charTemplate.id,
+            ownerId: testPlayerRecord.id,
+            state: JSON.stringify({
+              characterId: swordsman.id,
+              level: 3, exp: 200, maxLevel: 10, tier: 1,
+              hp: swordsman.baseHp, maxHp: swordsman.baseHp,
+              mp: swordsman.baseMp, maxMp: swordsman.baseMp,
+              attack: swordsman.baseAttack, defense: swordsman.baseDefense,
+              speed: swordsman.baseSpeed, luck: swordsman.baseLuck,
+              status: "idle", workingAt: null,
+            }),
+          },
+        });
+        recruitedChars.push(pc.id);
+      }
+
+      if (farmer) {
+        const pc = await prisma.entity.create({
+          data: {
+            templateId: charTemplate.id,
+            ownerId: testPlayerRecord.id,
+            state: JSON.stringify({
+              characterId: farmer.id,
+              level: 2, exp: 80, maxLevel: 10, tier: 1,
+              hp: farmer.baseHp, maxHp: farmer.baseHp,
+              mp: farmer.baseMp, maxMp: farmer.baseMp,
+              attack: farmer.baseAttack, defense: farmer.baseDefense,
+              speed: farmer.baseSpeed, luck: farmer.baseLuck,
+              status: "idle", workingAt: null,
+            }),
+          },
+        });
+        recruitedChars.push(pc.id);
+      }
     }
     console.log(`Recruited ${recruitedChars.length} characters for test player`);
 

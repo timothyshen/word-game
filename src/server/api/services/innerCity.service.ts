@@ -3,6 +3,7 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
 import * as icRepo from "../repositories/innerCity.repo";
 import * as cardRepo from "../repositories/card.repo";
@@ -130,6 +131,7 @@ export async function initialize(db: FullDbClient, userId: string) {
 
 export async function placeBuilding(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   cardId: string,
   positionX: number,
@@ -144,7 +146,7 @@ export async function placeBuilding(
   }
 
   // 获取卡牌
-  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, cardId);
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, cardId);
 
   if (!playerCard || playerCard.quantity < 1) {
     throw new TRPCError({ code: "NOT_FOUND", message: "卡牌不存在或数量不足" });
@@ -211,7 +213,7 @@ export async function placeBuilding(
   });
 
   // 消耗卡牌
-  await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
+  await cardRepo.consumeCard(entities, playerCard.id, playerCard.quantity);
 
   // 记录行动分数
   const gameDay = Math.floor(
@@ -246,7 +248,7 @@ export async function placeBuilding(
   };
 }
 
-export async function expandTerritory(db: FullDbClient, userId: string, cardId: string) {
+export async function expandTerritory(db: FullDbClient, entities: IEntityManager, userId: string, cardId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
   const config = await icRepo.findConfig(db, player.id);
@@ -256,7 +258,7 @@ export async function expandTerritory(db: FullDbClient, userId: string, cardId: 
   }
 
   // 获取卡牌
-  const playerCard = await cardRepo.findPlayerCardByCardId(db, player.id, cardId);
+  const playerCard = await cardRepo.findPlayerCardByCardId(db, entities, player.id, cardId);
 
   if (!playerCard || playerCard.quantity < 1) {
     throw new TRPCError({ code: "NOT_FOUND", message: "卡牌不存在或数量不足" });
@@ -288,7 +290,7 @@ export async function expandTerritory(db: FullDbClient, userId: string, cardId: 
   });
 
   // 消耗卡牌
-  await cardRepo.consumeCard(db, playerCard.id, playerCard.quantity);
+  await cardRepo.consumeCard(entities, playerCard.id, playerCard.quantity);
 
   return {
     success: true,

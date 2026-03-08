@@ -3,7 +3,9 @@
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
+import { parseCharacterState, type CharacterEntity } from "../utils/character-utils";
 
 // 突破条件
 interface BreakthroughRequirement {
@@ -107,20 +109,23 @@ export async function breakthroughPlayer(db: FullDbClient, userId: string) {
 
 // ── Get Character Breakthrough Status ──
 
-export async function getCharacterStatus(db: FullDbClient, userId: string, characterId: string) {
+export async function getCharacterStatus(db: FullDbClient, entities: IEntityManager, userId: string, characterId: string) {
   const player = await findPlayerByUserId(db, userId);
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  const character = await db.playerCharacter.findFirst({
-    where: { id: characterId, playerId: player.id },
-    include: { character: true },
-  });
-
-  if (!character) {
+  const entity = (await entities.getEntity(characterId)) as CharacterEntity | null;
+  if (!entity || entity.ownerId !== player.id || entity.template?.schema?.name !== "character") {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
   }
+  const charState = parseCharacterState(entity);
+  const charTemplate = await db.character.findUnique({ where: { id: charState.characterId } });
+  if (!charTemplate) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "角色模板不存在" });
+  }
+
+  const character = { id: entity.id, ...charState, character: charTemplate };
 
   const currentTier = character.tier;
   const requirement = BREAKTHROUGH_REQUIREMENTS.find(r => r.tier === currentTier);
@@ -161,20 +166,23 @@ export async function getCharacterStatus(db: FullDbClient, userId: string, chara
 
 // ── Execute Character Breakthrough ──
 
-export async function breakthroughCharacter(db: FullDbClient, userId: string, characterId: string) {
+export async function breakthroughCharacter(db: FullDbClient, entities: IEntityManager, userId: string, characterId: string) {
   const player = await findPlayerByUserId(db, userId);
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
   }
 
-  const character = await db.playerCharacter.findFirst({
-    where: { id: characterId, playerId: player.id },
-    include: { character: true },
-  });
-
-  if (!character) {
+  const entity = (await entities.getEntity(characterId)) as CharacterEntity | null;
+  if (!entity || entity.ownerId !== player.id || entity.template?.schema?.name !== "character") {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
   }
+  const charState = parseCharacterState(entity);
+  const charTemplate = await db.character.findUnique({ where: { id: charState.characterId } });
+  if (!charTemplate) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "角色模板不存在" });
+  }
+
+  const character = { id: entity.id, ...charState, character: charTemplate };
 
   const requirement = BREAKTHROUGH_REQUIREMENTS.find(r => r.tier === character.tier);
   if (!requirement) {
@@ -202,12 +210,9 @@ export async function breakthroughCharacter(db: FullDbClient, userId: string, ch
   const newTier = character.tier + 1;
   const newMaxLevel = character.maxLevel + 20; // 每阶增加20级上限
 
-  await db.playerCharacter.update({
-    where: { id: character.id },
-    data: {
-      tier: newTier,
-      maxLevel: newMaxLevel,
-    },
+  await entities.updateEntityState(character.id, {
+    tier: newTier,
+    maxLevel: newMaxLevel,
   });
 
   return {

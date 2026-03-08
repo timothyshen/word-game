@@ -61,7 +61,7 @@ export const explorationRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const result = await explorationService.handleEventChoice(ctx.db, ctx.session.user.id, input);
+      const result = await explorationService.handleEventChoice(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
       void ctx.engine.events.emit("exploration:start", {
         userId: ctx.session.user.id,
         result: { type: "event", rewards: result.rewards },

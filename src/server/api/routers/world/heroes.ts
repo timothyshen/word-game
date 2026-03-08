@@ -9,7 +9,7 @@ export const heroesRouter = createTRPCRouter({
   deploy: protectedProcedure
     .input(z.object({ characterId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return heroesService.deploy(ctx.db, ctx.session.user.id, input.characterId);
+      return heroesService.deploy(ctx.db, ctx.engine.entities, ctx.session.user.id, input.characterId);
     }),
 
   // 召回英雄

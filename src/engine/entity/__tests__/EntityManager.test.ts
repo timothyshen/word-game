@@ -11,14 +11,17 @@ const mockDb = {
   entityTemplate: {
     create: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
   },
   entity: {
     create: vi.fn(),
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
 };
 
@@ -311,5 +314,102 @@ describe("EntityManager", () => {
         hp: 1, maxHp: 1, mp: 0, maxMp: 0, atk: 0, def: 0, spd: 0,
       }),
     ).rejects.toThrow("Entity not found: missing");
+  });
+
+  // ── Extended query operations ──
+
+  it("getEntitiesByTemplate returns entities for a template", async () => {
+    const entities = [{ id: "e1" }, { id: "e2" }];
+    mockDb.entity.findMany.mockResolvedValue(entities);
+
+    const mgr = createManager();
+    const result = await mgr.getEntitiesByTemplate("t1");
+
+    expect(mockDb.entity.findMany).toHaveBeenCalledWith({
+      where: { templateId: "t1" },
+      include: { template: { include: { schema: true } } },
+    });
+    expect(result).toEqual(entities);
+  });
+
+  it("findEntityByOwnerAndTemplate returns first match", async () => {
+    const entity = { id: "e1", ownerId: "p1", templateId: "t1" };
+    mockDb.entity.findFirst.mockResolvedValue(entity);
+
+    const mgr = createManager();
+    const result = await mgr.findEntityByOwnerAndTemplate("p1", "t1");
+
+    expect(mockDb.entity.findFirst).toHaveBeenCalledWith({
+      where: { ownerId: "p1", templateId: "t1" },
+      include: { template: { include: { schema: true } } },
+    });
+    expect(result).toEqual(entity);
+  });
+
+  it("getTemplateBySchemaAndName returns template by schema and name", async () => {
+    const template = { id: "t1", name: "goblin", schemaId: "s1" };
+    mockDb.entityTemplate.findFirst.mockResolvedValue(template);
+
+    const mgr = createManager();
+    const result = await mgr.getTemplateBySchemaAndName("s1", "goblin");
+
+    expect(mockDb.entityTemplate.findFirst).toHaveBeenCalledWith({
+      where: { schemaId: "s1", name: "goblin" },
+      include: { schema: true },
+    });
+    expect(result).toEqual(template);
+  });
+
+  it("createManyEntities creates multiple entities", async () => {
+    mockDb.entity.create.mockResolvedValueOnce({ id: "e1" });
+    mockDb.entity.create.mockResolvedValueOnce({ id: "e2" });
+
+    const mgr = createManager();
+    const result = await mgr.createManyEntities([
+      { templateId: "t1", ownerId: "p1", state: { hp: 10 } },
+      { templateId: "t2", ownerId: "p1", state: { hp: 20 } },
+    ]);
+
+    expect(result).toHaveLength(2);
+    expect(mockDb.entity.create).toHaveBeenCalledTimes(2);
+  });
+
+  it("deleteManyEntities deletes by ids", async () => {
+    mockDb.entity.deleteMany.mockResolvedValue({ count: 3 });
+
+    const mgr = createManager();
+    await mgr.deleteManyEntities(["e1", "e2", "e3"]);
+
+    expect(mockDb.entity.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ["e1", "e2", "e3"] } },
+    });
+  });
+
+  it("queryEntitiesByState filters entities by state fields", async () => {
+    const entities = [
+      { id: "e1", state: JSON.stringify({ status: "idle", level: 5 }) },
+      { id: "e2", state: JSON.stringify({ status: "working", level: 3 }) },
+      { id: "e3", state: JSON.stringify({ status: "idle", level: 2 }) },
+    ];
+    mockDb.entity.findMany.mockResolvedValue(entities);
+
+    const mgr = createManager();
+    const result = await mgr.queryEntitiesByState("p1", "character", { status: "idle" });
+
+    expect(result).toHaveLength(2);
+    expect(result[0]!.id).toBe("e1");
+    expect(result[1]!.id).toBe("e3");
+  });
+
+  it("queryEntitiesByState returns empty when no match", async () => {
+    const entities = [
+      { id: "e1", state: JSON.stringify({ status: "working" }) },
+    ];
+    mockDb.entity.findMany.mockResolvedValue(entities);
+
+    const mgr = createManager();
+    const result = await mgr.queryEntitiesByState("p1", "character", { status: "idle" });
+
+    expect(result).toHaveLength(0);
   });
 });

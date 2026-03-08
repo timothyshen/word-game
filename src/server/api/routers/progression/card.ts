@@ -5,14 +5,14 @@ import * as cardService from "../../services/card.service";
 export const cardRouter = createTRPCRouter({
   // 获取玩家所有卡牌
   getAll: protectedProcedure.query(async ({ ctx }) => {
-    return cardService.getAllCards(ctx.db, ctx.session.user.id);
+    return cardService.getAllCards(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   // 按类型获取卡牌
   getByType: protectedProcedure
     .input(z.object({ type: z.enum(["building", "recruit", "skill", "enhance", "item", "expansion"]) }))
     .query(async ({ ctx, input }) => {
-      return cardService.getCardsByType(ctx.db, ctx.session.user.id, input.type);
+      return cardService.getCardsByType(ctx.db, ctx.engine.entities, ctx.session.user.id, input.type);
     }),
 
   // 使用卡牌
@@ -25,7 +25,7 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.useCard(ctx.db, ctx.session.user.id, input);
+      return cardService.useCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 
   // 添加卡牌（内部使用，如奖励发放）
@@ -37,7 +37,7 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.addCard(ctx.db, ctx.session.user.id, input);
+      return cardService.addCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 
   // 使用建筑卡建造建筑
@@ -50,14 +50,14 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.useBuildingCard(ctx.db, ctx.session.user.id, input);
+      return cardService.useBuildingCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 
   // 使用招募卡招募角色
   useRecruitCard: protectedProcedure
     .input(z.object({ cardId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return cardService.useRecruitCard(ctx.db, ctx.session.user.id, input.cardId);
+      return cardService.useRecruitCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
     }),
 
   // 使用道具卡
@@ -70,14 +70,14 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.useItemCard(ctx.db, ctx.session.user.id, input);
+      return cardService.useItemCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 
   // 开启宝箱
   openChest: protectedProcedure
     .input(z.object({ cardId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return cardService.useChestCard(ctx.db, ctx.session.user.id, input.cardId);
+      return cardService.useChestCard(ctx.db, ctx.engine.entities, ctx.session.user.id, input.cardId);
     }),
 
   // 学习技能卡
@@ -90,6 +90,6 @@ export const cardRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return cardService.learnSkill(ctx.db, ctx.session.user.id, input);
+      return cardService.learnSkill(ctx.db, ctx.engine.entities, ctx.session.user.id, input);
     }),
 });

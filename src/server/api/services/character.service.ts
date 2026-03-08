@@ -1,8 +1,12 @@
 /**
  * Character Service — character management business logic
+ *
+ * Uses the Entity system (EntityManager) for character instances.
+ * The Character template table is still used for base stat lookups.
  */
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
+import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
 import * as charRepo from "../repositories/character.repo";
 
@@ -28,10 +32,10 @@ function calculateStatGrowth(baseStat: number, level: number, growthRate: number
 
 // ── Exported service functions ──
 
-export async function getAllCharacters(db: FullDbClient, userId: string) {
+export async function getAllCharacters(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const characters = await charRepo.findPlayerCharacters(db, player.id);
+  const characters = await charRepo.findPlayerCharacters(db, entities, player.id);
 
   return characters.map((c) => ({
     id: c.id,
@@ -65,10 +69,10 @@ export async function getAllCharacters(db: FullDbClient, userId: string) {
   }));
 }
 
-export async function getCharacterById(db: FullDbClient, userId: string, characterId: string) {
+export async function getCharacterById(db: FullDbClient, entities: IEntityManager, userId: string, characterId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const character = await charRepo.findPlayerCharacterById(db, characterId, player.id);
+  const character = await charRepo.findPlayerCharacterById(db, entities, characterId, player.id);
 
   if (!character) {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
@@ -124,10 +128,10 @@ export async function getCharacterById(db: FullDbClient, userId: string, charact
   };
 }
 
-export async function levelUp(db: FullDbClient, userId: string, characterId: string) {
+export async function levelUp(db: FullDbClient, entities: IEntityManager, userId: string, characterId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const character = await charRepo.findPlayerCharacterWithTemplate(db, characterId, player.id);
+  const character = await charRepo.findPlayerCharacterWithTemplate(db, entities, characterId, player.id);
 
   if (!character) {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
@@ -153,7 +157,7 @@ export async function levelUp(db: FullDbClient, userId: string, characterId: str
   const newSpeed = calculateStatGrowth(character.character.baseSpeed, newLevel, GROWTH_RATE);
   const newLuck = calculateStatGrowth(character.character.baseLuck, newLevel, GROWTH_RATE);
 
-  await charRepo.updateCharacter(db, character.id, {
+  await charRepo.updateCharacter(entities, character.id, {
     level: newLevel,
     exp: character.exp - expNeeded,
     maxHp: newMaxHp,
@@ -183,10 +187,10 @@ export async function levelUp(db: FullDbClient, userId: string, characterId: str
   };
 }
 
-export async function addExp(db: FullDbClient, userId: string, characterId: string, amount: number) {
+export async function addExp(db: FullDbClient, entities: IEntityManager, userId: string, characterId: string, amount: number) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const character = await charRepo.findPlayerCharacterWithTemplate(db, characterId, player.id);
+  const character = await charRepo.findPlayerCharacterWithTemplate(db, entities, characterId, player.id);
 
   if (!character) {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
@@ -195,7 +199,7 @@ export async function addExp(db: FullDbClient, userId: string, characterId: stri
   const newExp = character.exp + amount;
   const expToNext = getExpForLevel(character.level + 1);
 
-  await charRepo.updateCharacter(db, character.id, { exp: newExp });
+  await charRepo.updateCharacter(entities, character.id, { exp: newExp });
 
   return {
     success: true,
@@ -209,6 +213,7 @@ export async function addExp(db: FullDbClient, userId: string, characterId: stri
 
 export async function heal(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   characterId: string,
   type: "hp" | "mp" | "both",
@@ -216,7 +221,7 @@ export async function heal(
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const character = await charRepo.findPlayerCharacterWithTemplate(db, characterId, player.id);
+  const character = await charRepo.findPlayerCharacterWithTemplate(db, entities, characterId, player.id);
 
   if (!character) {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
@@ -239,7 +244,7 @@ export async function heal(
     result.mpRestored = newMp - character.mp;
   }
 
-  await charRepo.updateCharacter(db, character.id, updates);
+  await charRepo.updateCharacter(entities, character.id, updates);
 
   return {
     success: true,
@@ -254,13 +259,14 @@ export async function heal(
 
 export async function assignToBuilding(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   characterId: string,
   buildingId: string | null,
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const character = await charRepo.findPlayerCharacterWithTemplate(db, characterId, player.id);
+  const character = await charRepo.findPlayerCharacterWithTemplate(db, entities, characterId, player.id);
 
   if (!character) {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
@@ -268,16 +274,16 @@ export async function assignToBuilding(
 
   if (buildingId === null) {
     // 取消分配
-    const currentBuilding = await charRepo.findBuildingByAssignedChar(db, player.id, characterId);
+    const currentBuilding = await charRepo.findBuildingByAssignedChar(db, entities, player.id, characterId);
 
     if (currentBuilding) {
-      await charRepo.updatePlayerBuilding(db, currentBuilding.id, {
+      await charRepo.updatePlayerBuilding(entities, currentBuilding.id, {
         assignedCharId: null,
         status: "idle",
       });
     }
 
-    await charRepo.updateCharacter(db, character.id, {
+    await charRepo.updateCharacter(entities, character.id, {
       status: "idle",
       workingAt: null,
     });
@@ -290,17 +296,17 @@ export async function assignToBuilding(
   }
 
   // 分配到新建筑
-  const building = await charRepo.findPlayerBuildingWithTemplate(db, buildingId, player.id);
+  const building = await charRepo.findPlayerBuildingWithTemplate(db, entities, buildingId, player.id);
 
-  if (!building) {
+  if (!building || !building.building) {
     throw new TRPCError({ code: "NOT_FOUND", message: "建筑不存在" });
   }
 
   // 如果角色正在其他建筑工作，先解除
   if (character.status === "working") {
-    const oldBuilding = await charRepo.findBuildingByAssignedCharBasic(db, player.id, characterId);
+    const oldBuilding = await charRepo.findBuildingByAssignedCharBasic(entities, player.id, characterId);
     if (oldBuilding) {
-      await charRepo.updatePlayerBuilding(db, oldBuilding.id, {
+      await charRepo.updatePlayerBuilding(entities, oldBuilding.id, {
         assignedCharId: null,
         status: "idle",
       });
@@ -309,19 +315,19 @@ export async function assignToBuilding(
 
   // 如果目标建筑已有其他角色，先解除
   if (building.assignedCharId && building.assignedCharId !== characterId) {
-    await charRepo.updateCharacter(db, building.assignedCharId, {
+    await charRepo.updateCharacter(entities, building.assignedCharId, {
       status: "idle",
       workingAt: null,
     });
   }
 
   // 分配角色到建筑
-  await charRepo.updatePlayerBuilding(db, building.id, {
+  await charRepo.updatePlayerBuilding(entities, building.id, {
     assignedCharId: characterId,
     status: "working",
   });
 
-  await charRepo.updateCharacter(db, character.id, {
+  await charRepo.updateCharacter(entities, character.id, {
     status: "working",
     workingAt: building.building.name,
   });
@@ -334,10 +340,10 @@ export async function assignToBuilding(
   };
 }
 
-export async function getIdleCharacters(db: FullDbClient, userId: string) {
+export async function getIdleCharacters(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const idleCharacters = await charRepo.findIdleCharacters(db, player.id);
+  const idleCharacters = await charRepo.findIdleCharacters(db, entities, player.id);
 
   return idleCharacters.map((c) => ({
     id: c.id,
@@ -350,19 +356,20 @@ export async function getIdleCharacters(db: FullDbClient, userId: string) {
 
 export async function updateStatus(
   db: FullDbClient,
+  entities: IEntityManager,
   userId: string,
   characterId: string,
   status: "idle" | "working" | "exploring" | "combat" | "resting",
 ) {
   const player = await getPlayerOrThrow(db, userId);
 
-  const character = await charRepo.findPlayerCharacterBasic(db, characterId, player.id);
+  const character = await charRepo.findPlayerCharacterBasic(db, entities, characterId, player.id);
 
   if (!character) {
     throw new TRPCError({ code: "NOT_FOUND", message: "角色不存在" });
   }
 
-  await charRepo.updateCharacter(db, character.id, {
+  await charRepo.updateCharacter(entities, character.id, {
     status,
     workingAt: status === "idle" ? null : character.workingAt,
   });
