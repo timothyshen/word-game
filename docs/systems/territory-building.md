@@ -1,67 +1,67 @@
-# Territory & Building System
+# 领地与建筑系统
 
-Two territory systems: inner city (building placement) and outer city (tile unlocking).
+两套领地系统：内城（建筑放置）和外城（地块解锁）。
 
-## Inner City
+## 内城
 
-**File**: `src/server/api/services/innerCity.service.ts`
+**文件**: `src/server/api/services/innerCity.service.ts`
 
-Players place buildings in a rounded-rectangle territory with collision detection.
+玩家在圆角矩形领地内放置建筑，带碰撞检测。
 
-### Territory Configuration
+### 领地配置
 
 ```typescript
-// InnerCityConfig model
+// InnerCityConfig 模型
 {
-  territoryWidth: 4.0,   // Half-width from center
-  territoryHeight: 4.0,  // Half-height from center
-  cornerRadius: 1.5      // Rounded corner radius
+  territoryWidth: 4.0,   // 从中心到边缘的半宽
+  territoryHeight: 4.0,  // 从中心到边缘的半高
+  cornerRadius: 1.5      // 圆角半径
 }
-// Dimensions come from ruleService.getConfig("innercity_initial_territory")
+// 尺寸来自 ruleService.getConfig("innercity_initial_territory")
 ```
 
-### Building Placement
+### 建筑放置
 
-1. Check building card exists and is a building type
-2. Verify position is within territory bounds (rounded-rect check)
-3. Check collision with existing buildings (radius-based)
-4. Create `InnerCityBuilding` record
-5. Consume the card entity
-6. Emit `territory:build` event
+1. 检查建筑卡是否存在且为建筑类型
+2. 验证位置在领地范围内（圆角矩形检查）
+3. 检查与现有建筑的碰撞（基于半径）
+4. 创建 `InnerCityBuilding` 记录
+5. 消耗卡牌实体
+6. 发出 `territory:build` 事件
 
-**Collision detection**: `src/shared/building-radius.ts`
+**碰撞检测**: `src/shared/building-radius.ts`
 ```typescript
-getBuildingSize(name, level)  // Returns { radius, visualW, visualH, height }
-canPlaceBuilding(building, territory, existingBuildings)  // Boolean
+getBuildingSize(name, level)  // 返回 { radius, visualW, visualH, height }
+canPlaceBuilding(building, territory, existingBuildings)  // 布尔值
 ```
 
-### Territory Expansion
+### 领地扩张
 
-Players can expand territory dimensions using expansion cards:
-- Multipliers from `ruleService.getConfig("innercity_expand_multipliers")`
-- Width and height increase by multiplier
+玩家可以使用扩张卡扩大领地尺寸：
+- 倍率来自 `ruleService.getConfig("innercity_expand_multipliers")`
+- 宽度和高度按倍率增加
 
-### Building Upgrade
+### 建筑升级
 
-- Cost from `ruleService.getConfig("innercity_upgrade_base_cost")` scaled by level
-- Increments building level
+- 费用来自 `ruleService.getConfig("innercity_upgrade_base_cost")` 按等级缩放
+- 递增建筑等级
 
-### Demolish
+### 拆除
 
-- Refund percentage from `ruleService.getConfig("innercity_demolish_refund")`
-- Removes `InnerCityBuilding` record
+- 退还比例来自 `ruleService.getConfig("innercity_demolish_refund")`
+- 移除 `InnerCityBuilding` 记录
 
-### Build Score
+### 建造评分
 
-Score awarded per placement from `ruleService.getConfig("innercity_build_score")`, recorded in `ActionLog` for daily settlement.
+每次放置获得的分数来自 `ruleService.getConfig("innercity_build_score")`，记录在 `ActionLog` 中用于每日结算。
 
-## Outer Territory
+## 外城领地
 
-**File**: `src/server/api/services/territory.service.ts`
+**文件**: `src/server/api/services/territory.service.ts`
 
-Grid-based territory tiles that players unlock through exploration.
+基于网格的领地地块，玩家通过探索解锁。
 
-### Tile Model
+### 地块模型
 
 ```typescript
 // TerritoryTile
@@ -74,10 +74,10 @@ Grid-based territory tiles that players unlock through exploration.
 }
 ```
 
-### Unlock Mechanics
+### 解锁机制
 
-- Must be adjacent to an already-unlocked tile (or center 0,0)
-- Cost scales with distance and total unlocked count:
+- 必须与已解锁地块相邻（或中心点 0,0）
+- 费用随距离和已解锁总数缩放：
 
 ```typescript
 distance = abs(x) + abs(y)
@@ -86,13 +86,13 @@ countMultiplier = 1 + floor(unlockedCount / 5) * 0.2
 cost = baseCost * distanceMultiplier * countMultiplier
 ```
 
-## Building System
+## 建筑系统
 
-**File**: `src/server/api/services/building.service.ts`
+**文件**: `src/server/api/services/building.service.ts`
 
-Manages building entities (stored in Entity system) and resource production.
+管理建筑实体（存储在实体系统中）和资源产出。
 
-### Production Calculation
+### 产出计算
 
 ```
 output = baseOutput * levelMultiplier * workerBonus
@@ -101,7 +101,7 @@ levelMultiplier = 1 + (level - 1) * 0.3
 workerBonus = hasWorker ? 1.5 : 1.0
 ```
 
-Buildings define production in their template `baseEffects` JSON:
+建筑在其模板 `baseEffects` JSON 中定义产出：
 ```json
 {
   "production": { "gold": 10, "wood": 5, "stone": 3 },
@@ -109,6 +109,6 @@ Buildings define production in their template `baseEffects` JSON:
 }
 ```
 
-### Worker Assignment
+### 工人分配
 
-Characters can be assigned to buildings to boost output by 50%. The character entity's `workingAt` state is updated, and the building entity's `assignedCharId` state tracks the assigned character.
+角色可以被分配到建筑以提升50%产出。角色实体的 `workingAt` 状态会被更新，建筑实体的 `assignedCharId` 状态记录被分配的角色。

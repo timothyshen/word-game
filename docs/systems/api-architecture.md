@@ -1,27 +1,27 @@
-# API Architecture
+# API 架构
 
-Three-layer tRPC architecture: Routers -> Services -> Repositories.
+三层 tRPC 架构：路由器 -> 服务层 -> 数据访问层。
 
-## Context
+## 上下文
 
-Every tRPC procedure receives:
+每个 tRPC 过程接收：
 
 ```typescript
 {
   session: { user: { id, name, email }, expires } | null,
   db: PrismaClient,
-  engine: GameEngine,      // EventBus, formulas, rules, entities, modules, state
+  engine: GameEngine,      // EventBus, 公式, 规则, 实体, 模块, 状态
   ruleService: GameRuleService
 }
 ```
 
-Session is read from `dev-session` cookie (7-day expiry). `protectedProcedure` enforces authentication.
+Session 从 `dev-session` cookie 读取（7天过期）。`protectedProcedure` 强制认证。
 
-## Router Layer
+## 路由器层
 
-**Location**: `src/server/api/routers/`
+**位置**: `src/server/api/routers/`
 
-Routers are grouped by domain:
+路由器按领域分组：
 
 ```
 routers/
@@ -33,11 +33,11 @@ routers/
 ├── territory/      innerCity, territory, portal
 ├── content/        story, character
 ├── world/          heroes, map, poi, events, combat
-├── admin/          admin CRUD
-└── root.ts         merges all routers
+├── admin/          管理后台 CRUD
+└── root.ts         合并所有路由器
 ```
 
-**Pattern**: Routers validate input (Zod), call service, optionally emit events, return result.
+**模式**: 路由器验证输入（Zod）、调用服务、可选发出事件、返回结果。
 
 ```typescript
 export const someRouter = createTRPCRouter({
@@ -51,60 +51,60 @@ export const someRouter = createTRPCRouter({
 });
 ```
 
-## Service Layer
+## 服务层
 
-**Location**: `src/server/api/services/`
+**位置**: `src/server/api/services/`
 
-Services contain business logic and are transport-agnostic. Dependencies are passed as parameters.
+服务层包含业务逻辑，与传输方式无关。依赖通过参数传入。
 
 ```typescript
 export async function doAction(
-  db: FullDbClient,           // Prisma client or transaction
+  db: FullDbClient,           // Prisma 客户端或事务
   userId: string,
   input?: InputType,
 ): Promise<ResultType> {
   const player = await findPlayerByUserId(db, userId);
   if (!player) throw new TRPCError({ code: "NOT_FOUND" });
-  // ... business logic
+  // ... 业务逻辑
 }
 ```
 
-| Service | Responsibility |
-|---------|---------------|
-| `player.service.ts` | Level-up, stamina, stats, hints |
-| `combat.service.ts` | Turn-based inner city combat |
-| `worldCombat.service.ts` | Outer city hero combat vs POI |
-| `building.service.ts` | Construction, upgrades, workers |
-| `card.service.ts` | Card effect resolution |
-| `altar.service.ts` | Gacha discovery and challenges |
-| `exploration.service.ts` | Wilderness exploration |
-| `settlement.service.ts` | Daily scoring and rewards |
-| `innerCity.service.ts` | Building placement, territory |
-| `territory.service.ts` | Tile unlocking |
-| `worldMap.service.ts` | Hero movement, map state |
-| `worldHeroes.service.ts` | Hero deploy/recall/rest |
-| `worldPoi.service.ts` | POI interaction |
-| `worldEvents.service.ts` | Random event generation/resolution |
-| `portal.service.ts` | Realm travel |
-| `boss.service.ts` | Weekly boss challenges |
-| `hint.service.ts` | Contextual player hints |
-| `shop.service.ts` | Item shop |
-| `achievement.service.ts` | Achievement tracking |
-| `breakthrough.service.ts` | Tier advancement |
-| `profession.service.ts` | Profession learning |
-| `equipment.service.ts` | Equip/enhance |
+| 服务 | 职责 |
+|------|------|
+| `player.service.ts` | 升级、体力、属性、提示 |
+| `combat.service.ts` | 内城回合制战斗 |
+| `worldCombat.service.ts` | 外城英雄 vs POI 战斗 |
+| `building.service.ts` | 建造、升级、工人 |
+| `card.service.ts` | 卡牌效果处理 |
+| `altar.service.ts` | 抽卡发现与挑战 |
+| `exploration.service.ts` | 野外探索 |
+| `settlement.service.ts` | 每日评分与奖励 |
+| `innerCity.service.ts` | 建筑放置、领地 |
+| `territory.service.ts` | 地块解锁 |
+| `worldMap.service.ts` | 英雄移动、地图状态 |
+| `worldHeroes.service.ts` | 英雄部署/召回/休息 |
+| `worldPoi.service.ts` | 兴趣点交互 |
+| `worldEvents.service.ts` | 随机事件生成/处理 |
+| `portal.service.ts` | 位面传送 |
+| `boss.service.ts` | 周Boss挑战 |
+| `hint.service.ts` | 上下文提示 |
+| `shop.service.ts` | 商店 |
+| `achievement.service.ts` | 成就追踪 |
+| `breakthrough.service.ts` | 职阶突破 |
+| `profession.service.ts` | 职业学习 |
+| `equipment.service.ts` | 装备/强化 |
 
-## Repository Layer
+## 数据访问层
 
-**Location**: `src/server/api/repositories/`
+**位置**: `src/server/api/repositories/`
 
-Data access layer encapsulating Prisma operations.
+封装 Prisma 操作的数据访问层。
 
 ```typescript
 type FullDbClient = PrismaClient | Prisma.TransactionClient;
 ```
 
-Using `FullDbClient` allows repositories to work inside transactions:
+使用 `FullDbClient` 允许在事务中运行：
 
 ```typescript
 await db.$transaction(async (tx) => {
@@ -113,47 +113,47 @@ await db.$transaction(async (tx) => {
 });
 ```
 
-| Repository | Domain |
-|-----------|--------|
-| `player.repo.ts` | Player queries, updates |
-| `building.repo.ts` | Building entities (via EntityManager) |
-| `card.repo.ts` | Card entities, unlock flags, skills |
-| `character.repo.ts` | Character entities (via EntityManager) |
-| `combat.repo.ts` | Combat sessions |
-| `admin.repo.ts` | Template CRUD for admin |
+| 数据访问层 | 领域 |
+|-----------|------|
+| `player.repo.ts` | 玩家查询、更新 |
+| `building.repo.ts` | 建筑实体（通过 EntityManager） |
+| `card.repo.ts` | 卡牌实体、解锁标记、技能 |
+| `character.repo.ts` | 角色实体（通过 EntityManager） |
+| `combat.repo.ts` | 战斗会话 |
+| `admin.repo.ts` | 管理后台模板 CRUD |
 
-## Utilities
+## 工具
 
-**Location**: `src/server/api/utils/`
+**位置**: `src/server/api/utils/`
 
-| File | Purpose |
-|------|---------|
-| `character-utils.ts` | Parse character entity state, get template ID |
-| `hero-utils.ts` | Resolve hero character data from Entity system |
-| `card-utils.ts` | Grant random cards by rarity |
-| `player-utils.ts` | Player stat calculations |
-| `building-utils.ts` | Building entity creation |
-| `game-time.ts` | Game day calculation |
-| `index.ts` | Shared helpers (updatePlayer, etc.) |
+| 文件 | 用途 |
+|------|------|
+| `character-utils.ts` | 解析角色实体状态、获取模板 ID |
+| `hero-utils.ts` | 从实体系统解析英雄角色数据 |
+| `card-utils.ts` | 按稀有度随机发放卡牌 |
+| `player-utils.ts` | 玩家属性计算 |
+| `building-utils.ts` | 建筑实体创建 |
+| `game-time.ts` | 游戏日期计算 |
+| `index.ts` | 共享工具（updatePlayer 等） |
 
-## Error Handling
+## 错误处理
 
-All errors use `TRPCError`:
-- `NOT_FOUND` - Player/entity not found
-- `BAD_REQUEST` - Invalid action (insufficient resources, wrong state)
-- `FORBIDDEN` - Unauthorized access
-- `INTERNAL_SERVER_ERROR` - Unexpected errors
+所有错误使用 `TRPCError`：
+- `NOT_FOUND` - 玩家/实体未找到
+- `BAD_REQUEST` - 无效操作（资源不足、状态错误）
+- `FORBIDDEN` - 未授权访问
+- `INTERNAL_SERVER_ERROR` - 意外错误
 
-## Engine Singleton
+## 引擎单例
 
-**File**: `src/server/api/engine.ts`
+**文件**: `src/server/api/engine.ts`
 
 ```typescript
-export const engine: GameEngine;       // Shared engine instance
+export const engine: GameEngine;       // 共享引擎实例
 export const ruleService: GameRuleService;
 
-// Initialized once at module load
-// Modules registered: core, combat, economy, exploration,
+// 模块加载时初始化一次
+// 注册模块: core, combat, economy, exploration,
 //   progression, content, territory, settlement
-// engine.start() called fire-and-forget
+// engine.start() 即发即忘调用
 ```

@@ -1,53 +1,53 @@
-# Rule Engine
+# 规则引擎
 
-Centralized game balance system supporting formulas, configs, weighted random, and conditions. All game constants are stored as `GameRule` records in the database.
+集中式游戏平衡系统，支持公式、配置、加权随机和条件。所有游戏常量存储为数据库中的 `GameRule` 记录。
 
-**Location**: `src/engine/rules/`, `src/engine/core/`
+**位置**: `src/engine/rules/`, `src/engine/core/`
 
-## Architecture
+## 架构
 
 ```
-GameRule (DB record)
+GameRule（数据库记录）
     |-- name, category, ruleType, definition (JSON)
     v
-GameRuleService (retrieval + caching)
+GameRuleService（检索 + 缓存）
     |-- getFormula(), getConfig(), getWeights(), getCondition()
     v
-FormulaEngine / RuleEngine (evaluation)
+FormulaEngine / RuleEngine（求值）
     |-- calculate(), evaluate(), weightedRandom()
 ```
 
-## Rule Types
+## 规则类型
 
-### Formula
-Mathematical expressions evaluated with variables using mathjs.
+### 公式 (Formula)
+使用 mathjs 进行带变量的数学表达式求值。
 
 ```typescript
-// DB: { ruleType: "formula", definition: '{"formula":"100 * pow(1.15, level - 1)"}' }
+// 数据库: { ruleType: "formula", definition: '{"formula":"100 * pow(1.15, level - 1)"}' }
 const formula = await ruleService.getFormula("player_exp_required");
 const exp = engine.formulas.calculate(formula, { level: 5 }); // ~610
 ```
 
-### Config
-Static JSON values for lookups and constants.
+### 配置 (Config)
+用于查找和常量的静态 JSON 值。
 
 ```typescript
-// DB: { ruleType: "config", definition: '{"value":5}' }
+// 数据库: { ruleType: "config", definition: '{"value":5}' }
 const config = await ruleService.getConfig<{ value: number }>("altar_stamina_cost");
 // config.value === 5
 ```
 
-### Weighted Random
-Probability distributions for gacha/loot.
+### 加权随机 (Weighted Random)
+用于抽卡/掉落的概率分布。
 
 ```typescript
-// DB: { ruleType: "weighted_random", definition: '[{"value":"Common","weight":60},...]' }
+// 数据库: { ruleType: "weighted_random", definition: '[{"value":"Common","weight":60},...]' }
 const weights = await ruleService.getWeights("altar_basic_weights");
-const rarity = engine.rules.weightedRandom(weights); // "Common" 60% of the time
+const rarity = engine.rules.weightedRandom(weights); // 60% 概率为 "Common"
 ```
 
-### Condition
-Logical predicates for unlock checks (supports AND/OR/NOT/formula).
+### 条件 (Condition)
+用于解锁检查的逻辑谓词（支持 AND/OR/NOT/formula）。
 
 ```typescript
 const condition = await ruleService.getCondition("unlock_fire_realm");
@@ -56,55 +56,55 @@ const canUnlock = engine.rules.evaluate(condition, { level: 10, tier: 2 });
 
 ## GameRuleService
 
-**File**: `src/engine/rules/GameRuleService.ts`
+**文件**: `src/engine/rules/GameRuleService.ts`
 
-- 5-minute TTL cache per rule
-- Lazy-loads from DB on first access
-- `invalidateCache()` to force refresh
+- 每条规则 5 分钟 TTL 缓存
+- 首次访问时从数据库延迟加载
+- `invalidateCache()` 强制刷新
 
 ```typescript
 const ruleService = new GameRuleService(db, stateManager);
 
-await ruleService.getRule(name)              // Full record
-await ruleService.getRulesByCategory(cat)    // All rules in category
-await ruleService.getFormula(name)           // Returns formula string
-await ruleService.getConfig<T>(name)         // Returns parsed JSON
-await ruleService.getWeights(name)           // Returns WeightedItem[]
-await ruleService.getCondition(name)         // Returns Condition object
+await ruleService.getRule(name)              // 完整记录
+await ruleService.getRulesByCategory(cat)    // 某分类下所有规则
+await ruleService.getFormula(name)           // 返回公式字符串
+await ruleService.getConfig<T>(name)         // 返回解析后的 JSON
+await ruleService.getWeights(name)           // 返回 WeightedItem[]
+await ruleService.getCondition(name)         // 返回 Condition 对象
 ```
 
 ## FormulaEngine
 
-**File**: `src/engine/core/FormulaEngine.ts`
+**文件**: `src/engine/core/FormulaEngine.ts`
 
-Uses mathjs for safe expression evaluation.
+使用 mathjs 进行安全的表达式求值。
 
 ```typescript
 engine.formulas.calculate(formula, variables)
-// Supports: +, -, *, /, pow, floor, ceil, max, min, sqrt, random
+// 支持: +, -, *, /, pow, floor, ceil, max, min, sqrt, random
 ```
 
 ## RuleEngine
 
-**File**: `src/engine/core/RuleEngine.ts`
+**文件**: `src/engine/core/RuleEngine.ts`
 
-Evaluates conditions and performs weighted random selection.
+执行条件判断和加权随机选择。
 
-**Condition Types**: `gte`, `lte`, `eq`, `has`, `and`, `or`, `not`, `formula`
+**条件类型**: `gte`, `lte`, `eq`, `has`, `and`, `or`, `not`, `formula`
 
 ```typescript
-engine.rules.evaluate(condition, context)    // Boolean result
-engine.rules.weightedRandom(weights)         // Selected value string
+engine.rules.evaluate(condition, context)    // 布尔结果
+engine.rules.weightedRandom(weights)         // 选中的值字符串
 ```
 
-## Seed Rules
+## 种子规则
 
-**File**: `src/engine/rules/seed-rules.ts`
+**文件**: `src/engine/rules/seed-rules.ts`
 
-Pre-defined rules loaded during database seeding.
+数据库初始化时加载的预定义规则。
 
-| Category | Examples |
-|----------|----------|
+| 分类 | 示例 |
+|------|------|
 | player | exp_required, max_level, skill_slots, stat_growth, initial_resources |
 | combat | base_damage, crit_chance, monster_scaling, reward_exp |
 | altar | basic/sacred/ancient_weights, stamina_cost |
@@ -112,18 +112,18 @@ Pre-defined rules loaded during database seeding.
 | exploration | stamina_cost, resource_scaling, monster_level |
 | settlement | grade_thresholds, streak_threshold, reward_multiplier |
 | equipment | max_enhance, rarity_multipliers, enhance_success, enhance_cost |
-| breakthrough | tier requirements, level_cap_increase, skill_slots formula |
-| shop | items catalog, sell_prices |
+| breakthrough | tier 需求, level_cap_increase, skill_slots 公式 |
+| shop | items 目录, sell_prices |
 | innercity | initial_territory, expand_multipliers, upgrade_cost, demolish_refund |
 
-## Integration Pattern
+## 集成模式
 
-Services access rules via the singleton `ruleService`:
+服务通过单例 `ruleService` 访问规则：
 
 ```typescript
 import { engine, ruleService } from "~/server/api/engine";
 
-// In a service function:
+// 在服务函数中:
 const formula = await ruleService.getFormula("combat_base_damage");
 const damage = engine.formulas.calculate(formula, { atk: 20, def: 8 });
 ```

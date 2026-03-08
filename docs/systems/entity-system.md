@@ -1,28 +1,28 @@
-# Entity System (ECS)
+# 实体系统 (ECS)
 
-The Entity System implements a lightweight ECS pattern backed by Prisma/SQLite. All player-owned instances (characters, cards, buildings, equipment) are stored as Entity records with JSON state.
+实体系统实现了轻量级 ECS 模式，底层使用 Prisma/SQLite。所有玩家拥有的实例（角色、卡牌、建筑、装备）都存储为 Entity 记录，状态使用 JSON 格式。
 
-**Location**: `src/engine/entity/`
+**位置**: `src/engine/entity/`
 
-## Three-Tier Hierarchy
+## 三层层级结构
 
 ```
-EntitySchema (blueprint)
-    |-- defines components and defaults
+EntitySchema（蓝图）
+    |-- 定义组件和默认值
     v
-EntityTemplate (configuration)
-    |-- inherits schema, pre-configured data
+EntityTemplate（配置）
+    |-- 继承 Schema，预配置数据
     v
-Entity (instance)
-    |-- owned by player, runtime JSON state
+Entity（实例）
+    |-- 归属玩家，运行时 JSON 状态
 ```
 
 ### Schema
 
-Defines which components an entity type supports and their default values.
+定义实体类型支持的组件及其默认值。
 
 ```typescript
-// Example: "character" schema
+// 示例："character" schema
 {
   name: "character",
   components: ["stats"],
@@ -32,10 +32,10 @@ Defines which components an entity type supports and their default values.
 
 ### Template
 
-A concrete configuration inheriting from a schema. Multiple templates can share one schema.
+继承自 Schema 的具体配置。多个 Template 可以共享同一个 Schema。
 
 ```typescript
-// Example: "generic-character" template
+// 示例："generic-character" template
 {
   schemaId: "...",
   name: "generic-character",
@@ -47,7 +47,7 @@ A concrete configuration inheriting from a schema. Multiple templates can share 
 
 ### Entity
 
-A runtime instance owned by a player. State is stored as a JSON string merging schema defaults + template data + instance overrides.
+归属于玩家的运行时实例。状态存储为 JSON 字符串，合并了 Schema 默认值 + Template 数据 + 实例覆盖值。
 
 ```typescript
 {
@@ -60,14 +60,14 @@ A runtime instance owned by a player. State is stored as a JSON string merging s
 
 ## EntityManager API
 
-**File**: `src/engine/entity/EntityManager.ts`
+**文件**: `src/engine/entity/EntityManager.ts`
 
 ```typescript
-// Schema operations
+// Schema 操作
 createSchema(gameId, name, components, defaults?)
 getSchema(gameId, name)
 
-// Template operations
+// Template 操作
 createTemplate(schemaId, name, data, options?)
 getTemplateBySchemaAndName(schemaId, name)
 getEntitiesByTemplate(templateId)
@@ -78,45 +78,45 @@ getEntity(entityId)
 updateEntityState(entityId, partialState)
 deleteEntity(entityId)
 
-// Query operations
+// 查询操作
 getEntitiesByOwner(ownerId)
 getEntitiesByOwnerAndSchema(ownerId, schemaName)
 findEntityByOwnerAndTemplate(ownerId, templateId)
 queryEntitiesByState(ownerId, schemaName, stateFilter)
 
-// Batch operations
+// 批量操作
 createManyEntities(entries[])
 deleteManyEntities(entityIds[])
 ```
 
-## Component System
+## 组件系统
 
-**File**: `src/engine/entity/components.ts`
+**文件**: `src/engine/entity/components.ts`
 
-| Component | Purpose | Key Fields |
-|-----------|---------|------------|
-| `stats` | Combat/RPG stats | hp, maxHp, mp, maxMp, atk, def, spd, luck |
-| `inventory` | Item storage | items[], capacity |
-| `position` | World location | x, y, worldId |
-| `production` | Resource generation | output (map), interval |
-| `equipment` | Gear slots | slots (name -> equipmentId) |
-| `skills` | Ability slots | equipped[], maxSlots |
+| 组件 | 用途 | 关键字段 |
+|------|------|----------|
+| `stats` | 战斗/RPG 属性 | hp, maxHp, mp, maxMp, atk, def, spd, luck |
+| `inventory` | 物品存储 | items[], capacity |
+| `position` | 世界位置 | x, y, worldId |
+| `production` | 资源产出 | output (map), interval |
+| `equipment` | 装备槽位 | slots (name -> equipmentId) |
+| `skills` | 技能槽位 | equipped[], maxSlots |
 
-**Helpers**:
+**工具函数**:
 ```typescript
-getComponent(state, name)    // Extract component from state
-setComponent(state, name, v) // Update component, returns new state
-hasComponent(state, name)    // Check if component exists
-serializeState(state)        // Convert to JSON string
+getComponent(state, name)    // 从状态中提取组件
+setComponent(state, name, v) // 更新组件，返回新状态
+hasComponent(state, name)    // 检查组件是否存在
+serializeState(state)        // 转换为 JSON 字符串
 ```
 
-## Character Entity State
+## 角色实体状态
 
-Characters use a flat state structure (not nested components):
+角色使用扁平状态结构（非嵌套组件）：
 
 ```typescript
 interface CharacterEntityState {
-  characterId: string;  // References Character template model
+  characterId: string;  // 引用 Character 模板
   level: number;
   exp: number;
   maxLevel: number;
@@ -134,13 +134,13 @@ interface CharacterEntityState {
 }
 ```
 
-**Utilities**: `src/server/api/utils/character-utils.ts`
-- `parseCharacterState(entity)` - Parse JSON state to typed object
-- `getCharacterTemplateId(db, entities)` - Find/create the generic-character template
+**工具**: `src/server/api/utils/character-utils.ts`
+- `parseCharacterState(entity)` - 将 JSON 状态解析为类型化对象
+- `getCharacterTemplateId(db, entities)` - 查找/创建 generic-character 模板
 
-## FK Relations
+## FK 关联
 
-Junction tables that reference Entity:
+引用 Entity 的关联表：
 - `CharacterSkill.playerCharacterId` -> `Entity.id`
 - `CharacterProfession.playerCharacterId` -> `Entity.id`
 - `HeroInstance.characterId` -> `Entity.id`

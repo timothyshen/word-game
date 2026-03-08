@@ -1,50 +1,50 @@
-# Module System & EventBus
+# 模块系统与 EventBus
 
-Event-driven architecture where pluggable modules subscribe to game events and emit new events, creating reactive chains.
+事件驱动架构，可插拔模块订阅游戏事件并发出新事件，形成响应式链。
 
-**Location**: `src/engine/modules/`, `src/engine/core/`
+**位置**: `src/engine/modules/`, `src/engine/core/`
 
 ## EventBus
 
-**File**: `src/engine/core/EventBus.ts`
+**文件**: `src/engine/core/EventBus.ts`
 
-Pub/Sub event dispatcher with pattern matching and priority.
+发布/订阅事件分发器，支持模式匹配和优先级。
 
 ```typescript
-engine.events.on(event, handler, priority?)  // Subscribe
-engine.events.off(event, handler)            // Unsubscribe
-engine.events.emit(event, payload, source?)  // Publish (async)
+engine.events.on(event, handler, priority?)  // 订阅
+engine.events.off(event, handler)            // 取消订阅
+engine.events.emit(event, payload, source?)  // 发布（异步）
 ```
 
-**Features**:
-- **Pattern matching**: `"combat:*"` matches `"combat:start"`, `"combat:victory"`, etc.
-- **Priority ordering**: Higher priority handlers execute first
-- **Async execution**: Handlers run sequentially, exceptions are logged but don't break the chain
-- **Fire-and-forget**: Routers emit with `void ctx.engine.events.emit(...)` to avoid blocking
+**特性**:
+- **模式匹配**: `"combat:*"` 匹配 `"combat:start"`, `"combat:victory"` 等
+- **优先级排序**: 优先级高的处理器先执行
+- **异步执行**: 处理器按顺序运行，异常会被记录但不会中断链
+- **即发即忘**: 路由器使用 `void ctx.engine.events.emit(...)` 避免阻塞
 
-**Event structure**:
+**事件结构**:
 ```typescript
 interface GameEvent {
-  type: string;       // e.g., "combat:victory"
-  payload: unknown;   // Event-specific data
-  timestamp: number;  // Unix ms
-  source: string;     // Emitter name
+  type: string;       // 如 "combat:victory"
+  payload: unknown;   // 事件特定数据
+  timestamp: number;  // Unix 毫秒
+  source: string;     // 发出者名称
 }
 ```
 
-## Module Lifecycle
+## 模块生命周期
 
 ```typescript
 interface GameModule {
   name: string;
   dependencies?: string[];
-  init(engine: GameEngine): Promise<void>;       // Setup subscriptions
-  handleEvent?(event: GameEvent): Promise<void>; // Optional handler
-  destroy?(): Promise<void>;                     // Cleanup
+  init(engine: GameEngine): Promise<void>;       // 设置订阅
+  handleEvent?(event: GameEvent): Promise<void>; // 可选处理器
+  destroy?(): Promise<void>;                     // 清理
 }
 ```
 
-**Initialization**: ModuleRegistry uses topological sort (Kahn's algorithm) to respect dependency order. Detects circular dependencies.
+**初始化**: ModuleRegistry 使用拓扑排序（Kahn 算法）确保依赖顺序，检测循环依赖。
 
 ```
 engine.start()
@@ -54,10 +54,10 @@ engine.start()
        -> engine.events.on("event:name", handler)
 ```
 
-## Module Registry
+## 模块注册表
 
-| Module | Depends On | Subscribes To | Emits |
-|--------|-----------|---------------|-------|
+| 模块 | 依赖 | 订阅事件 | 发出事件 |
+|------|------|----------|----------|
 | **core** | - | `player:expGain`, `achievement:claimed` | `player:statusChanged` |
 | **combat** | core | `combat:start`, `combat:action` | `combat:started`, `combat:victory`, `combat:defeat` |
 | **economy** | core | `settlement:daily`, `building:upgrade` | `economy:output`, `building:upgraded` |
@@ -67,34 +67,34 @@ engine.start()
 | **territory** | core | `territory:unlock`, `territory:build`, `territory:expand` | `territory:expanded` |
 | **settlement** | core | `settlement:daily` | `settlement:graded` |
 
-## Event Chain Examples
+## 事件链示例
 
-### Boss Victory Chain
+### Boss 胜利链
 ```
-Router emits "boss:challenge" { victory: true }
-  -> ProgressionModule: emits "combat:victory" + "progression:check"
-    -> CoreModule: checks achievements
-```
-
-### Building Placement Chain
-```
-Router emits "territory:build" { positionX, positionY }
-  -> TerritoryModule: emits "territory:expanded" { trigger: "build" }
+路由器发出 "boss:challenge" { victory: true }
+  -> ProgressionModule: 发出 "combat:victory" + "progression:check"
+    -> CoreModule: 检查成就
 ```
 
-### Character Level Up Chain
+### 建筑放置链
 ```
-Router emits "character:levelUp" { characterId, newLevel }
-  -> ProgressionModule: emits "progression:check" { trigger: "character_level_up" }
-  -> ContentModule: emits "content:checkUnlocks"
+路由器发出 "territory:build" { positionX, positionY }
+  -> TerritoryModule: 发出 "territory:expanded" { trigger: "build" }
 ```
 
-## Router Event Emission
+### 角色升级链
+```
+路由器发出 "character:levelUp" { characterId, newLevel }
+  -> ProgressionModule: 发出 "progression:check" { trigger: "character_level_up" }
+  -> ContentModule: 发出 "content:checkUnlocks"
+```
 
-Routers emit events after mutations using fire-and-forget:
+## 路由器事件发出
+
+路由器在数据变更后使用即发即忘方式发出事件：
 
 ```typescript
-// In a router mutation
+// 在路由器 mutation 中
 const result = await someService.doAction(ctx.db, ...);
 void ctx.engine.events.emit("domain:action", {
   userId: ctx.session.user.id,
@@ -103,21 +103,21 @@ void ctx.engine.events.emit("domain:action", {
 return result;
 ```
 
-Events emitted from routers:
+路由器发出的事件：
 - `boss:challenge`, `card:used`, `character:levelUp`, `character:expGain`
 - `breakthrough:complete`, `achievement:claimed`
 - `territory:unlock`, `territory:build`, `territory:expand`
-- `combat:start` (world combat)
+- `combat:start`（世界战斗）
 
 ## StateManager
 
-**File**: `src/engine/core/StateManager.ts`
+**文件**: `src/engine/core/StateManager.ts`
 
-In-memory key-value store with TTL support. Used for rule caching and temporary combat state.
+支持 TTL 的内存键值存储，用于规则缓存和临时战斗状态。
 
 ```typescript
-engine.state.get<T>(key)              // Get value
-engine.state.set<T>(key, value, ttl?) // Set with optional TTL (ms)
-engine.state.delete(key)              // Remove
-engine.state.clear()                  // Clear all
+engine.state.get<T>(key)              // 获取值
+engine.state.set<T>(key, value, ttl?) // 设置值（可选 TTL，单位毫秒）
+engine.state.delete(key)              // 删除
+engine.state.clear()                  // 清空所有
 ```
