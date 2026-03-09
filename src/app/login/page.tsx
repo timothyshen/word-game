@@ -81,7 +81,7 @@ function LoginForm() {
 
       {/* Error message */}
       {error && (
-        <div className="mb-4 p-3 bg-red-900/30 border border-red-800 text-red-400 text-sm">
+        <div role="alert" className="mb-4 p-3 bg-red-900/30 border border-red-800 text-red-400 text-sm">
           {error}
         </div>
       )}
@@ -109,14 +109,19 @@ function LoginForm() {
       {mode === "login" ? (
         /* Login form */
         <form onSubmit={handleLogin} className="space-y-3">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="邮箱地址"
-            required
-            className="w-full px-4 py-2 bg-[#0a0a08] border border-[#3d3529] text-[#e0dcd0] placeholder-[#666] focus:border-[#c9a227] focus:outline-none"
-          />
+          <div>
+            <label htmlFor="login-email" className="sr-only">邮箱地址</label>
+            <input
+              id="login-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="邮箱地址"
+              required
+              autoComplete="email"
+              className="w-full px-4 py-2 bg-[#0a0a08] border border-[#3d3529] text-[#e0dcd0] placeholder-[#888] focus:border-[#c9a227] focus:outline-none"
+            />
+          </div>
           <button
             type="submit"
             disabled={loading || !email.trim()}
@@ -128,34 +133,48 @@ function LoginForm() {
       ) : (
         /* Register form */
         <form onSubmit={handleRegister} className="space-y-3">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="邮箱地址"
-            required
-            className="w-full px-4 py-2 bg-[#0a0a08] border border-[#3d3529] text-[#e0dcd0] placeholder-[#666] focus:border-[#c9a227] focus:outline-none"
-          />
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="用户名 (2-20字符)"
-            required
-            minLength={2}
-            maxLength={20}
-            className="w-full px-4 py-2 bg-[#0a0a08] border border-[#3d3529] text-[#e0dcd0] placeholder-[#666] focus:border-[#c9a227] focus:outline-none"
-          />
-          <input
-            type="text"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            placeholder="角色名 (2-20字符)"
-            required
-            minLength={2}
-            maxLength={20}
-            className="w-full px-4 py-2 bg-[#0a0a08] border border-[#3d3529] text-[#e0dcd0] placeholder-[#666] focus:border-[#c9a227] focus:outline-none"
-          />
+          <div>
+            <label htmlFor="register-email" className="sr-only">邮箱地址</label>
+            <input
+              id="register-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="邮箱地址"
+              required
+              autoComplete="email"
+              className="w-full px-4 py-2 bg-[#0a0a08] border border-[#3d3529] text-[#e0dcd0] placeholder-[#888] focus:border-[#c9a227] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="register-name" className="sr-only">用户名</label>
+            <input
+              id="register-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="用户名 (2-20字符)"
+              required
+              minLength={2}
+              maxLength={20}
+              autoComplete="username"
+              className="w-full px-4 py-2 bg-[#0a0a08] border border-[#3d3529] text-[#e0dcd0] placeholder-[#888] focus:border-[#c9a227] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="register-player" className="sr-only">角色名</label>
+            <input
+              id="register-player"
+              type="text"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              placeholder="角色名 (2-20字符)"
+              required
+              minLength={2}
+              maxLength={20}
+              className="w-full px-4 py-2 bg-[#0a0a08] border border-[#3d3529] text-[#e0dcd0] placeholder-[#888] focus:border-[#c9a227] focus:outline-none"
+            />
+          </div>
           <button
             type="submit"
             disabled={loading || !email.trim() || !name.trim() || !playerName.trim()}

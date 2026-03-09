@@ -22,6 +22,7 @@ import { useUnlocks } from "~/hooks/use-unlocks";
 import { UnlockToast } from "~/components/game/UnlockToast";
 import { HintBar } from "~/components/game/HintBar";
 import { GuidancePanel } from "~/components/game/panels/GuidancePanel";
+import { GameErrorBoundary } from "~/components/game/ErrorBoundary";
 
 export default function GamePage() {
   // Hub弹窗状态
@@ -152,7 +153,9 @@ export default function GamePage() {
     <div className="h-screen bg-[#050810] text-[#e0dcd0] overflow-hidden">
       {/* 全屏Three.js地图 */}
       <div className="absolute inset-0">
-        <OuterCityFullMap onOpenInnerCity={() => setShowInnerCityPanel(true)} />
+        <GameErrorBoundary fallback={<div className="w-full h-full bg-[#050810] flex items-center justify-center text-[#5a6a7a]">地图加载失败，请刷新页面</div>}>
+          <OuterCityFullMap onOpenInnerCity={() => setShowInnerCityPanel(true)} />
+        </GameErrorBoundary>
       </div>
 
       {/* Cinematic HUD Overlay */}
@@ -188,7 +191,14 @@ export default function GamePage() {
                 {/* 经验条 */}
                 {levelUpInfo && (
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="w-24 h-1 bg-[#1a1a20] rounded-full overflow-hidden">
+                    <div
+                      className="w-24 h-1 bg-[#1a1a20] rounded-full overflow-hidden"
+                      role="progressbar"
+                      aria-label="经验值"
+                      aria-valuenow={levelUpInfo.currentExp}
+                      aria-valuemin={0}
+                      aria-valuemax={levelUpInfo.expNeeded}
+                    >
                       <div
                         className="h-full bg-[#9b59b6] transition-all"
                         style={{ width: `${levelUpInfo.progress}%` }}
@@ -239,7 +249,14 @@ export default function GamePage() {
             {/* Stamina bar */}
             <div className="flex items-center gap-2 mt-2">
               <span className="text-[#4a9eff] text-xs">⚡</span>
-              <div className="w-32 h-1.5 bg-[#1a1a20] rounded-full overflow-hidden">
+              <div
+                className="w-32 h-1.5 bg-[#1a1a20] rounded-full overflow-hidden"
+                role="progressbar"
+                aria-label="体力"
+                aria-valuenow={player.stamina}
+                aria-valuemin={0}
+                aria-valuemax={player.maxStamina}
+              >
                 <div
                   className="h-full bg-gradient-to-r from-[#4a9eff] to-[#2980b9] transition-all"
                   style={{ width: `${staminaPercent}%` }}
@@ -279,8 +296,9 @@ export default function GamePage() {
                   onClick={action.onClick}
                   className="w-11 h-11 bg-[#0a0a15]/80 border border-[#2a3a4a] hover:border-[#c9a227] rounded-full flex items-center justify-center transition-all hover:scale-110 group"
                   title={action.label}
+                  aria-label={action.label}
                 >
-                  <span className="text-lg">{action.icon}</span>
+                  <span className="text-lg" aria-hidden="true">{action.icon}</span>
                 </button>
               ))}
             </div>
@@ -306,8 +324,9 @@ export default function GamePage() {
                       : "hover:bg-[#c9a227]/10"
                   }`}
                   title={action.label}
+                  aria-label={action.label}
                 >
-                  <span className="text-base">{action.icon}</span>
+                  <span className="text-base" aria-hidden="true">{action.icon}</span>
                 </button>
               ))}
             </div>
@@ -366,78 +385,96 @@ export default function GamePage() {
 
       {/* 角色Hub */}
       {showCharacterHub && (
-        <CharacterHub
-          onClose={() => setShowCharacterHub(false)}
-          initialTab={characterHubTab}
-          initialCharacterId={selectedCharacterId ?? undefined}
-        />
+        <GameErrorBoundary>
+          <CharacterHub
+            onClose={() => setShowCharacterHub(false)}
+            initialTab={characterHubTab}
+            initialCharacterId={selectedCharacterId ?? undefined}
+          />
+        </GameErrorBoundary>
       )}
 
       {/* 背包Hub */}
       {showInventoryHub && (
-        <InventoryHub
-          onClose={() => setShowInventoryHub(false)}
-          initialTab={inventoryHubTab}
-        />
+        <GameErrorBoundary>
+          <InventoryHub
+            onClose={() => setShowInventoryHub(false)}
+            initialTab={inventoryHubTab}
+          />
+        </GameErrorBoundary>
       )}
 
       {/* 冒险Hub */}
       {showAdventureHub && (
-        <AdventureHub
-          onClose={() => setShowAdventureHub(false)}
-          initialTab={adventureHubTab}
-        />
+        <GameErrorBoundary>
+          <AdventureHub
+            onClose={() => setShowAdventureHub(false)}
+            initialTab={adventureHubTab}
+          />
+        </GameErrorBoundary>
       )}
 
       {/* 进阶Hub */}
       {showProgressHub && (
-        <ProgressHub
-          onClose={() => setShowProgressHub(false)}
-          initialTab={progressHubTab}
-        />
+        <GameErrorBoundary>
+          <ProgressHub
+            onClose={() => setShowProgressHub(false)}
+            initialTab={progressHubTab}
+          />
+        </GameErrorBoundary>
       )}
 
       {/* 记录Hub */}
       {showLogHub && (
-        <LogHub
-          onClose={() => setShowLogHub(false)}
-          initialTab={logHubTab}
-          onResumeCombat={(combatId) => {
-            setShowLogHub(false);
-            setCombatLevel(1);
-            setShowCombatPanel(true);
-          }}
-        />
+        <GameErrorBoundary>
+          <LogHub
+            onClose={() => setShowLogHub(false)}
+            initialTab={logHubTab}
+            onResumeCombat={(combatId) => {
+              setShowLogHub(false);
+              setCombatLevel(1);
+              setShowCombatPanel(true);
+            }}
+          />
+        </GameErrorBoundary>
       )}
 
       {/* 经济面板 */}
       {showEconomyPanel && (
-        <EconomyPanel onClose={() => setShowEconomyPanel(false)} />
+        <GameErrorBoundary>
+          <EconomyPanel onClose={() => setShowEconomyPanel(false)} />
+        </GameErrorBoundary>
       )}
 
       {/* 战斗面板 */}
       {showCombatPanel && (
-        <CombatPanel
-          monsterLevel={combatLevel}
-          onClose={() => setShowCombatPanel(false)}
-        />
+        <GameErrorBoundary>
+          <CombatPanel
+            monsterLevel={combatLevel}
+            onClose={() => setShowCombatPanel(false)}
+          />
+        </GameErrorBoundary>
       )}
 
       {/* 内城面板 */}
       {showInnerCityPanel && player && (
-        <InnerCityPanel
-          playerId={player.id}
-          onClose={() => setShowInnerCityPanel(false)}
-        />
+        <GameErrorBoundary>
+          <InnerCityPanel
+            playerId={player.id}
+            onClose={() => setShowInnerCityPanel(false)}
+          />
+        </GameErrorBoundary>
       )}
 
       {/* 引导面板 */}
       {showGuidancePanel && player && (
-        <GuidancePanel
-          hints={player.hints}
-          onClose={() => setShowGuidancePanel(false)}
-          onHintClick={handleHintAction}
-        />
+        <GameErrorBoundary>
+          <GuidancePanel
+            hints={player.hints}
+            onClose={() => setShowGuidancePanel(false)}
+            onHintClick={handleHintAction}
+          />
+        </GameErrorBoundary>
       )}
 
       {/* 解锁通知 */}

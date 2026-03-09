@@ -70,12 +70,13 @@ export class GameRuleService {
     // Try parsing as JSON first
     try {
       const parsed: unknown = JSON.parse(definition);
-      if (
-        typeof parsed === "object" &&
-        parsed !== null &&
-        "expression" in parsed
-      ) {
-        return (parsed as { expression: string }).expression;
+      if (typeof parsed === "object" && parsed !== null) {
+        if ("expression" in parsed) {
+          return (parsed as { expression: string }).expression;
+        }
+        if ("formula" in parsed) {
+          return (parsed as { formula: string }).formula;
+        }
       }
     } catch {
       // Not JSON — treat as raw expression string

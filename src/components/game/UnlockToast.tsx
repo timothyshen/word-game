@@ -51,13 +51,14 @@ export function UnlockToast({ unlockedSystems }: UnlockToastProps) {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2">
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2" aria-live="polite">
       {toasts.map(toast => {
         const label = SYSTEM_LABELS[toast.flag];
         if (!label) return null;
         return (
           <div
             key={toast.id}
+            role="status"
             className="px-6 py-3 bg-[#0a0a15]/95 border border-[#c9a227] rounded-lg shadow-lg shadow-[#c9a227]/20 animate-in fade-in slide-in-from-top-4 duration-500"
           >
             <div className="flex items-center gap-3">

@@ -52,8 +52,15 @@ export default function PlayerHUD({ onSettlement }: PlayerHUDProps) {
 
           {/* 体力条 */}
           <div className="flex items-center gap-2">
-            <span className="text-[#4a9eff]">⚡</span>
-            <div className="w-24 h-2 bg-[#1a1a20] border border-[#3d3529] relative">
+            <span className="text-[#4a9eff]" aria-hidden="true">⚡</span>
+            <div
+              className="w-24 h-2 bg-[#1a1a20] border border-[#3d3529] relative"
+              role="progressbar"
+              aria-label="体力"
+              aria-valuenow={player.stamina}
+              aria-valuemin={0}
+              aria-valuemax={player.maxStamina}
+            >
               <div
                 className="absolute inset-y-0 left-0 bg-[#4a9eff]"
                 style={{ width: `${staminaPercent}%` }}
@@ -114,8 +121,8 @@ function ResourceItem({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-1" title={label}>
-      <span>{icon}</span>
+    <div className="flex items-center gap-1" title={label} aria-label={`${label}: ${value.toLocaleString()}`}>
+      <span aria-hidden="true">{icon}</span>
       <span style={{ color }}>{value.toLocaleString()}</span>
     </div>
   );
