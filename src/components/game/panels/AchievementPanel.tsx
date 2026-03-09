@@ -126,7 +126,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
 
         {/* 可领取提示 */}
         {claimableCount > 0 && (
-          <div className="px-4 py-2 bg-[#1a3a1a] border-b border-[#4a9]/30 text-sm text-[#4a9] animate-pulse">
+          <div className="px-4 py-2 bg-[#1a3a1a] border-b border-[#4a9]/30 text-sm text-[#4a9] animate-attention">
             🎉 有 {claimableCount} 个成就可领取奖励！
           </div>
         )}
@@ -223,7 +223,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
                           claimMutation.mutate({ achievementId: achievement.id });
                         }}
                         disabled={claimingId === achievement.id}
-                        className="px-4 py-2 bg-[#4a9] text-[#08080a] font-bold hover:bg-[#5ba] disabled:opacity-50 animate-pulse"
+                        className="px-4 py-2 bg-[#4a9] text-[#08080a] font-bold hover:bg-[#5ba] disabled:opacity-50 animate-attention"
                       >
                         {claimingId === achievement.id ? "领取中..." : "领取"}
                       </button>

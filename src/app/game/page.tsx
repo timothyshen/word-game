@@ -177,7 +177,7 @@ export default function GamePage() {
                     <button
                       onClick={() => levelUpMutation.mutate()}
                       disabled={levelUpMutation.isPending}
-                      className="px-2 py-0.5 bg-[#c9a227] text-[#08080a] text-[10px] font-bold rounded animate-pulse hover:bg-[#ddb52f] disabled:opacity-50"
+                      className="px-2 py-0.5 bg-[#c9a227] text-[#08080a] text-[10px] font-bold rounded animate-attention hover:bg-[#ddb52f] disabled:opacity-50"
                     >
                       升级!
                     </button>

@@ -222,7 +222,7 @@ function AchievementTab() {
 
       {/* 可领取提示 */}
       {claimableCount > 0 && (
-        <div className="flex-shrink-0 px-4 py-2 bg-[#1a3a1a] border-b border-[#4a9]/30 text-sm text-[#4a9] animate-pulse">
+        <div className="flex-shrink-0 px-4 py-2 bg-[#1a3a1a] border-b border-[#4a9]/30 text-sm text-[#4a9] animate-attention">
           🎉 有 {claimableCount} 个成就可领取奖励！
         </div>
       )}
@@ -310,7 +310,7 @@ function AchievementTab() {
                     <button
                       onClick={() => claimMutation.mutate({ achievementId: achievement.id })}
                       disabled={claimMutation.isPending}
-                      className="px-4 py-2 bg-[#4a9] text-[#08080a] font-bold hover:bg-[#5ba] disabled:opacity-50 animate-pulse"
+                      className="px-4 py-2 bg-[#4a9] text-[#08080a] font-bold hover:bg-[#5ba] disabled:opacity-50 animate-attention"
                     >
                       领取
                     </button>

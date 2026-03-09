@@ -174,7 +174,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
                   disabled={!playerStatus.canBreakthrough || playerBreakthroughMutation.isPending}
                   className={`w-full py-3 font-bold ${
                     playerStatus.canBreakthrough
-                      ? "bg-[#9b59b6] text-[#fff] hover:bg-[#8e44ad] animate-pulse"
+                      ? "bg-[#9b59b6] text-[#fff] hover:bg-[#8e44ad] animate-attention"
                       : "bg-[#2a2a30] text-[#444] cursor-not-allowed"
                   } disabled:opacity-50`}
                 >

@@ -199,6 +199,15 @@
   }
 }
 
+/* Finite attention animation — pulses 3 times then stops */
+@keyframes attention {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.animate-attention {
+  animation: attention 1.5s ease-in-out 3;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

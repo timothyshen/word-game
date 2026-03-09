@@ -159,7 +159,7 @@ export default function CharacterDetailPanel({
                   <button
                     onClick={() => levelUpMutation.mutate({ characterId })}
                     disabled={levelUpMutation.isPending}
-                    className="w-full py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50 animate-pulse"
+                    className="w-full py-2 bg-[#c9a227] text-[#08080a] font-bold hover:bg-[#ddb52f] disabled:opacity-50 animate-attention"
                   >
                     {levelUpMutation.isPending ? "升级中..." : `升级到 Lv.${character.level + 1}`}
                   </button>

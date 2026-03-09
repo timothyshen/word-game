@@ -99,7 +99,7 @@ export default function PlayerHUD({ onSettlement }: PlayerHUDProps) {
           {settlement?.needsSettlement && (
             <button
               onClick={onSettlement}
-              className="px-3 py-1 bg-[#c9a227] text-[#0a0a08] text-sm font-medium hover:bg-[#ddb52f] animate-pulse"
+              className="px-3 py-1 bg-[#c9a227] text-[#0a0a08] text-sm font-medium hover:bg-[#ddb52f] animate-attention"
             >
               结算 ({settlement.pendingDays}日)
             </button>
