@@ -1,5 +1,6 @@
 // 经济发展面板组件 - 使用真实 API 数据
 
+import { memo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -216,7 +217,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ResourceBlock({ icon, label, value, color }: {
+const ResourceBlock = memo(function ResourceBlock({ icon, label, value, color }: {
   icon: string;
   label: string;
   value: number;
@@ -229,27 +230,27 @@ function ResourceBlock({ icon, label, value, color }: {
       <div className="font-bold" style={{ color }}>{value.toLocaleString()}</div>
     </div>
   );
-}
+});
 
-function IncomeItem({ icon, value }: { icon: string; value: number }) {
+const IncomeItem = memo(function IncomeItem({ icon, value }: { icon: string; value: number }) {
   return (
     <div className="text-center">
       <span className="text-sm">{icon}</span>
       <div className="text-xs text-[#4a9]">{value > 0 ? `+${value}` : "-"}</div>
     </div>
   );
-}
+});
 
-function ExpenseItem({ icon, value }: { icon: string; value: number }) {
+const ExpenseItem = memo(function ExpenseItem({ icon, value }: { icon: string; value: number }) {
   return (
     <div className="text-center">
       <span className="text-sm">{icon}</span>
       <div className="text-xs text-[#e74c3c]">{value > 0 ? `-${value}` : "-"}</div>
     </div>
   );
-}
+});
 
-function NetItem({ icon, value }: { icon: string; value: number }) {
+const NetItem = memo(function NetItem({ icon, value }: { icon: string; value: number }) {
   const color = value > 0 ? "#4a9" : value < 0 ? "#e74c3c" : "#888";
   const prefix = value > 0 ? "+" : "";
   return (
@@ -260,4 +261,4 @@ function NetItem({ icon, value }: { icon: string; value: number }) {
       </div>
     </div>
   );
-}
+});

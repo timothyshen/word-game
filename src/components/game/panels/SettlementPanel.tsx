@@ -1,6 +1,6 @@
 // 每日结算面板组件 - 使用真实 API 数据
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -285,8 +285,9 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                   <div className="text-center text-[#666] py-4">暂无历史数据</div>
                 ) : (
                   <div className="flex items-end gap-2 h-24">
-                    {last7Days.map((day, i) => {
+                    {(() => {
                       const maxScore = Math.max(...last7Days.map(d => d.totalScore), 100);
+                      return last7Days.map((day, i) => {
                       const heightPercent = Math.max((day.totalScore / maxScore) * 100, 5);
                       const isLast = i === last7Days.length - 1;
                       const dayGrade = getScoreGrade(day.totalScore);
@@ -306,7 +307,8 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                           </div>
                         </div>
                       );
-                    })}
+                    });
+                    })()}
                   </div>
                 )}
               </div>
@@ -355,7 +357,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ScoreBar({ label, icon, score, total, color }: {
+const ScoreBar = memo(function ScoreBar({ label, icon, score, total, color }: {
   label: string;
   icon: string;
   score: number;
@@ -381,4 +383,4 @@ function ScoreBar({ label, icon, score, total, color }: {
       </div>
     </div>
   );
-}
+});
