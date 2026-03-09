@@ -782,6 +782,26 @@ model OuterCityPOI {
     @@unique([positionX, positionY])
 }
 
+// ===== 锻造系统 =====
+
+model CraftingRecipe {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  description    String   @default("")
+  category       String   @default("equipment")
+  requiredLevel  Int      @default(1)
+  materials      String   // JSON: [{ materialTemplateId, count }]
+  goldCost       Int      @default(0)
+  outputType     String   // "equipment"
+  outputId       String   // Equipment template ID
+  baseRarity     String   // 产出基础稀有度
+  craftTime      Int      @default(0)
+  unlockBuilding String?
+  unlockLevel    Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
 // ===== 实体系统 (ECS) =====
 
 model Game {

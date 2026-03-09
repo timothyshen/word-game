@@ -442,4 +442,42 @@ export const SEED_RULES: SeedRule[] = [
   { name: "innercity_upgrade_base_cost", category: "territory", ruleType: "config", definition: JSON.stringify({ gold: 100, wood: 50, stone: 30 }), description: "Base upgrade costs" },
   { name: "innercity_demolish_refund", category: "territory", ruleType: "config", definition: JSON.stringify({ goldBase: 50, woodBase: 25, stoneBase: 15, refundRate: 0.5 }), description: "Demolish refund formula" },
   { name: "innercity_build_score", category: "territory", ruleType: "config", definition: JSON.stringify({ value: 50 }), description: "Action score for building placement" },
+
+  // ===== crafting =====
+  {
+    name: "crafting_material_drop",
+    category: "crafting",
+    ruleType: "config",
+    definition: JSON.stringify({
+      combat: { baseChance: 0.3, rarityByLevel: [
+        { maxLevel: 5, pool: { "普通": 1.0 } },
+        { maxLevel: 15, pool: { "普通": 0.7, "精良": 0.3 } },
+        { maxLevel: 30, pool: { "普通": 0.3, "精良": 0.4, "稀有": 0.3 } },
+        { maxLevel: 999, pool: { "精良": 0.3, "稀有": 0.4, "史诗": 0.2, "传说": 0.1 } },
+      ]},
+      exploration: { baseChance: 0.4, rarityByLevel: [
+        { maxLevel: 5, pool: { "普通": 1.0 } },
+        { maxLevel: 15, pool: { "普通": 0.6, "精良": 0.4 } },
+        { maxLevel: 30, pool: { "普通": 0.2, "精良": 0.4, "稀有": 0.4 } },
+        { maxLevel: 999, pool: { "精良": 0.2, "稀有": 0.4, "史诗": 0.3, "传说": 0.1 } },
+      ]},
+    }),
+    description: "Material drop chances and rarity pools by source and level",
+  },
+  {
+    name: "crafting_quality_upgrade",
+    category: "crafting",
+    ruleType: "config",
+    definition: JSON.stringify({
+      baseUpgradeChance: 0.15,
+      craftingQualityMultiplier: 0.02,
+      tiers: {
+        normal: { weight: 0.85 },
+        fine: { weight: 0.85, rarityBoost: 1 },
+        master: { weight: 0.15, rarityBoost: 2 },
+      },
+      rarityOrder: ["普通", "精良", "稀有", "史诗", "传说"],
+    }),
+    description: "Crafting quality upgrade chances and tier weights",
+  },
 ];

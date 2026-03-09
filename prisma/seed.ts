@@ -1120,6 +1120,13 @@ async function seedEntitySystem(db: PrismaClient): Promise<void> {
       components: [],
       defaults: {},
     },
+    {
+      name: "material",
+      components: ["stackable"],
+      defaults: {
+        stackable: { count: 1, maxStack: 99 },
+      },
+    },
   ];
 
   for (const schema of schemas) {
@@ -1145,6 +1152,234 @@ async function seedEntitySystem(db: PrismaClient): Promise<void> {
   });
 
   console.log(`  Seeded game "${game.name}" with ${schemas.length} schemas`);
+
+  await seedMaterialTemplates(db);
+  await seedCraftingRecipes(db);
+}
+
+async function seedMaterialTemplates(db: PrismaClient): Promise<void> {
+  const game = await db.game.findFirst({ where: { name: "诸天领域" } });
+  if (!game) return;
+
+  const materialSchema = await db.entitySchema.findUnique({
+    where: { gameId_name: { gameId: game.id, name: "material" } },
+  });
+  if (!materialSchema) return;
+
+  const materials = [
+    { name: "铁矿石", rarity: "普通", icon: "⛏️", description: "常见的铁矿石，可用于锻造基础装备" },
+    { name: "灵木", rarity: "普通", icon: "🪵", description: "蕴含微弱灵气的木材" },
+    { name: "兽皮", rarity: "精良", icon: "🦊", description: "品质优良的兽皮，适合制作防具" },
+    { name: "秘银矿", rarity: "稀有", icon: "💠", description: "稀有的秘银矿石，锻造中级装备的必需品" },
+    { name: "陨铁", rarity: "史诗", icon: "☄️", description: "天外陨石中提取的珍贵金属" },
+    { name: "龙鳞", rarity: "传说", icon: "🐉", description: "远古巨龙遗落的鳞片，蕴含强大力量" },
+  ];
+
+  for (const mat of materials) {
+    const existing = await db.entityTemplate.findFirst({
+      where: { schemaId: materialSchema.id, name: mat.name },
+    });
+    if (!existing) {
+      await db.entityTemplate.create({
+        data: {
+          schemaId: materialSchema.id,
+          name: mat.name,
+          data: JSON.stringify({ stackable: { count: 1, maxStack: 99 } }),
+          icon: mat.icon,
+          rarity: mat.rarity,
+          description: mat.description,
+        },
+      });
+    }
+  }
+  console.log(`  Seeded ${materials.length} material templates`);
+}
+
+async function seedCraftingRecipes(db: PrismaClient): Promise<void> {
+  // Look up material templates by name to get their IDs
+  const game = await db.game.findFirst({ where: { name: "诸天领域" } });
+  if (!game) return;
+
+  const materialSchema = await db.entitySchema.findUnique({
+    where: { gameId_name: { gameId: game.id, name: "material" } },
+  });
+  if (!materialSchema) return;
+
+  const materialTemplates = await db.entityTemplate.findMany({
+    where: { schemaId: materialSchema.id },
+  });
+  const matByName = new Map(materialTemplates.map((t) => [t.name, t.id]));
+
+  // Look up equipment templates by name to get their IDs
+  const equipmentByName = new Map<string, string>();
+  const equipments = await db.equipment.findMany();
+  for (const eq of equipments) {
+    equipmentByName.set(eq.name, eq.id);
+  }
+
+  const getMat = (name: string): string => matByName.get(name) ?? name;
+  const getEquip = (name: string): string => equipmentByName.get(name) ?? "resolve_at_runtime";
+
+  const recipes = [
+    {
+      name: "锻铁剑",
+      description: "用铁矿石锻造一把铁剑",
+      category: "equipment",
+      requiredLevel: 1,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("铁矿石"), count: 3 },
+      ]),
+      goldCost: 100,
+      outputType: "equipment",
+      outputId: getEquip("铁剑"),
+      baseRarity: "普通",
+    },
+    {
+      name: "锻铁盾",
+      description: "用铁矿石和灵木锻造一面铁盾",
+      category: "equipment",
+      requiredLevel: 1,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("铁矿石"), count: 2 },
+        { materialTemplateId: getMat("灵木"), count: 1 },
+      ]),
+      goldCost: 80,
+      outputType: "equipment",
+      outputId: getEquip("木盾"),
+      baseRarity: "普通",
+    },
+    {
+      name: "锻铁盔",
+      description: "用铁矿石锻造一顶铁盔",
+      category: "equipment",
+      requiredLevel: 3,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("铁矿石"), count: 2 },
+      ]),
+      goldCost: 60,
+      outputType: "equipment",
+      outputId: getEquip("皮帽"),
+      baseRarity: "普通",
+    },
+    {
+      name: "锻锁子甲",
+      description: "用铁矿石和兽皮锻造一件锁子甲",
+      category: "equipment",
+      requiredLevel: 5,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("铁矿石"), count: 4 },
+        { materialTemplateId: getMat("兽皮"), count: 1 },
+      ]),
+      goldCost: 200,
+      outputType: "equipment",
+      outputId: getEquip("锁子甲"),
+      baseRarity: "精良",
+    },
+    {
+      name: "编皮腰带",
+      description: "用兽皮编织一条腰带",
+      category: "equipment",
+      requiredLevel: 3,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("兽皮"), count: 2 },
+      ]),
+      goldCost: 50,
+      outputType: "equipment",
+      outputId: getEquip("布带"),
+      baseRarity: "普通",
+    },
+    {
+      name: "缝皮手套",
+      description: "用兽皮缝制一双手套",
+      category: "equipment",
+      requiredLevel: 3,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("兽皮"), count: 2 },
+      ]),
+      goldCost: 50,
+      outputType: "equipment",
+      outputId: getEquip("布手套"),
+      baseRarity: "普通",
+    },
+    {
+      name: "锻铁腿甲",
+      description: "用铁矿石和兽皮锻造腿甲",
+      category: "equipment",
+      requiredLevel: 5,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("铁矿石"), count: 3 },
+        { materialTemplateId: getMat("兽皮"), count: 1 },
+      ]),
+      goldCost: 150,
+      outputType: "equipment",
+      outputId: getEquip("布裤"),
+      baseRarity: "精良",
+    },
+    {
+      name: "缝皮靴",
+      description: "用兽皮和灵木缝制一双皮靴",
+      category: "equipment",
+      requiredLevel: 3,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("兽皮"), count: 2 },
+        { materialTemplateId: getMat("灵木"), count: 1 },
+      ]),
+      goldCost: 80,
+      outputType: "equipment",
+      outputId: getEquip("草鞋"),
+      baseRarity: "普通",
+    },
+    {
+      name: "铸铜坠",
+      description: "用铁矿石和秘银矿铸造一个坠子",
+      category: "equipment",
+      requiredLevel: 10,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("铁矿石"), count: 1 },
+        { materialTemplateId: getMat("秘银矿"), count: 1 },
+      ]),
+      goldCost: 120,
+      outputType: "equipment",
+      outputId: getEquip("铜坠"),
+      baseRarity: "稀有",
+    },
+    {
+      name: "铸铜戒",
+      description: "用铁矿石铸造一枚铜戒指",
+      category: "equipment",
+      requiredLevel: 1,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("铁矿石"), count: 1 },
+      ]),
+      goldCost: 60,
+      outputType: "equipment",
+      outputId: getEquip("铜戒"),
+      baseRarity: "普通",
+    },
+    {
+      name: "秘银长剑",
+      description: "用秘银矿和陨铁锻造一把强力长剑",
+      category: "equipment",
+      requiredLevel: 15,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("秘银矿"), count: 3 },
+        { materialTemplateId: getMat("陨铁"), count: 1 },
+      ]),
+      goldCost: 500,
+      outputType: "equipment",
+      outputId: getEquip("寒冰之刃"),
+      baseRarity: "稀有",
+    },
+  ];
+
+  for (const recipe of recipes) {
+    await db.craftingRecipe.upsert({
+      where: { name: recipe.name },
+      update: recipe,
+      create: recipe,
+    });
+  }
+  console.log(`  Seeded ${recipes.length} crafting recipes`);
 }
 
 main()
