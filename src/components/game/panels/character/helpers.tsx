@@ -2,10 +2,10 @@
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[#c9a227] text-sm font-bold flex items-center gap-2">
-      <span className="text-[#3a3a40]">▸</span>
+    <h3 className="text-[#c9a227] text-sm font-bold flex items-center gap-2">
+      <span className="text-[#3a3a40]" aria-hidden="true">▸</span>
       {children}
-    </div>
+    </h3>
   );
 }
 

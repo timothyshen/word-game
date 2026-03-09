@@ -10,6 +10,7 @@ import {
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
 import { RARITY_COLORS } from "~/constants";
+import { SectionTitle } from "./character/helpers";
 
 interface SettlementPanelProps {
   onClose: () => void;
@@ -345,15 +346,6 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
         </ScrollArea>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[#c9a227] text-sm font-bold flex items-center gap-2">
-      <span className="text-[#3a3a40]">▸</span>
-      {children}
-    </div>
   );
 }
 
