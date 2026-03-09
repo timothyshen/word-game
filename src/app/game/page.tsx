@@ -76,8 +76,7 @@ export default function GamePage() {
     return (
       <div className="min-h-screen bg-[#050810] flex items-center justify-center">
         <div className="text-center max-w-md p-8 bg-[#0a0a15]/80 border border-[#2a3a4a] rounded-lg">
-          <div className="text-6xl mb-4">🏰</div>
-          <h1 className="text-2xl text-[#c9a227] mb-2">诸天领域</h1>
+          <h1 className="font-display text-5xl text-[#c9a227] mb-2">诸天领域</h1>
           <p className="text-[#5a6a7a] mb-6">请先登录以继续游戏</p>
           <Link
             href="/login?callbackUrl=/game"
@@ -293,7 +292,7 @@ export default function GamePage() {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#050810]/80 backdrop-blur-sm">
           <div className="w-80 bg-[#0a0a15]/95 border border-[#2a3a4a] rounded-lg overflow-hidden">
             <div className="px-6 py-5 border-b border-[#2a3a4a] text-center">
-              <h2 className="text-xl font-bold text-[#c9a227]">诸天领域</h2>
+              <h2 className="font-display text-3xl text-[#c9a227]">诸天领域</h2>
               <p className="text-xs text-[#5a6a7a] mt-1">按 ESC 返回游戏</p>
             </div>
             <div className="p-4 flex flex-col gap-2">

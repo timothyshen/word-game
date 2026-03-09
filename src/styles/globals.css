@@ -219,6 +219,16 @@
   }
 }
 
+/* Game display font — calligraphic brush strokes */
+.font-display {
+  font-family: var(--font-display), serif;
+}
+
+/* Game serif font — for atmospheric body text */
+.font-game-serif {
+  font-family: var(--font-serif), serif;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

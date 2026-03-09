@@ -1,11 +1,25 @@
 import "~/styles/globals.css";
 
-import { Geist } from "next/font/google";
+import { Geist, Ma_Shan_Zheng, Noto_Serif_SC } from "next/font/google";
 import { type Metadata } from "next";
 import { TRPCReactProvider } from "~/trpc/react";
 
 const geist = Geist({
   subsets: ["latin"],
+});
+
+const maShanZheng = Ma_Shan_Zheng({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const notoSerifSC = Noto_Serif_SC({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -19,7 +33,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN" className="dark">
-      <body className={geist.className}>
+      <body className={`${geist.className} ${maShanZheng.variable} ${notoSerifSC.variable}`}>
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>
     </html>
