@@ -1,5 +1,6 @@
 // 玩家状态HUD - 显示体力、资源、当日分数
 import { api } from "~/trpc/react";
+import { RESOURCE_COLORS } from "~/constants/game-colors";
 
 interface PlayerHUDProps {
   onSettlement?: () => void;
@@ -77,11 +78,11 @@ export default function PlayerHUD({ onSettlement }: PlayerHUDProps) {
 
         {/* 中间：资源 */}
         <div className="flex items-center gap-4 text-sm">
-          <ResourceItem icon="🪙" value={player.gold} label="金币" color="#c9a227" />
-          <ResourceItem icon="🪵" value={player.wood} label="木材" color="#8b5a2b" />
-          <ResourceItem icon="🪨" value={player.stone} label="石材" color="#708090" />
-          <ResourceItem icon="🌾" value={player.food} label="粮食" color="#daa520" />
-          <ResourceItem icon="💎" value={player.crystals} label="水晶" color="#9966cc" />
+          <ResourceItem icon="🪙" value={player.gold} label="金币" color={RESOURCE_COLORS.gold} />
+          <ResourceItem icon="🪵" value={player.wood} label="木材" color={RESOURCE_COLORS.wood} />
+          <ResourceItem icon="🪨" value={player.stone} label="石材" color={RESOURCE_COLORS.stone} />
+          <ResourceItem icon="🌾" value={player.food} label="粮食" color={RESOURCE_COLORS.food} />
+          <ResourceItem icon="💎" value={player.crystals} label="水晶" color={RESOURCE_COLORS.crystals} />
         </div>
 
         {/* 右侧：当日分数 & 结算 */}

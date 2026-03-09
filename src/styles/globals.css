@@ -138,6 +138,50 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ── Game Theme Tokens ── */
+:root {
+  /* Backgrounds (layered depth, darkest → lightest) */
+  --game-bg-deep: #050810;
+  --game-bg: #0a0a08;
+  --game-bg-card: #101014;
+  --game-bg-elevated: #12110d;
+  --game-bg-surface: #1a1a20;
+  --game-bg-overlay: #0a0a15;
+
+  /* Text */
+  --game-text: #e0dcd0;
+  --game-text-muted: #888;
+  --game-text-dim: #666;
+  --game-text-subtle: #5a6a7a;
+
+  /* Borders */
+  --game-border: #2a2a30;
+  --game-border-warm: #3d3529;
+  --game-border-accent: #2a3a4a;
+
+  /* Accent */
+  --game-gold: #c9a227;
+  --game-gold-dark: #8b6914;
+  --game-gold-hover: #ddb52f;
+
+  /* Status */
+  --game-red: #e74c3c;
+  --game-red-dark: #c0392b;
+  --game-green: #44aa99;
+  --game-blue: #4a9eff;
+  --game-blue-dark: #2980b9;
+  --game-purple: #9b59b6;
+  --game-orange: #e67e22;
+
+  /* Resources */
+  --game-res-gold: #c9a227;
+  --game-res-wood: #8b6914;
+  --game-res-stone: #6a7a8a;
+  --game-res-food: #a67c52;
+  --game-res-crystal: #9b59b6;
+  --game-res-stamina: #4a9eff;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

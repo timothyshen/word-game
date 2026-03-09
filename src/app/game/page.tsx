@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "~/trpc/react";
 
+import { RESOURCE_COLORS, STATUS_COLORS } from "~/constants/game-colors";
 // 导入游戏组件
 import OuterCityFullMap from "~/components/game/outer-city";
 import {
@@ -185,8 +186,8 @@ export default function GamePage() {
                 <div className="flex items-center gap-3 text-sm">
                   <span className="text-[#5a6a7a]">Lv.{levelUpInfo?.currentLevel ?? 1}</span>
                   <span className="text-[#3a4a5a]">•</span>
-                  <span className="text-[#e74c3c]">♥ {player.characters[0]?.hp ?? 100}</span>
-                  <span className="text-[#4a9eff]">⚡ {player.stamina}</span>
+                  <span style={{ color: STATUS_COLORS.hp }}>♥ {player.characters[0]?.hp ?? 100}</span>
+                  <span style={{ color: STATUS_COLORS.stamina }}>⚡ {player.stamina}</span>
                 </div>
                 {/* 经验条 */}
                 {levelUpInfo && (
@@ -234,11 +235,11 @@ export default function GamePage() {
           <div className={`transition-all duration-500 delay-200 ${showHUD ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
             <div className="flex gap-4 text-sm">
               {[
-                { icon: "🪙", value: player.gold, color: "#c9a227" },
-                { icon: "🪵", value: player.wood, color: "#8b6914" },
-                { icon: "🪨", value: player.stone, color: "#6a7a8a" },
-                { icon: "🍞", value: player.food, color: "#a67c52" },
-                { icon: "💎", value: player.crystals, color: "#9b59b6" },
+                { icon: "🪙", value: player.gold, color: RESOURCE_COLORS.gold },
+                { icon: "🪵", value: player.wood, color: RESOURCE_COLORS.wood },
+                { icon: "🪨", value: player.stone, color: RESOURCE_COLORS.stone },
+                { icon: "🍞", value: player.food, color: RESOURCE_COLORS.food },
+                { icon: "💎", value: player.crystals, color: RESOURCE_COLORS.crystals },
               ].map((res, i) => (
                 <div key={i} className="flex items-center gap-1.5">
                   <span>{res.icon}</span>

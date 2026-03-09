@@ -1,12 +1,33 @@
 /**
  * 游戏颜色常量
- * 统一管理稀有度、等级、地形等颜色定义
+ * 统一管理稀有度、等级、地形、资源等颜色定义
+ *
+ * CSS custom properties 定义在 globals.css 的 :root 中 (--game-*)
+ * 本文件提供 JS 常量用于 style props 和动态颜色
  */
 
-/**
- * 稀有度颜色映射
- * 用于卡牌、装备、角色等
- */
+/** 资源颜色 - 用于 HUD 和经济面板 */
+export const RESOURCE_COLORS = {
+  gold: "#c9a227",
+  wood: "#8b6914",
+  stone: "#6a7a8a",
+  food: "#a67c52",
+  crystals: "#9b59b6",
+  stamina: "#4a9eff",
+} as const;
+
+/** 状态颜色 - 用于战斗、进度条等 */
+export const STATUS_COLORS = {
+  hp: "#e74c3c",
+  mp: "#3498db",
+  exp: "#9b59b6",
+  stamina: "#4a9eff",
+  success: "#44aa99",
+  danger: "#e74c3c",
+  warning: "#e67e22",
+} as const;
+
+/** 稀有度颜色 - 用于卡牌、装备、角色等 */
 export const RARITY_COLORS: Record<string, string> = {
   普通: "#888",
   精良: "#4a9",
