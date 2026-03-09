@@ -140,7 +140,7 @@ describe("Module integration", () => {
     await engine.stop();
   });
 
-  it("all 8 modules are registered", async () => {
+  it("all 9 modules are registered", async () => {
     const engine = createEngine();
     registerAllModules(engine);
 
@@ -151,6 +151,7 @@ describe("Module integration", () => {
       "combat",
       "content",
       "core",
+      "crafting",
       "economy",
       "exploration",
       "progression",

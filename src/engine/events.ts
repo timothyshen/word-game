@@ -93,6 +93,11 @@ export interface GameEventMap {
   "territory:expand": { userId: string };
   "territory:expanded": { userId: string; trigger?: string; buildingId?: string };
 
+  // Crafting
+  "crafting:completed": { userId: string; recipeId: string; equipmentId: string; rarity: string; qualityTier: "normal" | "fine" | "master" };
+  "crafting:qualityUpgrade": { userId: string; recipeId: string; fromRarity: string; toRarity: string };
+  "crafting:materialDrop": { userId: string; materialId: string; count: number; source: "combat" | "exploration" };
+
   // System
   "system:dailyReset": { userId: string };
 }

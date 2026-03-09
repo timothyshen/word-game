@@ -19,7 +19,7 @@ import {
   type RecipeMaterial,
 } from "../repositories/crafting.repo";
 import { findPlayerBuildings } from "../repositories/building.repo";
-import { ruleService } from "~/server/api/engine";
+import { engine, ruleService } from "~/server/api/engine";
 
 // ── Types ──
 
@@ -381,7 +381,25 @@ export async function craft(
     },
   )) as { id: string };
 
-  // 10. Return result
+  // 10. Emit crafting events
+  await engine.events.emit("crafting:completed", {
+    userId,
+    recipeId,
+    equipmentId: createdEntity.id,
+    rarity: finalRarity,
+    qualityTier: qualityResult.tier,
+  }, "crafting");
+
+  if (qualityResult.rarityBoost > 0) {
+    await engine.events.emit("crafting:qualityUpgrade", {
+      userId,
+      recipeId,
+      fromRarity: recipe.baseRarity,
+      toRarity: finalRarity,
+    }, "crafting");
+  }
+
+  // 11. Return result
   return {
     success: true,
     equipment: {

@@ -7,6 +7,7 @@ import { ProgressionModule } from "./progression.module";
 import { ContentModule } from "./content.module";
 import { TerritoryModule } from "./territory.module";
 import { SettlementModule } from "./settlement.module";
+import { CraftingModule } from "./crafting.module";
 
 export function registerAllModules(engine: GameEngine): void {
   engine
@@ -17,7 +18,8 @@ export function registerAllModules(engine: GameEngine): void {
     .use(new ProgressionModule())
     .use(new ContentModule())
     .use(new TerritoryModule())
-    .use(new SettlementModule());
+    .use(new SettlementModule())
+    .use(new CraftingModule());
 }
 
 export {
@@ -29,4 +31,5 @@ export {
   ContentModule,
   TerritoryModule,
   SettlementModule,
+  CraftingModule,
 };

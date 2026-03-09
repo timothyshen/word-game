@@ -12,6 +12,8 @@ import { upsertUnlockFlag } from "../repositories/card.repo";
 import { grantRandomCard, rollRarity } from "../utils/card-utils";
 import { grantRandomEquipment, getEquipmentDropTable } from "../utils/equipment-utils";
 import { calculateCurrentStamina } from "../utils/player-utils";
+import { addMaterial } from "../repositories/crafting.repo";
+import { pickRarityPool, rollFromPool, type MaterialDropConfig } from "../utils/crafting-utils";
 import { parseCharacterState, type CharacterEntity } from "../utils/character-utils";
 import {
   calculateDamage,
@@ -586,6 +588,38 @@ export async function executeAction(
       if (droppedEquipment) {
         newLogs.push(`⚔️ 获得装备：${droppedEquipment.name}（${droppedEquipment.rarity}）`);
       }
+    }
+
+    // Material drop
+    try {
+      const materialDropConfig = await ruleService.getConfig<MaterialDropConfig>("crafting_material_drop");
+      const combatDropConfig = materialDropConfig.combat;
+      if (Math.random() < combatDropConfig.baseChance) {
+        const rarityPool = pickRarityPool(combatDropConfig.rarityByLevel, monster.level);
+        const rarity = rollFromPool(rarityPool);
+
+        const game = await db.game.findFirst({ where: { name: "诸天领域" } });
+        if (game) {
+          const materialSchema = await entities.getSchema(game.id, "material");
+          if (materialSchema) {
+            const schemaId = (materialSchema as { id: string }).id;
+            const templates = await entities.getTemplatesBySchema(schemaId);
+            const matchingTemplates = (templates as Array<{ id: string; name: string; rarity: string | null }>)
+              .filter(t => t.rarity === rarity);
+            if (matchingTemplates.length > 0) {
+              const template = matchingTemplates[Math.floor(Math.random() * matchingTemplates.length)]!;
+              const dropCount = 1;
+              await addMaterial(db, entities, player.id, template.id, dropCount);
+              newLogs.push(`🔧 获得材料：${template.name}（${rarity}）`);
+              await engine.events.emit("crafting:materialDrop", {
+                userId, materialId: template.id, count: dropCount, source: "combat" as const,
+              }, "combat");
+            }
+          }
+        }
+      }
+    } catch {
+      // Material drop config not yet set up — skip silently
     }
 
     await combatRepo.updateCombatSession(db, combat.id, {
