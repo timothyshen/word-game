@@ -41,7 +41,7 @@ export default function HeroSidebar({
   return (
     <>
       <div
-        className={`absolute left-0 top-0 bottom-0 w-56 bg-[#0a0a0c]/90 backdrop-blur border-r border-[#2a3a4a] transition-transform duration-300 z-20 ${
+        className={`absolute left-0 top-0 bottom-0 w-48 sm:w-56 bg-[#0a0a0c]/90 backdrop-blur border-r border-[#2a3a4a] transition-transform duration-300 z-20 ${
           showSidebar ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -133,7 +133,7 @@ export default function HeroSidebar({
       <button
         onClick={onToggleSidebar}
         className={`absolute top-1/2 -translate-y-1/2 w-6 h-16 bg-[#0a0a0c]/80 backdrop-blur border border-[#2a3a4a] flex items-center justify-center text-[#888] hover:text-[#c9a227] transition-all z-30 ${
-          showSidebar ? "left-56" : "left-0"
+          showSidebar ? "left-48 sm:left-56" : "left-0"
         }`}
       >
         {showSidebar ? "◀" : "▶"}

@@ -14,7 +14,7 @@ export function HintBar({ hints, onHintClick, onShowAll }: HintBarProps) {
   const topHints = hints.slice(0, 2);
 
   return (
-    <div className="flex flex-col gap-1.5 w-64">
+    <div className="flex flex-col gap-1.5 w-48 sm:w-64">
       {topHints.map(hint => (
         <button
           key={hint.id}

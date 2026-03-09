@@ -70,7 +70,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
             {/* 当前资源 */}
             <div className="p-4 border-b border-[#2a2a30]">
               <SectionTitle>当前资源</SectionTitle>
-              <div className="grid grid-cols-5 gap-2 mt-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
                 <ResourceBlock icon="🪙" label="金币" value={player?.gold ?? 0} color="#c9a227" />
                 <ResourceBlock icon="🪵" label="木材" value={player?.wood ?? 0} color="#8b6914" />
                 <ResourceBlock icon="🪨" label="石材" value={player?.stone ?? 0} color="#888" />
@@ -86,7 +86,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
                 {/* 收入 */}
                 <div className="p-3 bg-[#1a1a20] border-l-2 border-[#4a9]">
                   <div className="text-xs text-[#4a9] mb-2">📈 收入</div>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     <IncomeItem icon="🪙" value={totalOutput.gold ?? 0} />
                     <IncomeItem icon="🪵" value={totalOutput.wood ?? 0} />
                     <IncomeItem icon="🪨" value={totalOutput.stone ?? 0} />
@@ -98,7 +98,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
                 {/* 支出 */}
                 <div className="p-3 bg-[#1a1a20] border-l-2 border-[#e74c3c]">
                   <div className="text-xs text-[#e74c3c] mb-2">📉 支出</div>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     <ExpenseItem icon="🪙" value={0} />
                     <ExpenseItem icon="🪵" value={0} />
                     <ExpenseItem icon="🪨" value={0} />
@@ -113,7 +113,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
                 {/* 净收入 */}
                 <div className="p-3 bg-[#1a1a20] border-l-2 border-[#c9a227]">
                   <div className="text-xs text-[#c9a227] mb-2">💰 净收入</div>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     <NetItem icon="🪙" value={netOutput.gold ?? 0} />
                     <NetItem icon="🪵" value={netOutput.wood ?? 0} />
                     <NetItem icon="🪨" value={netOutput.stone ?? 0} />

@@ -162,7 +162,7 @@ export default function GamePage() {
       {/* Cinematic HUD Overlay */}
       <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${showHUD ? "opacity-100" : "opacity-0"}`}>
         {/* Top-left: Player info */}
-        <div className="absolute top-4 left-6 pointer-events-auto">
+        <div className="absolute top-3 left-3 sm:top-4 sm:left-6 pointer-events-auto">
           <div className={`transition-all duration-500 ${showHUD ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0"}`}>
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#c9a227] to-[#8b6914] p-0.5">
@@ -216,7 +216,7 @@ export default function GamePage() {
         </div>
 
         {/* Top-right: Day & Score */}
-        <div className="absolute top-4 right-6 pointer-events-auto">
+        <div className="absolute top-3 right-3 sm:top-4 sm:right-6 pointer-events-auto">
           <div className={`transition-all duration-500 delay-100 ${showHUD ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0"}`}>
             <div className="text-right">
               <div className="text-5xl font-black text-[#c9a227] leading-none">{player.currentGameDay}</div>
@@ -231,9 +231,9 @@ export default function GamePage() {
         </div>
 
         {/* Bottom-left: Resources */}
-        <div className="absolute bottom-4 left-6 pointer-events-auto">
+        <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-6 pointer-events-auto">
           <div className={`transition-all duration-500 delay-200 ${showHUD ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
-            <div className="flex gap-4 text-sm">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {[
                 { icon: "🪙", value: player.gold, color: RESOURCE_COLORS.gold },
                 { icon: "🪵", value: player.wood, color: RESOURCE_COLORS.wood },
@@ -269,7 +269,7 @@ export default function GamePage() {
         </div>
 
         {/* Left-center: Hints */}
-        <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-auto">
+        <div className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 pointer-events-auto">
           <div className={`transition-all duration-500 delay-250 ${showHUD ? "translate-x-0 opacity-100" : "-translate-x-8 opacity-0"}`}>
             {player.hints && (
               <HintBar
@@ -282,7 +282,7 @@ export default function GamePage() {
         </div>
 
         {/* Bottom-right: Quick actions */}
-        <div className="absolute bottom-4 right-6 pointer-events-auto">
+        <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-6 pointer-events-auto">
           <div className={`transition-all duration-500 delay-300 ${showHUD ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
             <div className="flex gap-2">
               {[
@@ -319,7 +319,7 @@ export default function GamePage() {
                 <button
                   key={i}
                   onClick={action.onClick}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 ${
+                  className={`w-11 h-11 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 ${
                     action.highlight
                       ? "bg-[#c9a227]/20 border border-[#c9a227] text-[#c9a227]"
                       : "hover:bg-[#c9a227]/10"

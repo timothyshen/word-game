@@ -191,6 +191,14 @@
   }
 }
 
+/* Game panel dialogs - ensure mobile-safe max-width */
+@media (max-width: 639px) {
+  [data-slot="dialog-content"] {
+    max-width: calc(100% - 1rem) !important;
+    max-height: 95vh !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
