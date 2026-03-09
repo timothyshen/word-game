@@ -169,9 +169,9 @@ export function InnerCityPanel({ onClose }: InnerCityPanelProps) {
   // Uninitialized state
   if (!statusLoading && !status?.initialized) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="bg-[#1a1a20] border border-[#c9a227] rounded-lg p-8 max-w-md text-center">
-          <h2 className="text-2xl font-bold text-[#c9a227] mb-4">内城建设</h2>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050810]/80 backdrop-blur-sm">
+        <div className="bg-[#0a0a15]/95 border border-[#2a3a4a] rounded-lg p-8 max-w-md text-center">
+          <h2 className="text-2xl font-display text-[#e0dcd0] mb-4">内城建设</h2>
           <p className="text-[#888] mb-6">
             您还没有建立内城。内城是您的核心领地，可以建造各种建筑来增强实力。
           </p>
@@ -197,18 +197,18 @@ export function InnerCityPanel({ onClose }: InnerCityPanelProps) {
 
   if (statusLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050810]/80 backdrop-blur-sm">
         <div className="text-[#c9a227]">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0a0c]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#050810]">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#1a1a20] border-b border-[#2a2a30]">
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a]">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-bold text-[#c9a227]">内城</h2>
+          <h2 className="text-lg font-display text-[#e0dcd0]">内城</h2>
           {status && (
             <div className="flex items-center gap-4 text-sm">
               <span className="text-[#888]">
@@ -222,7 +222,7 @@ export function InnerCityPanel({ onClose }: InnerCityPanelProps) {
             </div>
           )}
         </div>
-        <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">
+        <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">
           ✕
         </button>
       </div>
@@ -275,9 +275,9 @@ export function InnerCityPanel({ onClose }: InnerCityPanelProps) {
         </div>
 
         {/* Right panel */}
-        <div className="w-80 bg-[#1a1a20] border-l border-[#2a2a30] flex flex-col">
+        <div className="w-80 bg-[#0a0a15] border-l border-[#2a3a4a] flex flex-col">
           {/* Action buttons */}
-          <div className="p-4 border-b border-[#2a2a30]">
+          <div className="p-4 border-b border-[#2a3a4a]">
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => {
@@ -314,7 +314,7 @@ export function InnerCityPanel({ onClose }: InnerCityPanelProps) {
 
           {/* Card selection (placement mode) */}
           {mode === "place" && (
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]">
               <h3 className="text-sm font-bold text-[#888] mb-3">选择建筑卡</h3>
               {buildingCards.length === 0 ? (
                 <p className="text-xs text-[#666]">没有可用的建筑卡</p>
@@ -347,7 +347,7 @@ export function InnerCityPanel({ onClose }: InnerCityPanelProps) {
 
           {/* Card selection (expand mode) */}
           {mode === "expand" && (
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]">
               <h3 className="text-sm font-bold text-[#888] mb-3">选择扩张卡</h3>
               {expansionCards.length === 0 ? (
                 <p className="text-xs text-[#666]">没有可用的扩张卡</p>

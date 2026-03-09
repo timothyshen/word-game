@@ -49,7 +49,7 @@ export default function CharacterDetailPanel({
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -59,7 +59,7 @@ export default function CharacterDetailPanel({
   if (!character) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#e74c3c]">角色不存在</div>
         </DialogContent>
       </Dialog>
@@ -72,19 +72,19 @@ export default function CharacterDetailPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-lg h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-lg h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 固定头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-[#151518] border-b border-[#2a2a30] p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-[#1a1a20] border-2 border-[#3a3a40] flex items-center justify-center text-4xl">
+              <div className="w-16 h-16 bg-[#050810] border border-[#2a3a4a] flex items-center justify-center text-4xl">
                 {character.icon}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <DialogTitle className="font-bold text-lg text-[#e0dcd0]">{character.name}</DialogTitle>
+                  <DialogTitle className="font-display font-bold text-lg text-[#e0dcd0]">{character.name}</DialogTitle>
                   <span
                     className="text-xs px-2 py-0.5"
                     style={{ backgroundColor: RARITY_COLORS[character.rarity] ?? "#888", color: "#000" }}
@@ -94,18 +94,18 @@ export default function CharacterDetailPanel({
                 </div>
                 <div className="text-sm text-[#888]">{character.baseClass} · Lv.{character.level}/{character.maxLevel}</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs px-1.5 py-0.5 bg-[#2a2a30] text-[#c9a227]">
+                  <span className="text-xs px-1.5 py-0.5 bg-[#050810] border border-[#3d3529] text-[#c9a227]">
                     {character.tier}阶
                   </span>
                   {character.profession && (
-                    <span className="text-xs px-1.5 py-0.5 bg-[#2a2a30] text-[#4a9]">
+                    <span className="text-xs px-1.5 py-0.5 bg-[#050810] border border-[#2a3a4a] text-[#4a9]">
                       {character.profession.name}
                     </span>
                   )}
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
           </div>
         </DialogHeader>
 
@@ -114,7 +114,7 @@ export default function CharacterDetailPanel({
           <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:hidden">
             <div className="text-[#e0dcd0]">
             {/* 状态栏 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/50">
               <div className="grid grid-cols-3 gap-4">
                 <StatBar label="HP" current={character.hp} max={character.maxHp} color="#4a9" />
                 <StatBar label="MP" current={character.mp} max={character.maxMp} color="#59b" />
@@ -129,7 +129,7 @@ export default function CharacterDetailPanel({
                     <button
                       onClick={() => healMutation.mutate({ characterId, type: "hp" })}
                       disabled={healMutation.isPending}
-                      className="text-xs px-2 py-1 bg-[#1a1a20] text-[#4a9] hover:bg-[#4a9] hover:text-[#08080a] disabled:opacity-50"
+                      className="text-xs px-2 py-1 bg-[#050810] text-[#4a9] hover:bg-[#4a9] hover:text-[#08080a] disabled:opacity-50"
                     >
                       {healMutation.isPending && healingType === "hp" ? "..." : "HP"}
                     </button>
@@ -138,7 +138,7 @@ export default function CharacterDetailPanel({
                     <button
                       onClick={() => { setHealingType("mp"); healMutation.mutate({ characterId, type: "mp" }); }}
                       disabled={healMutation.isPending}
-                      className="text-xs px-2 py-1 bg-[#1a1a20] text-[#59b] hover:bg-[#59b] hover:text-[#08080a] disabled:opacity-50"
+                      className="text-xs px-2 py-1 bg-[#050810] text-[#59b] hover:bg-[#59b] hover:text-[#08080a] disabled:opacity-50"
                     >
                       {healMutation.isPending && healingType === "mp" ? "..." : "MP"}
                     </button>
@@ -146,7 +146,7 @@ export default function CharacterDetailPanel({
                   <button
                     onClick={() => { setHealingType("both"); healMutation.mutate({ characterId, type: "both" }); }}
                     disabled={healMutation.isPending}
-                    className="text-xs px-2 py-1 bg-[#1a1a20] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a] disabled:opacity-50"
+                    className="text-xs px-2 py-1 bg-[#050810] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a] disabled:opacity-50"
                   >
                     {healMutation.isPending && healingType === "both" ? "..." : "全部"}
                   </button>
@@ -184,7 +184,7 @@ export default function CharacterDetailPanel({
             </div>
 
             {/* 属性 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/50">
               <SectionTitle>基础属性</SectionTitle>
               <div className="grid grid-cols-4 gap-3 mt-2">
                 <StatBlock icon="⚔️" label="攻击" value={character.attack} />
@@ -200,7 +200,7 @@ export default function CharacterDetailPanel({
             </div>
 
             {/* 技能 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/50">
               <SectionTitle>技能 ({character.skills.length}/{character.skillSlots})</SectionTitle>
               {character.skills.length === 0 ? (
                 <div className="mt-2 text-center py-4 text-[#666]">
@@ -210,7 +210,7 @@ export default function CharacterDetailPanel({
               ) : (
                 <div className="space-y-2 mt-2">
                   {character.skills.map((skill) => (
-                    <div key={skill.id} className="flex items-center justify-between p-2 bg-[#1a1a20]">
+                    <div key={skill.id} className="flex items-center justify-between p-2 bg-[#050810]">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{skill.icon}</span>
                         <div>
@@ -230,14 +230,14 @@ export default function CharacterDetailPanel({
 
             {/* 职业加成 */}
             {character.profession && character.profession.bonuses && (
-              <div className="p-4 border-b border-[#2a2a30]">
+              <div className="p-4 border-b border-[#2a3a4a]/50">
                 <SectionTitle>职业加成 - {character.profession.name}</SectionTitle>
                 <div className="mt-2 text-sm text-[#888]">
                   {character.profession.description}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {Object.entries(character.profession.bonuses).map(([stat, bonus]) => (
-                    <span key={stat} className="text-xs px-2 py-1 bg-[#1a1a20] text-[#4a9]">
+                    <span key={stat} className="text-xs px-2 py-1 bg-[#050810] text-[#4a9]">
                       {stat} +{bonus}
                     </span>
                   ))}
@@ -247,7 +247,7 @@ export default function CharacterDetailPanel({
 
             {/* 背景故事 */}
             {character.description && (
-              <div className="p-4 border-b border-[#2a2a30]">
+              <div className="p-4 border-b border-[#2a3a4a]/50">
                 <SectionTitle>简介</SectionTitle>
                 <p className="text-sm text-[#888] mt-2 leading-relaxed">{character.description}</p>
               </div>
@@ -275,7 +275,7 @@ export default function CharacterDetailPanel({
         </div>
 
         {/* 固定底部按钮 */}
-        <div className="flex-shrink-0 bg-[#151518] border-t border-[#2a2a30] p-4 flex gap-2">
+        <div className="flex-shrink-0 bg-[#050810] border-t border-[#2a3a4a]/50 p-4 flex gap-2">
           <button
             onClick={() => setShowEquipmentPanel(true)}
             className="flex-1 py-2 border border-[#9b59b6] text-[#9b59b6] hover:bg-[#9b59b6] hover:text-[#08080a]"
@@ -325,10 +325,10 @@ function StatBar({ label, current, max, color }: { label: string; current: numbe
         <span style={{ color }}>{current}/{max}</span>
       </div>
       <div className="font-mono text-xs">
-        <span className="text-[#3a3a40]">[</span>
+        <span className="text-[#2a3a4a]">[</span>
         <span style={{ color }}>{"█".repeat(filled)}</span>
-        <span className="text-[#2a2a30]">{"░".repeat(barLength - filled)}</span>
-        <span className="text-[#3a3a40]">]</span>
+        <span className="text-[#2a3a4a]/60">{"░".repeat(barLength - filled)}</span>
+        <span className="text-[#2a3a4a]">]</span>
       </div>
     </div>
   );
@@ -336,7 +336,7 @@ function StatBar({ label, current, max, color }: { label: string; current: numbe
 
 function StatBlock({ icon, label, value }: { icon: string; label: string; value: number }) {
   return (
-    <div className="bg-[#1a1a20] p-2 text-center">
+    <div className="bg-[#050810] p-2 text-center">
       <div className="text-lg">{icon}</div>
       <div className="text-xs text-[#888]">{label}</div>
       <div className="text-[#c9a227] font-bold">{value}</div>

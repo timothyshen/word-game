@@ -52,7 +52,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -70,38 +70,34 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="bg-[#0a0a15]/95 border border-[#3d3529] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#1a1810] to-[#101014] border-b border-[#c9a227]/50 p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#3d3529] p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#c9a227] flex items-center justify-center text-3xl">
-                🏆
-              </div>
-              <div>
-                <div className="text-[#c9a227] text-xs uppercase tracking-wider">成就</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  荣誉殿堂
-                </DialogTitle>
-              </div>
+            <div>
+              <DialogTitle className="font-display text-xl text-[#e0dcd0]">
+                荣誉殿堂
+              </DialogTitle>
+              <div className="font-game-serif text-[#c9a227] text-xs tracking-wider mt-1">成就</div>
             </div>
             <div className="flex items-center gap-4">
               {stats && (
-                <div className="text-sm text-[#888]">
+                <div className="text-sm font-game-serif text-[#888]">
                   完成度: <span className="text-[#c9a227] font-bold">{stats.completionRate}%</span>
                   <span className="mx-1">·</span>
                   {stats.claimedCount}/{stats.totalAchievements}
                 </div>
               )}
-              <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+              <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
             </div>
           </div>
+          <div className="h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent mt-3" />
         </DialogHeader>
 
         {/* 分类筛选 */}
-        <div className="flex gap-1 p-3 border-b border-[#2a2a30] overflow-x-auto hide-scrollbar">
+        <div className="flex gap-1 p-3 border-b border-[#2a3a4a] overflow-x-auto hide-scrollbar">
           {(Object.keys(CATEGORY_LABELS) as CategoryType[]).map((cat) => {
             const info = CATEGORY_LABELS[cat];
             const count = cat === "all"
@@ -115,7 +111,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
                 className={`px-3 py-1 text-sm whitespace-nowrap transition-colors ${
                   category === cat
                     ? "bg-[#c9a227] text-[#08080a]"
-                    : "bg-[#1a1a20] text-[#888] hover:text-[#e0dcd0]"
+                    : "bg-[#0a0f18] text-[#888] hover:text-[#e0dcd0]"
                 }`}
               >
                 {info.icon} {info.label} ({count})
@@ -148,18 +144,18 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
                       ? "border-[#4a9] bg-[#1a3a1a]/30"
                       : achievement.isClaimed
                       ? "border-[#c9a227]/50 bg-[#1a1810]/30"
-                      : "border-[#2a2a30] bg-[#1a1a20]"
+                      : "border-[#2a3a4a] bg-[#0a0f18]"
                   }`}
                 >
                   <div className="flex items-start gap-4">
                     {/* 图标 */}
                     <div
-                      className={`w-12 h-12 flex items-center justify-center text-2xl border-2 ${
+                      className={`w-12 h-12 flex items-center justify-center text-2xl border ${
                         achievement.isClaimed
-                          ? "border-[#c9a227] bg-[#c9a227]/20"
+                          ? "border-[#c9a227]/40 bg-[#c9a227]/10"
                           : achievement.isCompleted
-                          ? "border-[#4a9] bg-[#4a9]/20"
-                          : "border-[#3a3a40] bg-[#1a1a20]"
+                          ? "border-[#4a9]/40 bg-[#4a9]/10"
+                          : "border-[#2a3a4a] bg-[#050810]"
                       }`}
                     >
                       {achievement.icon}
@@ -180,12 +176,12 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
                       {/* 进度条 */}
                       <div className="mt-2">
                         <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-[#666]">进度</span>
+                          <span className="text-[#5a6a7a]">进度</span>
                           <span className={achievement.isCompleted ? "text-[#4a9]" : "text-[#888]"}>
                             {achievement.progress}/{achievement.target}
                           </span>
                         </div>
-                        <div className="h-2 bg-[#2a2a30] rounded-full overflow-hidden">
+                        <div className="h-2 bg-[#1a2030] rounded-full overflow-hidden">
                           <div
                             className={`h-full transition-all ${
                               achievement.isCompleted ? "bg-[#4a9]" : "bg-[#c9a227]"
@@ -199,7 +195,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
 
                       {/* 奖励 */}
                       <div className="flex items-center gap-3 mt-3 text-xs">
-                        <span className="text-[#666]">奖励:</span>
+                        <span className="text-[#5a6a7a]">奖励:</span>
                         {achievement.rewards.gold && (
                           <span className="text-[#c9a227]">🪙 {achievement.rewards.gold}</span>
                         )}

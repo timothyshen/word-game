@@ -80,7 +80,7 @@ export default function EquipmentPanel({
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -98,15 +98,15 @@ export default function EquipmentPanel({
     return (
       <Dialog open={true} onOpenChange={() => setSelectedSlot(null)}>
         <DialogContent
-          className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-md"
+          className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-md"
           showCloseButton={false}
         >
-          <DialogHeader className="bg-[#151518] border-b border-[#2a2a30] p-4">
+          <DialogHeader className="bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a]/50 p-4">
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-[#c9a227]">
+              <DialogTitle className="font-display text-[#c9a227]">
                 选择{slotName}装备
               </DialogTitle>
-              <button onClick={() => setSelectedSlot(null)} className="text-[#666] hover:text-[#c9a227]">✕</button>
+              <button onClick={() => setSelectedSlot(null)} className="text-[#5a6a7a] hover:text-[#c9a227]">✕</button>
             </div>
           </DialogHeader>
 
@@ -128,10 +128,10 @@ export default function EquipmentPanel({
                       });
                     }}
                     disabled={equipMutation.isPending}
-                    className="w-full p-3 bg-[#1a1a20] border-2 border-[#2a2a30] hover:border-[#c9a227] text-left flex items-center gap-3"
+                    className="w-full p-3 bg-[#050810] border border-[#2a3a4a]/50 hover:border-[#c9a227] text-left flex items-center gap-3"
                     style={{ borderLeftColor: RARITY_COLORS[eq.equipment.rarity] }}
                   >
-                    <div className="w-10 h-10 bg-[#2a2a30] flex items-center justify-center text-2xl">
+                    <div className="w-10 h-10 bg-[#0a0a15] flex items-center justify-center text-2xl">
                       {eq.equipment.icon}
                     </div>
                     <div className="flex-1">
@@ -174,13 +174,13 @@ export default function EquipmentPanel({
     return (
       <Dialog open={true} onOpenChange={() => setShowEnhance(null)}>
         <DialogContent
-          className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-sm"
+          className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-sm"
           showCloseButton={false}
         >
-          <DialogHeader className="bg-[#151518] border-b border-[#2a2a30] p-4">
+          <DialogHeader className="bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a]/50 p-4">
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-[#c9a227]">强化装备</DialogTitle>
-              <button onClick={() => setShowEnhance(null)} className="text-[#666] hover:text-[#c9a227]">✕</button>
+              <DialogTitle className="font-display text-[#c9a227]">强化装备</DialogTitle>
+              <button onClick={() => setShowEnhance(null)} className="text-[#5a6a7a] hover:text-[#c9a227]">✕</button>
             </div>
           </DialogHeader>
 
@@ -195,7 +195,7 @@ export default function EquipmentPanel({
               </div>
             </div>
 
-            <div className="bg-[#1a1a20] p-3 mb-4 text-sm">
+            <div className="bg-[#050810] p-3 mb-4 text-sm">
               <div className="text-[#888] mb-2">当前属性</div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {eq.stats.attack > 0 && <div>攻击: +{eq.stats.attack}</div>}
@@ -241,31 +241,27 @@ export default function EquipmentPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-[#151518] border-b border-[#2a2a30] p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a]/50 p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#c9a227] flex items-center justify-center text-3xl">
-                ⚔️
-              </div>
-              <div>
-                <div className="text-[#c9a227] text-xs">装备管理</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  {characterName}
-                </DialogTitle>
-              </div>
+            <div>
+              <div className="text-[#5a6a7a] font-game-serif text-xs">装备管理</div>
+              <DialogTitle className="font-display font-bold text-lg text-[#e0dcd0]">
+                {characterName}
+              </DialogTitle>
+              <div className="mt-1 h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent w-32"></div>
             </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
           </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
           <div className="p-4">
             {/* 属性加成总览 */}
-            <div className="bg-[#1a1a20] p-4 mb-4">
+            <div className="bg-[#050810] p-4 mb-4">
               <div className="text-sm text-[#888] mb-2">装备属性加成</div>
               <div className="grid grid-cols-6 gap-2 text-center">
                 <div>
@@ -338,7 +334,7 @@ export default function EquipmentPanel({
 
               {/* 中间：角色形象 */}
               <div className="flex flex-col items-center justify-center">
-                <div className="w-24 h-32 bg-[#1a1a20] border-2 border-[#3a3a40] flex items-center justify-center text-5xl">
+                <div className="w-24 h-32 bg-[#050810] border border-[#2a3a4a] flex items-center justify-center text-5xl">
                   🧙
                 </div>
                 <div className="mt-2 text-sm text-[#888]">{characterName}</div>
@@ -426,7 +422,7 @@ function SlotCard({
     return (
       <button
         onClick={onSelect}
-        className="w-full p-2 bg-[#1a1a20] border border-dashed border-[#3a3a40] hover:border-[#c9a227] text-center"
+        className="w-full p-2 bg-[#050810] border border-dashed border-[#2a3a4a] hover:border-[#c9a227] text-center"
       >
         <div className="text-xl text-[#3a3a40]">{SLOT_ICONS[slot] ?? "❓"}</div>
         <div className="text-xs text-[#666]">{slotName}</div>
@@ -436,7 +432,7 @@ function SlotCard({
 
   return (
     <div
-      className="p-2 bg-[#1a1a20] border-2 text-center"
+      className="p-2 bg-[#050810] border text-center"
       style={{ borderColor: RARITY_COLORS[eq.rarity] }}
     >
       <div className="text-xl">{eq.icon}</div>

@@ -34,16 +34,16 @@ export default function CharacterListTab({
                 className={`w-full flex items-center gap-3 p-3 transition-colors ${
                   selectedId === char.id
                     ? "bg-[#c9a227]/20 border border-[#c9a227]"
-                    : "bg-[#1a1a20] hover:bg-[#222228] border border-transparent"
+                    : "bg-[#0a0a15] hover:bg-[#0f1520] border border-transparent"
                 }`}
               >
-                <div className="w-12 h-12 bg-[#0a0a0c] border border-[#3a3a40] flex items-center justify-center text-2xl">
+                <div className="w-12 h-12 bg-[#050810] border border-[#2a3a4a] flex items-center justify-center text-2xl">
                   {char.character.portrait}
                 </div>
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-white">{char.character.name}</span>
-                    <span className="text-xs px-1.5 py-0.5 bg-[#2a2a30] text-[#c9a227]">
+                    <span className="text-xs px-1.5 py-0.5 bg-[#2a3a4a] text-[#c9a227]">
                       {char.tier}阶
                     </span>
                   </div>

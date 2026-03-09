@@ -33,8 +33,8 @@ export function GuidancePanel({ hints, onClose, onHintClick }: GuidancePanelProp
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#2a3a4a] flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-[#c9a227]">引导</h2>
-            <p className="text-xs text-[#5a6a7a]">当前可以做的事情</p>
+            <h2 className="text-lg font-display text-[#e0dcd0]">引导</h2>
+            <p className="text-xs font-game-serif text-[#5a6a7a]">当前可以做的事情</p>
           </div>
           <button
             onClick={onClose}

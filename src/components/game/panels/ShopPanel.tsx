@@ -62,7 +62,7 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -78,21 +78,18 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#1a1810] to-[#101014] border-b border-[#c9a227]/50 p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#c9a227] flex items-center justify-center text-3xl">
-                🏪
-              </div>
               <div>
-                <div className="text-[#c9a227] text-xs uppercase tracking-wider">商店</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
+                <DialogTitle className="font-display text-xl text-[#e0dcd0]">
                   冒险者商会
                 </DialogTitle>
+                <div className="font-game-serif text-[#5a6a7a] text-xs tracking-wider">商店</div>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -101,7 +98,7 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
                 <span className="mx-2 text-[#3a3a40]">|</span>
                 <span className="text-[#9b59b6]">💎 {playerResources.crystals}</span>
               </div>
-              <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+              <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
             </div>
           </div>
         </DialogHeader>

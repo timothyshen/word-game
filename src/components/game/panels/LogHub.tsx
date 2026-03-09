@@ -71,22 +71,18 @@ export default function LogHub({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-6xl h-[85vh] flex gap-0 overflow-hidden rounded-lg"
+        className="bg-[#0a0a15]/95 backdrop-blur-sm border border-[#2a3a4a] p-0 max-w-6xl h-[85vh] flex gap-0 overflow-hidden rounded-lg"
         showCloseButton={false}
       >
         {/* Left Sidebar */}
-        <div className="w-56 flex-shrink-0 bg-[#0a0a0c] border-r border-[#2a2a30] flex flex-col">
+        <div className="w-56 flex-shrink-0 bg-[#050810] border-r border-[#2a3a4a] flex flex-col">
           {/* Logo/Header */}
-          <div className="p-4 border-b border-[#2a2a30]">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#c9a227] to-[#8b6914] flex items-center justify-center text-xl rounded-lg">
-                📜
-              </div>
-              <div>
-                <div className="text-[#e0dcd0] font-bold">记录系统</div>
-                <div className="text-xs text-[#c9a227]">第 {currentDay} 日</div>
-              </div>
+          <div className="p-4 border-b border-[#2a3a4a]">
+            <div>
+              <div className="text-[#e0dcd0] font-display text-lg">记录</div>
+              <div className="text-xs tracking-[0.2em] uppercase text-[#5a6a7a]">第 {currentDay} 日</div>
             </div>
+            <div className="h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent mt-3" />
           </div>
 
           {/* Navigation */}
@@ -97,15 +93,15 @@ export default function LogHub({
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${
                   activeTab === tab.id
-                    ? "bg-[#1a1810] text-[#c9a227] border-r-2 border-[#c9a227]"
-                    : "text-[#888] hover:bg-[#151518] hover:text-[#e0dcd0]"
+                    ? "bg-[#0a0a15] text-[#c9a227] border-r-2 border-[#c9a227]"
+                    : "text-[#5a6a7a] hover:bg-[#0a0a15]/50 hover:text-[#e0dcd0]"
                 }`}
               >
                 <span className="text-lg">{tab.icon}</span>
                 <span className="flex-1 text-sm font-medium">{tab.label}</span>
                 {tab.badge && (
                   <span className={`text-xs px-1.5 py-0.5 rounded ${
-                    tab.badge === "+" ? "bg-[#4a9]/20 text-[#4a9]" : "bg-[#2a2a30] text-[#888]"
+                    tab.badge === "+" ? "bg-[#4a9]/20 text-[#4a9]" : "bg-[#2a3a4a] text-[#5a6a7a]"
                   }`}>
                     {tab.badge}
                   </span>
@@ -115,19 +111,20 @@ export default function LogHub({
           </nav>
 
           {/* Bottom Stats */}
-          <div className="p-4 border-t border-[#2a2a30]">
+          <div className="p-4 border-t border-[#2a3a4a]">
+            <div className="text-xs tracking-[0.2em] uppercase text-[#5a6a7a] mb-3">统计</div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#666]">连续达标</span>
-              <span className="text-sm font-bold text-[#e67e22]">{streakDays} 天 🔥</span>
+              <span className="text-xs text-[#5a6a7a]">连续达标</span>
+              <span className="text-sm font-bold text-[#e67e22]">{streakDays} 天</span>
             </div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-[#666]">今日评级</span>
+              <span className="text-xs text-[#5a6a7a]">今日评级</span>
               <span className="text-sm font-bold" style={{ color: grade.color }}>
                 {grade.grade} 级
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#666]">今日得分</span>
+              <span className="text-xs text-[#5a6a7a]">今日得分</span>
               <span className="text-sm font-bold text-[#c9a227]">{totalScore} 分</span>
             </div>
           </div>
@@ -136,13 +133,13 @@ export default function LogHub({
         {/* Right Content Panel */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Bar */}
-          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-[#2a2a30]">
-            <h2 className="text-lg font-bold text-[#e0dcd0]">
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-[#2a3a4a] bg-gradient-to-r from-[#0a0a15] to-[#050810]">
+            <h2 className="text-lg font-display text-[#e0dcd0]">
               {currentTabInfo?.label}
             </h2>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-[#1a1a20] text-[#666] hover:text-[#c9a227] hover:bg-[#2a2a30] flex items-center justify-center transition-colors"
+              className="text-[#5a6a7a] hover:text-[#c9a227] text-xl transition-colors"
             >
               ✕
             </button>

@@ -66,7 +66,7 @@ function ProfessionTab() {
     <ScrollArea className="h-full">
       <div className="p-4">
         {/* 当前职业 */}
-        <div className="p-4 bg-[#1a1a20] border border-[#2a2a30] mb-4">
+        <div className="p-4 bg-[#0a0a15] border border-[#2a3a4a] mb-4">
           <div className="text-sm text-[#c9a227] mb-2">▸ 当前职业</div>
           {playerProfession?.hasProfession ? (
             <div>
@@ -79,7 +79,7 @@ function ProfessionTab() {
                   {Object.entries(playerProfession.profession.bonuses).map(([stat, bonus]) => (
                     <span
                       key={stat}
-                      className="text-xs px-2 py-1 bg-[#0a0a0c] text-[#4a9]"
+                      className="text-xs px-2 py-1 bg-[#050810] text-[#4a9]"
                     >
                       {stat} +{bonus as number}
                     </span>
@@ -103,7 +103,7 @@ function ProfessionTab() {
                 {professions.map((prof) => (
                   <div
                     key={prof.id}
-                    className="p-4 bg-[#1a1a20] border border-[#2a2a30]"
+                    className="p-4 bg-[#0a0a15] border border-[#2a3a4a]"
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -113,7 +113,7 @@ function ProfessionTab() {
                           {Object.entries(prof.bonuses).map(([stat, bonus]) => (
                             <span
                               key={stat}
-                              className="text-xs px-2 py-0.5 bg-[#0a0a0c] text-[#4a9]"
+                              className="text-xs px-2 py-0.5 bg-[#050810] text-[#4a9]"
                             >
                               {stat} +{bonus as number}
                             </span>
@@ -194,7 +194,7 @@ function AchievementTab() {
     <div className="h-full flex flex-col">
       {/* 统计 */}
       {stats && (
-        <div className="flex-shrink-0 p-3 bg-[#0a0a0c] border-b border-[#2a2a30] text-center">
+        <div className="flex-shrink-0 p-3 bg-[#050810] border-b border-[#2a3a4a] text-center">
           <span className="text-sm text-[#888]">
             完成度: <span className="text-[#c9a227] font-bold">{stats.completionRate}%</span>
             <span className="mx-2">·</span>
@@ -204,15 +204,15 @@ function AchievementTab() {
       )}
 
       {/* 分类筛选 */}
-      <div className="flex-shrink-0 flex gap-1 p-3 border-b border-[#2a2a30] overflow-x-auto hide-scrollbar">
+      <div className="flex-shrink-0 flex gap-1 p-3 border-b border-[#2a3a4a] overflow-x-auto hide-scrollbar">
         {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setCategory(cat.id)}
             className={`px-3 py-1 text-sm whitespace-nowrap transition-colors ${
               category === cat.id
-                ? "bg-[#c9a227] text-[#08080a]"
-                : "bg-[#1a1a20] text-[#888] hover:text-[#e0dcd0]"
+                ? "bg-[#c9a227]/20 text-[#c9a227]"
+                : "bg-[#0a0a15] text-[#5a6a7a] hover:text-[#e0dcd0]"
             }`}
           >
             {cat.icon} {cat.label}
@@ -244,7 +244,7 @@ function AchievementTab() {
                     ? "border-[#4a9] bg-[#1a3a1a]/30"
                     : achievement.isClaimed
                     ? "border-[#c9a227]/50 bg-[#1a1810]/30"
-                    : "border-[#2a2a30] bg-[#1a1a20]"
+                    : "border-[#2a3a4a] bg-[#0a0a15]"
                 }`}
               >
                 <div className="flex items-start gap-4">
@@ -254,7 +254,7 @@ function AchievementTab() {
                         ? "border-[#c9a227] bg-[#c9a227]/20"
                         : achievement.isCompleted
                         ? "border-[#4a9] bg-[#4a9]/20"
-                        : "border-[#3a3a40] bg-[#1a1a20]"
+                        : "border-[#2a3a4a] bg-[#0a0a15]"
                     }`}
                   >
                     {achievement.icon}
@@ -278,7 +278,7 @@ function AchievementTab() {
                           {achievement.progress}/{achievement.target}
                         </span>
                       </div>
-                      <div className="h-2 bg-[#2a2a30] rounded-full overflow-hidden">
+                      <div className="h-2 bg-[#2a3a4a] rounded-full overflow-hidden">
                         <div
                           className={`h-full transition-all ${
                             achievement.isCompleted ? "bg-[#4a9]" : "bg-[#c9a227]"

@@ -90,8 +90,9 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
-          <div className="text-center text-[#888]">加载中...</div>
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+          <div className="text-center font-display text-[#c9a227] text-lg mb-2">每日结算</div>
+          <div className="text-center text-[#5a6a7a] font-game-serif">加载中...</div>
         </DialogContent>
       </Dialog>
     );
@@ -111,25 +112,21 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 固定头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#1a1510] to-[#101014] border-b border-[#c9a227]/50 p-6 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-[#c9a227] to-[#8b6914] flex items-center justify-center text-3xl rounded-lg shadow-lg">
-                📊
-              </div>
-              <div>
-                <div className="text-[#c9a227] text-xs uppercase tracking-wider">每日结算</div>
-                <DialogTitle className="font-bold text-xl mt-1 text-[#e0dcd0]">
-                  {preview?.pendingDays ? `待结算 ${preview.pendingDays} 天` : "今日结算"}
-                </DialogTitle>
-              </div>
+            <div>
+              <div className="text-xs tracking-[0.2em] uppercase text-[#5a6a7a]">每日结算</div>
+              <DialogTitle className="font-display text-2xl mt-1 text-[#e0dcd0]">
+                {preview?.pendingDays ? `待结算 ${preview.pendingDays} 天` : "今日结算"}
+              </DialogTitle>
             </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-2xl">✕</button>
+            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-2xl">✕</button>
           </div>
+          <div className="mt-3 h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent" />
         </DialogHeader>
 
         {/* 可滚动内容 */}
@@ -159,13 +156,13 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
             )}
 
             {/* 总分展示 */}
-            <div className="p-6 border-b border-[#2a2a30]">
+            <div className="p-6 border-b border-[#2a3a4a]/30">
               <div className="flex items-center justify-center gap-8">
                 {/* 评级 */}
                 <div className="text-center">
                   <div
-                    className="w-20 h-20 flex items-center justify-center text-5xl font-bold rounded-lg border-4"
-                    style={{ borderColor: grade.color, color: grade.color }}
+                    className="w-20 h-20 flex items-center justify-center text-5xl font-bold rounded-lg border"
+                    style={{ borderColor: `${grade.color}50`, color: grade.color }}
                   >
                     {grade.grade}
                   </div>
@@ -192,7 +189,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
             </div>
 
             {/* 分数明细 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/30">
               <div className="flex items-center justify-between mb-3">
                 <SectionTitle>分数构成</SectionTitle>
                 <button
@@ -221,7 +218,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                     <div className="text-center text-[#666] py-4">今日暂无行动记录</div>
                   ) : (
                     todayResult.actions.map((action, i) => (
-                      <div key={i} className="flex items-center justify-between p-2 bg-[#1a1a20] text-sm">
+                      <div key={i} className="flex items-center justify-between p-2 bg-[#0d1020]/60 text-sm">
                         <div className="flex items-center gap-2">
                           <span>{actionIcons[action.type] ?? "📝"}</span>
                           <span>{action.description}</span>
@@ -240,13 +237,13 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
             </div>
 
             {/* 预计奖励 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/30">
               <SectionTitle>预计奖励</SectionTitle>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 {todayResult?.rewards.cards.map((card, i) => (
                   <div
                     key={i}
-                    className="relative p-3 bg-[#1a1a20] border-2 text-center"
+                    className="relative p-3 bg-[#0d1020]/60 border text-center"
                     style={{ borderColor: RARITY_COLORS[card.rarity] ?? "#888" }}
                   >
                     <div className="text-2xl mb-1">🃏</div>
@@ -268,7 +265,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
 
               {/* 连续奖励提示 */}
               {preview && preview.currentStreakDays > 0 && (
-                <div className="mt-4 p-2 bg-[#1a1a20] border-l-2 border-[#e67e22]">
+                <div className="mt-4 p-2 bg-[#0d1020]/60 border-l-2 border-[#e67e22]">
                   <span className="text-sm text-[#e67e22]">
                     🔥 连续达标 {preview.currentStreakDays} 天
                     {preview.currentStreakDays >= 3 && preview.currentStreakDays < 7 && " - 下次连续7日奖励!"}
@@ -279,9 +276,9 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
             </div>
 
             {/* 7日趋势 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/30">
               <SectionTitle>近7日趋势</SectionTitle>
-              <div className="mt-3 bg-[#1a1a20] p-3">
+              <div className="mt-3 bg-[#0d1020]/60 p-3">
                 {last7Days.length === 0 ? (
                   <div className="text-center text-[#666] py-4">暂无历史数据</div>
                 ) : (
@@ -297,7 +294,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                         <div key={i} className="flex-1 flex flex-col items-center">
                           <div className="text-[10px] text-[#888] mb-1">{day.totalScore}</div>
                           <div
-                            className={`w-full min-h-[8px] ${isLast ? "border-2 border-[#c9a227]" : ""}`}
+                            className={`w-full min-h-[8px] ${isLast ? "border border-[#c9a227]/40" : ""}`}
                             style={{
                               height: `${heightPercent}%`,
                               backgroundColor: dayGrade.color,
@@ -328,7 +325,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
               ) : (
                 <button
                   onClick={onClose}
-                  className="w-full py-4 bg-[#2a2a30] text-[#888] font-bold text-lg hover:bg-[#3a3a40]"
+                  className="w-full py-4 bg-[#0d1020]/60 border border-[#2a3a4a] text-[#5a6a7a] font-bold text-lg hover:border-[#c9a227]/40 hover:text-[#c9a227]"
                 >
                   {settlementResult?.settled ? "完成" : "今日已结算"}
                 </button>
@@ -338,7 +335,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                   {errorMsg}
                 </div>
               )}
-              <div className="text-center text-xs text-[#666] mt-2">
+              <div className="text-center text-xs text-[#5a6a7a] mt-2">
                 奖励将添加到您的卡牌背包
               </div>
             </div>
@@ -364,7 +361,7 @@ const ScoreBar = memo(function ScoreBar({ label, icon, score, total, color }: {
         <span>{icon}</span>
         <span className="text-[#888]">{label}</span>
       </div>
-      <div className="flex-1 h-4 bg-[#1a1a20] relative">
+      <div className="flex-1 h-4 bg-[#050810] relative">
         <div
           className="h-full transition-all duration-500"
           style={{ width: `${percent}%`, backgroundColor: color }}

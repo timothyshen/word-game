@@ -63,8 +63,8 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
     <ScrollArea className="h-full">
       <div className="p-4 space-y-4">
         {/* 基本信息 */}
-        <div className="flex items-start gap-4 p-4 bg-[#1a1a20]">
-          <div className="w-16 h-16 bg-[#0a0a0c] border-2 border-[#3a3a40] flex items-center justify-center text-4xl">
+        <div className="flex items-start gap-4 p-4 bg-[#0a0a15]">
+          <div className="w-16 h-16 bg-[#050810] border border-[#2a3a4a] flex items-center justify-center text-4xl">
             {character.icon}
           </div>
           <div className="flex-1">
@@ -89,7 +89,7 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
               {character.baseClass} · Lv.{character.level}/{character.maxLevel}
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs px-1.5 py-0.5 bg-[#2a2a30] text-[#c9a227]">
+              <span className="text-xs px-1.5 py-0.5 bg-[#2a3a4a] text-[#c9a227]">
                 {character.tier}阶
               </span>
             </div>
@@ -111,7 +111,7 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
               <button
                 onClick={() => healMutation.mutate({ characterId: characterId!, type: "hp" })}
                 disabled={healMutation.isPending}
-                className="text-xs px-2 py-1 bg-[#1a1a20] text-[#4a9] hover:bg-[#4a9] hover:text-[#08080a] disabled:opacity-50"
+                className="text-xs px-2 py-1 bg-[#0a0a15] text-[#4a9] hover:bg-[#4a9] hover:text-[#08080a] disabled:opacity-50"
               >
                 HP
               </button>
@@ -120,7 +120,7 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
               <button
                 onClick={() => healMutation.mutate({ characterId: characterId!, type: "mp" })}
                 disabled={healMutation.isPending}
-                className="text-xs px-2 py-1 bg-[#1a1a20] text-[#59b] hover:bg-[#59b] hover:text-[#08080a] disabled:opacity-50"
+                className="text-xs px-2 py-1 bg-[#0a0a15] text-[#59b] hover:bg-[#59b] hover:text-[#08080a] disabled:opacity-50"
               >
                 MP
               </button>
@@ -128,7 +128,7 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
             <button
               onClick={() => healMutation.mutate({ characterId: characterId!, type: "both" })}
               disabled={healMutation.isPending}
-              className="text-xs px-2 py-1 bg-[#1a1a20] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a] disabled:opacity-50"
+              className="text-xs px-2 py-1 bg-[#0a0a15] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a] disabled:opacity-50"
             >
               全部
             </button>
@@ -168,7 +168,7 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
           ) : (
             <div className="space-y-2 mt-2">
               {character.skills.map((skill) => (
-                <div key={skill.id} className="flex items-center justify-between p-2 bg-[#1a1a20]">
+                <div key={skill.id} className="flex items-center justify-between p-2 bg-[#0a0a15]">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{skill.icon}</span>
                     <div>

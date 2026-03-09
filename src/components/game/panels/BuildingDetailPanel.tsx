@@ -129,19 +129,19 @@ export default function BuildingDetailPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 固定头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-[#151518] border-b border-[#2a2a30] p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4 flex-shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-[#1a1a20] border-2 border-[#3a3a40] flex items-center justify-center text-4xl">
+              <div className="w-16 h-16 bg-[#050810] border border-[#2a3a4a] flex items-center justify-center text-4xl">
                 {building.icon}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <DialogTitle className="font-bold text-lg text-[#e0dcd0]">{building.name}</DialogTitle>
+                  <DialogTitle className="font-display font-bold text-lg text-[#e0dcd0]">{building.name}</DialogTitle>
                   <span className="text-xs px-2 py-0.5 bg-[#c9a227] text-[#000]">
                     Lv.{building.level}
                   </span>
@@ -158,7 +158,7 @@ export default function BuildingDetailPanel({
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
           </div>
         </DialogHeader>
 
@@ -166,12 +166,12 @@ export default function BuildingDetailPanel({
         <ScrollArea className="flex-1 min-h-0">
           <div className="text-[#e0dcd0]">
             {/* 描述 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/50">
               <p className="text-sm text-[#888] leading-relaxed">{building.description}</p>
             </div>
 
             {/* 等级进度 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/50">
               <SectionTitle>建筑等级</SectionTitle>
               <div className="mt-2">
                 <div className="flex items-center justify-between mb-1">
@@ -182,7 +182,7 @@ export default function BuildingDetailPanel({
                   {Array.from({ length: building.maxLevel }).map((_, i) => (
                     <div
                       key={i}
-                      className={`h-2 flex-1 ${i < building.level ? "bg-[#c9a227]" : "bg-[#2a2a30]"}`}
+                      className={`h-2 flex-1 ${i < building.level ? "bg-[#c9a227]" : "bg-[#2a3a4a]/40"}`}
                     />
                   ))}
                 </div>
@@ -190,11 +190,11 @@ export default function BuildingDetailPanel({
             </div>
 
             {/* 当前效果 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/50">
               <SectionTitle>当前效果</SectionTitle>
               <div className="mt-2 space-y-2">
                 {building.effects.map((effect, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 bg-[#1a1a20]">
+                  <div key={i} className="flex items-center justify-between p-2 bg-[#050810]">
                     <span className="text-sm text-[#888]">{effect.type}</span>
                     <span className="text-sm text-[#4a9] font-bold">{effect.value}</span>
                   </div>
@@ -206,7 +206,7 @@ export default function BuildingDetailPanel({
                 const output = building.dailyOutput;
                 if (!output || Object.keys(output).length === 0) return null;
                 return (
-                  <div className="mt-3 p-2 bg-[#1a1a20] border border-[#4a9]/30">
+                  <div className="mt-3 p-2 bg-[#050810] border border-[#4a9]/30">
                     <div className="text-xs text-[#4a9] mb-1">📦 每日产出</div>
                     <div className="flex gap-4">
                       {Object.entries(output).map(([resource, amount]) => (
@@ -226,7 +226,7 @@ export default function BuildingDetailPanel({
             </div>
 
             {/* 分配角色 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/50">
               <SectionTitle>分配角色</SectionTitle>
               <div className="mt-2">
                 {assignError && (
@@ -235,7 +235,7 @@ export default function BuildingDetailPanel({
                   </div>
                 )}
                 {assignedCharacter ? (
-                  <div className="flex items-center justify-between p-3 bg-[#1a1a20] border border-[#4a9]/30">
+                  <div className="flex items-center justify-between p-3 bg-[#050810] border border-[#4a9]/30">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{assignedCharacter.portrait}</span>
                       <div>
@@ -254,7 +254,7 @@ export default function BuildingDetailPanel({
                 ) : (
                   <button
                     onClick={() => setShowAssignDialog(true)}
-                    className="w-full p-3 border-2 border-dashed border-[#3a3a40] text-[#666] hover:border-[#c9a227] hover:text-[#c9a227]"
+                    className="w-full p-3 border-2 border-dashed border-[#2a3a4a] text-[#666] hover:border-[#c9a227] hover:text-[#c9a227]"
                   >
                     + 分配角色提升效率
                   </button>
@@ -264,7 +264,7 @@ export default function BuildingDetailPanel({
 
             {/* 地块属性 */}
             {tileAttributes && (
-              <div className="p-4 border-b border-[#2a2a30]">
+              <div className="p-4 border-b border-[#2a3a4a]/50">
                 <SectionTitle>地块属性</SectionTitle>
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   <TileStatBlock
@@ -290,7 +290,7 @@ export default function BuildingDetailPanel({
                   />
                 </div>
                 {tileAttributes.discovery && (
-                  <div className="mt-2 p-2 bg-[#1a1a20] border border-[#c9a227]/30">
+                  <div className="mt-2 p-2 bg-[#050810] border border-[#c9a227]/30">
                     <span className="text-xs text-[#c9a227]">✨ 发现: </span>
                     <span className="text-sm">{tileAttributes.discovery}</span>
                   </div>
@@ -300,7 +300,7 @@ export default function BuildingDetailPanel({
 
             {/* 升级信息 */}
             {canUpgrade && (
-              <div className="p-4 border-b border-[#2a2a30]">
+              <div className="p-4 border-b border-[#2a3a4a]/50">
                 <SectionTitle>升级到 Lv.{building.level + 1}</SectionTitle>
                 {upgradeError && (
                   <div className="mt-2 p-2 bg-red-900/30 border border-red-500/50 text-red-400 text-sm">
@@ -309,7 +309,7 @@ export default function BuildingDetailPanel({
                 )}
                 <div className="mt-2 space-y-2">
                   {/* 升级消耗 */}
-                  <div className="flex items-center justify-between p-2 bg-[#1a1a20]">
+                  <div className="flex items-center justify-between p-2 bg-[#050810]">
                     <span className="text-sm text-[#888]">消耗</span>
                     <div className="flex gap-3">
                       {building.upgradeCost.gold > 0 && (
@@ -337,7 +337,7 @@ export default function BuildingDetailPanel({
                   </div>
                   {/* 升级提示 */}
                   {!hasEnoughResources && (
-                    <div className="p-2 bg-[#1a1a20] border border-red-500/30 text-red-400 text-xs">
+                    <div className="p-2 bg-[#050810] border border-red-500/30 text-red-400 text-xs">
                       资源不足，无法升级
                     </div>
                   )}
@@ -356,7 +356,7 @@ export default function BuildingDetailPanel({
                   {upgradeMutation.isPending ? "升级中..." : "升级建筑"}
                 </button>
               ) : (
-                <div className="flex-1 py-2 text-center text-[#666] bg-[#1a1a20]">
+                <div className="flex-1 py-2 text-center text-[#666] bg-[#050810]">
                   已达最高等级
                 </div>
               )}
@@ -368,10 +368,10 @@ export default function BuildingDetailPanel({
             {/* 角色分配对话框 */}
             {showAssignDialog && (
               <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAssignDialog(false)}>
-                <div className="bg-[#101014] border-2 border-[#c9a227] p-4 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                <div className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-4 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[#c9a227] font-bold">选择角色</span>
-                    <button onClick={() => setShowAssignDialog(false)} className="text-[#666] hover:text-[#c9a227]">✕</button>
+                    <span className="font-display text-[#c9a227]">选择角色</span>
+                    <button onClick={() => setShowAssignDialog(false)} className="text-[#5a6a7a] hover:text-[#c9a227]">✕</button>
                   </div>
                   {assignError && (
                     <div className="mb-3 p-2 bg-red-900/30 border border-red-500/50 text-red-400 text-sm">
@@ -391,7 +391,7 @@ export default function BuildingDetailPanel({
                           key={char.id}
                           onClick={() => handleAssignCharacter(char.id)}
                           disabled={assignMutation.isPending}
-                          className="w-full flex items-center gap-3 p-3 bg-[#1a1a20] hover:bg-[#222228] disabled:opacity-50"
+                          className="w-full flex items-center gap-3 p-3 bg-[#050810] hover:bg-[#0a0a15] disabled:opacity-50"
                         >
                           <span className="text-2xl">{char.portrait}</span>
                           <div className="flex-1 text-left">
@@ -443,7 +443,7 @@ function TileStatBlock({ icon, label, value, max, color }: {
   color: string;
 }) {
   return (
-    <div className="bg-[#1a1a20] p-2 text-center">
+    <div className="bg-[#050810] p-2 text-center">
       <div className="text-lg">{icon}</div>
       <div className="text-xs text-[#888]">{label}</div>
       <div className="flex justify-center gap-0.5 mt-1">

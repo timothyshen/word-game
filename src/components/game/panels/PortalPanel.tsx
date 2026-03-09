@@ -69,7 +69,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -79,37 +79,33 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#4a9eff] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#101420] to-[#101014] border-b border-[#4a9eff]/50 p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#4a9eff] flex items-center justify-center text-3xl">
-                🌀
-              </div>
-              <div>
-                <div className="text-[#4a9eff] text-xs uppercase tracking-wider">传送门</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  位面旅行
-                </DialogTitle>
-              </div>
+            <div>
+              <DialogTitle className="font-display text-xl text-[#e0dcd0]">
+                位面旅行
+              </DialogTitle>
+              <div className="font-game-serif text-[#4a9eff] text-xs tracking-wider mt-1">传送门</div>
             </div>
             <div className="flex items-center gap-4">
               {currentWorld && (
-                <div className="text-sm">
+                <div className="text-sm font-game-serif">
                   当前位面: <span className="text-[#4a9eff]">{currentWorld.icon} {currentWorld.name}</span>
                 </div>
               )}
-              <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+              <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
             </div>
           </div>
+          <div className="h-px bg-gradient-to-r from-[#4a9eff]/40 to-transparent mt-3" />
         </DialogHeader>
 
         {/* 战斗结果 */}
         {battleResult && (
-          <div className={`p-4 ${battleResult.victory ? "bg-[#1a3a1a]" : "bg-[#3a1a1a]"} border-b border-[#2a2a30]`}>
+          <div className={`p-4 ${battleResult.victory ? "bg-[#1a3a1a]" : "bg-[#3a1a1a]"} border-b border-[#2a3a4a]`}>
             <div className={`text-center text-lg font-bold mb-2 ${battleResult.victory ? "text-[#4a9]" : "text-[#e74c3c]"}`}>
               {battleResult.victory ? "🎉 胜利!" : "💀 失败"}
             </div>
@@ -123,7 +119,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
             )}
             <button
               onClick={() => setBattleResult(null)}
-              className="mt-3 w-full py-2 bg-[#2a2a30] text-[#888] hover:text-[#e0dcd0]"
+              className="mt-3 w-full py-2 bg-[#1a2030] text-[#888] hover:text-[#e0dcd0]"
             >
               确定
             </button>
@@ -141,12 +137,12 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
                     key={world.id}
                     className={`p-4 border transition-colors ${
                       !world.isUnlocked
-                        ? "border-[#2a2a30] bg-[#0a0a0c] opacity-50"
+                        ? "border-[#2a3a4a] bg-[#050810] opacity-50"
                         : world.isCurrent
                         ? "border-[#4a9eff] bg-[#4a9eff]/10"
                         : selectedWorldId === world.id
                         ? "border-[#c9a227] bg-[#c9a227]/10"
-                        : "border-[#2a2a30] bg-[#1a1a20] hover:border-[#3a3a40] cursor-pointer"
+                        : "border-[#2a3a4a] bg-[#0a0f18] hover:border-[#3d4a5a] cursor-pointer"
                     }`}
                     onClick={() => {
                       if (world.isUnlocked && !world.isCurrent) {
@@ -171,7 +167,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
                     <div className="text-sm text-[#888] mt-2">{world.description}</div>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {world.features.map((feature, i) => (
-                        <span key={i} className="text-xs px-1.5 py-0.5 bg-[#2a2a30] text-[#666]">
+                        <span key={i} className="text-xs px-1.5 py-0.5 bg-[#1a2030] text-[#5a6a7a]">
                           {feature}
                         </span>
                       ))}
@@ -214,7 +210,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
                   {worldResources.map((resource) => (
                     <div
                       key={resource.id}
-                      className="p-3 border border-[#2a2a30] bg-[#1a1a20]"
+                      className="p-3 border border-[#2a3a4a] bg-[#0a0f18]"
                     >
                       <div className="flex items-center gap-2">
                         <div className="text-xl">{resource.icon}</div>
@@ -223,12 +219,12 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
                           <div className="text-xs text-[#888]">{resource.type}</div>
                         </div>
                         {resource.remainingUses !== null && (
-                          <div className="text-xs text-[#666]">
+                          <div className="text-xs text-[#5a6a7a]">
                             剩余 {resource.remainingUses}
                           </div>
                         )}
                       </div>
-                      <div className="text-xs text-[#666] mt-1">{resource.description}</div>
+                      <div className="text-xs text-[#5a6a7a] mt-1">{resource.description}</div>
                     </div>
                   ))}
                 </div>
@@ -243,7 +239,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
                   {portals.map((portal) => (
                     <div
                       key={portal.id}
-                      className="p-4 border border-[#2a2a30] bg-[#1a1a20]"
+                      className="p-4 border border-[#2a3a4a] bg-[#0a0f18]"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -288,7 +284,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
 
             {/* 无传送门时的提示 */}
             {(!portals || portals.length === 0) && (
-              <div className="text-center py-8 text-[#666]">
+              <div className="text-center py-8 text-[#5a6a7a]">
                 <div className="text-3xl mb-2">🌀</div>
                 <div>尚未发现传送门</div>
                 <div className="text-xs mt-1">在探索中可能发现传送门</div>
@@ -315,7 +311,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
         )}
 
         {/* 底部提示 */}
-        <div className="p-3 bg-[#151518] border-t border-[#2a2a30] text-xs text-[#666] text-center">
+        <div className="p-3 bg-[#050810] border-t border-[#2a3a4a] text-xs text-[#5a6a7a] text-center">
           💡 不同位面有独特的资源和怪物
         </div>
       </DialogContent>

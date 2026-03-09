@@ -59,7 +59,7 @@ export default function ProfessionPanel({ onClose }: ProfessionPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -69,25 +69,18 @@ export default function ProfessionPanel({ onClose }: ProfessionPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#4a9] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#101a14] to-[#101014] border-b border-[#4a9]/50 p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#4a9] flex items-center justify-center text-3xl">
-                📚
-              </div>
-              <div>
-                <div className="text-[#4a9] text-xs uppercase tracking-wider">职业</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  职业系统
-                </DialogTitle>
-              </div>
-            </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+            <DialogTitle className="font-display text-xl text-[#e0dcd0]">
+              职业系统
+            </DialogTitle>
+            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
           </div>
+          <div className="h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent mt-2" />
         </DialogHeader>
 
         {/* 标签页 */}
@@ -324,7 +317,7 @@ export default function ProfessionPanel({ onClose }: ProfessionPanelProps) {
         </ScrollArea>
 
         {/* 底部提示 */}
-        <div className="p-3 bg-[#151518] border-t border-[#2a2a30] text-xs text-[#666] text-center">
+        <div className="p-3 bg-[#050810] border-t border-[#2a3a4a] text-xs text-[#5a6a7a] text-center">
           💡 职业一旦选择无法更改，请谨慎选择
         </div>
       </DialogContent>

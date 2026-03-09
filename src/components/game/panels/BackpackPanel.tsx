@@ -97,7 +97,7 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -107,28 +107,25 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-3xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-3xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#1a1810] to-[#101014] border-b border-[#c9a227]/50 p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#c9a227] flex items-center justify-center text-3xl">
-                🎒
-              </div>
               <div>
-                <div className="text-[#c9a227] text-xs uppercase tracking-wider">卡牌背包</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
+                <DialogTitle className="font-display text-xl text-[#e0dcd0]">
                   我的收藏
                 </DialogTitle>
+                <div className="font-game-serif text-[#5a6a7a] text-xs tracking-wider">卡牌背包</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-sm text-[#888]">
                 共 <span className="text-[#c9a227] font-bold">{cardCounts.all}</span> 张卡牌
               </div>
-              <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+              <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
             </div>
           </div>
         </DialogHeader>
@@ -211,12 +208,12 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
         {/* 卡牌详情弹窗 */}
         {selectedCard && (
           <Dialog open={true} onOpenChange={() => setSelectedCard(null)}>
-            <DialogContent className="bg-[#101014] border-2 p-0 max-w-md" style={{ borderColor: RARITY_COLORS[selectedCard.rarity] }} showCloseButton={false}>
+            <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-md" showCloseButton={false}>
               <DialogHeader className="p-4 border-b border-[#2a2a30]">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-16 h-16 bg-[#1a1a20] border-2 flex items-center justify-center text-4xl"
-                    style={{ borderColor: RARITY_COLORS[selectedCard.rarity] }}
+                    className="w-16 h-16 bg-[#0a0a15] border flex items-center justify-center text-4xl"
+                    style={{ borderColor: (RARITY_COLORS[selectedCard.rarity] ?? "#888") + "4D" }}
                   >
                     {selectedCard.icon}
                   </div>
@@ -283,8 +280,8 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
         {/* 宝箱开启结果 */}
         {chestResult && (
           <Dialog open={true} onOpenChange={() => setChestResult(null)}>
-            <DialogContent className="bg-[#0a0a15]/95 border-2 border-[#c9a227] p-0 max-w-md" showCloseButton={false}>
-              <DialogHeader className="p-4 border-b border-[#c9a227]/30">
+            <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-md" showCloseButton={false}>
+              <DialogHeader className="p-4 border-b border-[#2a3a4a]">
                 <DialogTitle className="text-[#c9a227] font-bold text-lg text-center">
                   {chestResult.chestName} 开启结果
                 </DialogTitle>

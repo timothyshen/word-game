@@ -54,7 +54,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
   if (playerLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -64,35 +64,31 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#9b59b6] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#9b59b6]/30 p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#1a101a] to-[#101014] border-b border-[#9b59b6]/50 p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#9b59b6]/20 p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#9b59b6] flex items-center justify-center text-3xl">
-                ⬆️
-              </div>
-              <div>
-                <div className="text-[#9b59b6] text-xs uppercase tracking-wider">突破</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  阶位提升
-                </DialogTitle>
-              </div>
+            <div>
+              <DialogTitle className="font-display text-xl text-[#e0dcd0]">
+                阶位提升
+              </DialogTitle>
+              <div className="font-game-serif text-[#9b59b6] text-xs tracking-wider mt-1">突破</div>
             </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
           </div>
+          <div className="h-px bg-gradient-to-r from-[#9b59b6]/40 to-transparent mt-3" />
         </DialogHeader>
 
         {/* 标签页 */}
-        <div className="flex border-b border-[#2a2a30]">
+        <div className="flex border-b border-[#2a3a4a]">
           <button
             onClick={() => setActiveTab("player")}
             className={`flex-1 py-3 text-center transition-colors ${
               activeTab === "player"
-                ? "bg-[#9b59b6]/20 text-[#9b59b6] border-b-2 border-[#9b59b6]"
-                : "text-[#666] hover:text-[#888]"
+                ? "bg-[#9b59b6]/20 text-[#9b59b6] border-b border-[#9b59b6]"
+                : "text-[#5a6a7a] hover:text-[#888]"
             }`}
           >
             👤 领主突破
@@ -101,8 +97,8 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
             onClick={() => setActiveTab("character")}
             className={`flex-1 py-3 text-center transition-colors ${
               activeTab === "character"
-                ? "bg-[#9b59b6]/20 text-[#9b59b6] border-b-2 border-[#9b59b6]"
-                : "text-[#666] hover:text-[#888]"
+                ? "bg-[#9b59b6]/20 text-[#9b59b6] border-b border-[#9b59b6]"
+                : "text-[#5a6a7a] hover:text-[#888]"
             }`}
           >
             🧙 角色突破
@@ -130,7 +126,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
             ) : (
               <>
                 {/* 突破条件 */}
-                <div className="bg-[#1a1a20] p-4 border border-[#2a2a30] mb-4">
+                <div className="bg-[#0a0f18] p-4 border border-[#2a3a4a] mb-4">
                   <div className="text-[#9b59b6] text-sm font-bold mb-3">
                     突破到 {playerStatus.currentTier + 1}阶 条件
                   </div>
@@ -159,7 +155,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
                 </div>
 
                 {/* 突破收益 */}
-                <div className="bg-[#1a1a20] p-4 border border-[#2a2a30] mb-4">
+                <div className="bg-[#0a0f18] p-4 border border-[#2a3a4a] mb-4">
                   <div className="text-[#4a9] text-sm font-bold mb-2">突破收益</div>
                   <div className="text-sm text-[#888]">
                     <div>• 技能槽位增加到 {playerStatus.nextTierSlots} 个</div>
@@ -175,7 +171,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
                   className={`w-full py-3 font-bold ${
                     playerStatus.canBreakthrough
                       ? "bg-[#9b59b6] text-[#fff] hover:bg-[#8e44ad] animate-attention"
-                      : "bg-[#2a2a30] text-[#444] cursor-not-allowed"
+                      : "bg-[#1a2030] text-[#444] cursor-not-allowed"
                   } disabled:opacity-50`}
                 >
                   {playerBreakthroughMutation.isPending ? "突破中..." : "立即突破"}
@@ -212,7 +208,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
                       className={`p-2 border text-center ${
                         selectedCharacterId === char.id
                           ? "border-[#9b59b6] bg-[#9b59b6]/10"
-                          : "border-[#2a2a30] bg-[#1a1a20] hover:border-[#3a3a40]"
+                          : "border-[#2a3a4a] bg-[#0a0f18] hover:border-[#3d4a5a]"
                       }`}
                     >
                       <div className="text-2xl">{char.icon}</div>
@@ -225,7 +221,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
 
               {/* 选中角色的突破信息 */}
               {selectedCharacterId && characterStatus && (
-                <div className="border-t border-[#2a2a30] pt-4">
+                <div className="border-t border-[#2a3a4a] pt-4">
                   <div className="text-center mb-4">
                     <div className="text-[#c9a227] font-bold">{characterStatus.characterName}</div>
                     <div className="text-sm text-[#888]">当前 {characterStatus.currentTier}阶</div>
@@ -237,7 +233,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
                     </div>
                   ) : (
                     <>
-                      <div className="bg-[#1a1a20] p-4 border border-[#2a2a30] mb-4">
+                      <div className="bg-[#0a0f18] p-4 border border-[#2a3a4a] mb-4">
                         <div className="text-[#9b59b6] text-sm font-bold mb-3">
                           突破到 {characterStatus.currentTier + 1}阶 条件
                         </div>
@@ -271,7 +267,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
                         className={`w-full py-3 font-bold ${
                           characterStatus.canBreakthrough
                             ? "bg-[#9b59b6] text-[#fff] hover:bg-[#8e44ad]"
-                            : "bg-[#2a2a30] text-[#444] cursor-not-allowed"
+                            : "bg-[#1a2030] text-[#444] cursor-not-allowed"
                         } disabled:opacity-50`}
                       >
                         {characterBreakthroughMutation.isPending ? "突破中..." : "角色突破"}
@@ -293,7 +289,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
               )}
 
               {!selectedCharacterId && (
-                <div className="text-center py-8 text-[#666]">
+                <div className="text-center py-8 text-[#5a6a7a]">
                   请选择要突破的角色
                 </div>
               )}

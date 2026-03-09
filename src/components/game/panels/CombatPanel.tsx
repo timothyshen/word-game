@@ -109,7 +109,7 @@ export default function CombatPanel({
   if (startMutation.isPending) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">进入战斗...</div>
         </DialogContent>
       </Dialog>
@@ -119,13 +119,13 @@ export default function CombatPanel({
   if (startMutation.isError) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#e74c3c]">
             {startMutation.error.message}
           </div>
           <button
             onClick={onClose}
-            className="mt-4 w-full py-2 border border-[#666] text-[#888] hover:border-[#c9a227]"
+            className="mt-4 w-full py-2 border border-[#2a3a4a] text-[#888] hover:border-[#c9a227]"
           >
             返回
           </button>
@@ -152,25 +152,20 @@ export default function CombatPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#e74c3c] p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#e74c3c]/30 p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#1a1010] to-[#101014] border-b border-[#e74c3c]/50 p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#e74c3c]/20 p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#e74c3c] flex items-center justify-center text-3xl">
-                ⚔️
-              </div>
-              <div>
-                <div className="text-[#e74c3c] text-xs uppercase tracking-wider">战斗</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  回合 {turn}
-                </DialogTitle>
-              </div>
+            <div>
+              <DialogTitle className="font-display text-lg text-[#e0dcd0]">
+                战斗 · 回合 {turn}
+              </DialogTitle>
+              <div className="h-px bg-gradient-to-r from-[#e74c3c]/40 to-transparent mt-1" />
             </div>
             {status !== "ongoing" && (
-              <button onClick={handleClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+              <button onClick={handleClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
             )}
           </div>
         </DialogHeader>
@@ -178,10 +173,10 @@ export default function CombatPanel({
         {/* 战斗区域 */}
         <div className="flex-1 min-h-0 flex flex-col">
           {/* 怪物状态 */}
-          <div className="p-4 border-b border-[#2a2a30] bg-[#151518]">
+          <div className="p-4 border-b border-[#2a3a4a]/50 bg-[#050810]/80">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-[#1a1a20] border-2 border-[#e74c3c] flex items-center justify-center text-4xl">
+                <div className="w-16 h-16 bg-[#0a0a15] border border-[#e74c3c]/30 flex items-center justify-center text-4xl">
                   {monster?.icon ?? "👹"}
                 </div>
                 <div>
@@ -226,10 +221,10 @@ export default function CombatPanel({
           </ScrollArea>
 
           {/* 玩家状态 */}
-          <div className="p-4 border-t border-[#2a2a30] bg-[#151518]">
+          <div className="p-4 border-t border-[#2a3a4a]/50 bg-[#050810]/80">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#4a9] flex items-center justify-center text-2xl">
+                <div className="w-12 h-12 bg-[#0a0a15] border border-[#4a9]/30 flex items-center justify-center text-2xl">
                   🧙
                 </div>
                 <div>

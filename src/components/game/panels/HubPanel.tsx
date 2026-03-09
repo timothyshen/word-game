@@ -37,39 +37,32 @@ export default function HubPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-6xl h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="bg-[#0a0a15]/95 backdrop-blur-sm border border-[#2a3a4a] p-0 max-w-6xl h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-[#1a1810] to-[#101014] border-b border-[#c9a227]/50 p-4">
+        <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#c9a227] flex items-center justify-center text-3xl">
-                {icon}
-              </div>
-              <div>
-                <div className="text-[#c9a227] text-xs uppercase tracking-wider">Hub</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  {title}
-                </DialogTitle>
-              </div>
-            </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">
+            <DialogTitle className="font-display text-xl text-[#e0dcd0]">
+              {title}
+            </DialogTitle>
+            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl transition-colors">
               ✕
             </button>
           </div>
+          <div className="h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent mt-2" />
         </DialogHeader>
 
         {/* 标签页导航 */}
-        <div className="flex-shrink-0 flex border-b border-[#2a2a30] bg-[#0a0a0c] overflow-x-auto hide-scrollbar">
+        <div className="flex-shrink-0 flex border-b border-[#2a3a4a] bg-[#050810] overflow-x-auto hide-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? "border-[#c9a227] text-[#c9a227] bg-[#1a1810]"
-                  : "border-transparent text-[#888] hover:text-[#e0dcd0] hover:bg-[#151518]"
+                  ? "border-[#c9a227] text-[#c9a227] bg-[#0a0a15]"
+                  : "border-transparent text-[#5a6a7a] hover:text-[#e0dcd0] hover:bg-[#0a0a15]/50"
               }`}
             >
               <span>{tab.icon}</span>

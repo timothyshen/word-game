@@ -29,8 +29,9 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
-          <div className="text-center text-[#888]">加载中...</div>
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+          <div className="text-center font-display text-[#c9a227] text-lg mb-2">经济发展</div>
+          <div className="text-center text-[#5a6a7a] font-game-serif">加载中...</div>
         </DialogContent>
       </Dialog>
     );
@@ -47,30 +48,26 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 固定头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-[#151518] border-b border-[#2a2a30] p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] p-4 flex-shrink-0">
           <div className="flex items-start justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#4a9] flex items-center justify-center text-3xl">
-                📊
-              </div>
-              <div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">经济发展</DialogTitle>
-                <div className="text-sm text-[#888]">领地资源与生产管理</div>
-              </div>
+            <div>
+              <div className="text-xs tracking-[0.2em] uppercase text-[#5a6a7a]">领地资源与生产管理</div>
+              <DialogTitle className="font-display text-2xl mt-1 text-[#e0dcd0]">经济发展</DialogTitle>
             </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
           </div>
+          <div className="mt-3 h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent" />
         </DialogHeader>
 
         {/* 可滚动内容 */}
         <div className="flex-1 min-h-0 overflow-y-auto hide-scrollbar">
           <div className="text-[#e0dcd0]">
             {/* 当前资源 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/30">
               <SectionTitle>当前资源</SectionTitle>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
                 <ResourceBlock icon="🪙" label="金币" value={player?.gold ?? 0} color="#c9a227" />
@@ -82,11 +79,11 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
             </div>
 
             {/* 日产出统计 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/30">
               <SectionTitle>日产出统计</SectionTitle>
               <div className="mt-2 space-y-2">
                 {/* 收入 */}
-                <div className="p-3 bg-[#1a1a20] border-l-2 border-[#4a9]">
+                <div className="p-3 bg-[#0d1020]/60 border-l-2 border-[#4a9]">
                   <div className="text-xs text-[#4a9] mb-2">📈 收入</div>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     <IncomeItem icon="🪙" value={totalOutput.gold ?? 0} />
@@ -98,7 +95,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
                 </div>
 
                 {/* 支出 */}
-                <div className="p-3 bg-[#1a1a20] border-l-2 border-[#e74c3c]">
+                <div className="p-3 bg-[#0d1020]/60 border-l-2 border-[#e74c3c]">
                   <div className="text-xs text-[#e74c3c] mb-2">📉 支出</div>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     <ExpenseItem icon="🪙" value={0} />
@@ -113,7 +110,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
                 </div>
 
                 {/* 净收入 */}
-                <div className="p-3 bg-[#1a1a20] border-l-2 border-[#c9a227]">
+                <div className="p-3 bg-[#0d1020]/60 border-l-2 border-[#c9a227]">
                   <div className="text-xs text-[#c9a227] mb-2">💰 净收入</div>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     <NetItem icon="🪙" value={netOutput.gold ?? 0} />
@@ -127,16 +124,16 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
             </div>
 
             {/* 生产设施 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/30">
               <SectionTitle>生产设施</SectionTitle>
               <div className="mt-2 space-y-2">
                 {productionFacilities.length === 0 ? (
                   <div className="text-center text-[#666] py-4">暂无生产设施</div>
                 ) : (
                   productionFacilities.map((facility, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-[#1a1a20]">
+                    <div key={i} className="flex items-center justify-between p-3 bg-[#0d1020]/60">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-[#2a2a30] flex items-center justify-center text-lg">
+                        <div className="w-8 h-8 bg-[#050810] flex items-center justify-center text-lg">
                           {facility.icon ?? "🏠"}
                         </div>
                         <div>
@@ -175,11 +172,11 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
             </div>
 
             {/* 所有建筑 */}
-            <div className="p-4 border-b border-[#2a2a30]">
+            <div className="p-4 border-b border-[#2a3a4a]/30">
               <SectionTitle>所有建筑 ({buildings?.length ?? 0})</SectionTitle>
               <div className="mt-2 space-y-2">
                 {buildings?.map((b) => (
-                  <div key={b.id} className="flex items-center justify-between p-2 bg-[#1a1a20] text-sm">
+                  <div key={b.id} className="flex items-center justify-between p-2 bg-[#0d1020]/60 text-sm">
                     <div className="flex items-center gap-2">
                       <span>{b.building.icon}</span>
                       <span>{b.building.name}</span>
@@ -197,7 +194,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
             <div className="p-4">
               <button
                 onClick={onClose}
-                className="w-full py-2 border border-[#666] text-[#888] hover:border-[#c9a227] hover:text-[#c9a227]"
+                className="w-full py-2 border border-[#2a3a4a] text-[#5a6a7a] hover:border-[#c9a227]/40 hover:text-[#c9a227]"
               >
                 关闭
               </button>
@@ -216,7 +213,7 @@ const ResourceBlock = memo(function ResourceBlock({ icon, label, value, color }:
   color: string;
 }) {
   return (
-    <div className="bg-[#1a1a20] p-2 text-center">
+    <div className="bg-[#0d1020]/60 p-2 text-center">
       <div className="text-lg">{icon}</div>
       <div className="text-xs text-[#888]">{label}</div>
       <div className="font-bold" style={{ color }}>{value.toLocaleString()}</div>

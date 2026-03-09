@@ -48,7 +48,7 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#101014] border-2 border-[#c9a227] p-8">
+        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -64,40 +64,35 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#101014] border-2 border-[#c9a227] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
+        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#1a1810] to-[#101014] border-b border-[#c9a227]/50 p-4 flex-shrink-0">
+        <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#1a1a20] border-2 border-[#c9a227] flex items-center justify-center text-3xl">
-                📜
-              </div>
-              <div>
-                <div className="text-[#c9a227] text-xs uppercase tracking-wider">剧情</div>
-                <DialogTitle className="font-bold text-lg text-[#e0dcd0]">
-                  {selectedChapterId ? "阅读剧情" : "故事档案"}
-                </DialogTitle>
-              </div>
+            <div>
+              <DialogTitle className="font-display text-lg text-[#e0dcd0]">
+                {selectedChapterId ? "阅读剧情" : "故事档案"}
+              </DialogTitle>
+              <div className="h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent mt-1" />
             </div>
             <div className="flex items-center gap-2">
               {selectedChapterId && (
                 <button
                   onClick={() => setSelectedChapterId(null)}
-                  className="text-sm text-[#888] hover:text-[#c9a227] px-2"
+                  className="text-sm text-[#5a6a7a] hover:text-[#c9a227] px-2"
                 >
                   返回
                 </button>
               )}
-              <button onClick={onClose} className="text-[#666] hover:text-[#c9a227] text-xl">✕</button>
+              <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
             </div>
           </div>
         </DialogHeader>
 
         {/* 奖励弹窗 */}
         {showRewards && (
-          <div className="p-4 bg-[#1a3a1a] border-b border-[#4a9]/30">
+          <div className="p-4 bg-[#1a3a1a]/50 border-b border-[#4a9]/20">
             <div className="text-center">
               <div className="text-lg font-bold text-[#4a9] mb-2">🎉 章节完成!</div>
               <div className="flex items-center justify-center gap-4 text-sm">
@@ -124,8 +119,8 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
                   key={chapter.id}
                   className={`p-4 border transition-colors cursor-pointer ${
                     chapter.isCompleted
-                      ? "border-[#4a9]/50 bg-[#1a3a1a]/20"
-                      : "border-[#2a2a30] bg-[#1a1a20] hover:border-[#c9a227]"
+                      ? "border-[#4a9]/30 bg-[#1a3a1a]/10"
+                      : "border-[#2a3a4a] bg-[#0a0a15] hover:border-[#3d3529]"
                   }`}
                   onClick={() => !chapter.isCompleted && setSelectedChapterId(chapter.id)}
                 >
@@ -174,7 +169,7 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
                   <div className="text-[#4a9] font-bold">章节已完成</div>
                   <button
                     onClick={() => setSelectedChapterId(null)}
-                    className="mt-4 px-4 py-2 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a]"
+                    className="mt-4 px-4 py-2 border border-[#c9a227]/20 text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a]"
                   >
                     返回章节列表
                   </button>
@@ -184,7 +179,7 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
                   {/* 进度 */}
                   <div className="flex items-center justify-between text-xs text-[#666]">
                     <span>进度: {currentNode.progress}/{currentNode.totalNodes}</span>
-                    <div className="w-32 h-1 bg-[#2a2a30]">
+                    <div className="w-32 h-1 bg-[#2a3a4a]">
                       <div
                         className="h-full bg-[#c9a227]"
                         style={{ width: `${((currentNode.progress ?? 0) / (currentNode.totalNodes ?? 1)) * 100}%` }}
@@ -193,14 +188,14 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
                   </div>
 
                   {/* 节点内容 */}
-                  <div className="bg-[#1a1a20] p-4 border border-[#2a2a30]">
+                  <div className="bg-[#050810] p-4 border border-[#2a3a4a]">
                     {/* 标题 */}
                     <div className="text-[#c9a227] font-bold mb-3">{currentNode.node.title}</div>
 
                     {/* 说话者 */}
                     {currentNode.node.speaker && (
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="w-10 h-10 bg-[#2a2a30] flex items-center justify-center text-xl">
+                        <div className="w-10 h-10 bg-[#0a0a15] border border-[#2a3a4a] flex items-center justify-center text-xl">
                           {currentNode.node.speakerIcon ?? "👤"}
                         </div>
                         <span className="text-[#4a9]">{currentNode.node.speaker}</span>
@@ -208,7 +203,7 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
                     )}
 
                     {/* 内容 */}
-                    <div className="text-[#e0dcd0] leading-relaxed whitespace-pre-wrap">
+                    <div className="font-game-serif text-[#e0dcd0] leading-relaxed whitespace-pre-wrap">
                       {currentNode.node.content}
                     </div>
                   </div>
@@ -224,7 +219,7 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
                             choiceIndex: index,
                           })}
                           disabled={advanceMutation.isPending}
-                          className="w-full p-3 text-left border border-[#2a2a30] bg-[#1a1a20] hover:border-[#c9a227] hover:bg-[#1a1810] transition-colors disabled:opacity-50"
+                          className="w-full p-3 text-left border border-[#2a3a4a] bg-[#0a0a15] hover:border-[#c9a227]/40 hover:bg-[#050810] transition-colors disabled:opacity-50"
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-[#c9a227]">▸</span>
@@ -262,14 +257,14 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
 
         {/* 操作反馈 */}
         {advanceMutation.error && (
-          <div className="p-3 bg-[#3a1a1a] border-t border-[#e74c3c]/30 text-sm text-[#e74c3c] text-center">
+          <div className="p-3 bg-[#3a1a1a]/50 border-t border-[#e74c3c]/20 text-sm text-[#e74c3c] text-center">
             {advanceMutation.error.message}
           </div>
         )}
 
         {/* 底部提示 */}
-        <div className="p-3 bg-[#151518] border-t border-[#2a2a30] text-xs text-[#666] text-center">
-          💡 完成剧情可获得丰厚奖励
+        <div className="p-3 bg-[#050810] border-t border-[#2a3a4a] text-xs text-[#5a6a7a] text-center">
+          完成剧情可获得丰厚奖励
         </div>
       </DialogContent>
     </Dialog>
