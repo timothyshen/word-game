@@ -161,7 +161,6 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
           <div className="p-4">
             {(!filteredCards || filteredCards.length === 0) ? (
               <div className="text-center py-12">
-                <div className="text-4xl mb-4">📭</div>
                 <div className="text-[#888]">暂无卡牌</div>
                 <div className="text-sm text-[#666] mt-2">
                   通过探索、祭坛或商店获取卡牌

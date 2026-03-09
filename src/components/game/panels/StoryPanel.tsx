@@ -94,7 +94,7 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
         {showRewards && (
           <div className="p-4 bg-[#1a3a1a]/50 border-b border-[#4a9]/20">
             <div className="text-center">
-              <div className="text-lg font-bold text-[#4a9] mb-2">🎉 章节完成!</div>
+              <div className="text-lg font-bold text-[#4a9] mb-2">章节完成!</div>
               <div className="flex items-center justify-center gap-4 text-sm">
                 {showRewards.gold && <span className="text-[#c9a227]">🪙 {showRewards.gold}</span>}
                 {showRewards.crystals && <span className="text-[#9b59b6]">💎 {showRewards.crystals}</span>}
@@ -153,7 +153,6 @@ export default function StoryPanel({ onClose }: StoryPanelProps) {
 
               {chapters?.length === 0 && (
                 <div className="text-center py-12 text-[#666]">
-                  <div className="text-4xl mb-4">📜</div>
                   <div>暂无剧情章节</div>
                 </div>
               )}

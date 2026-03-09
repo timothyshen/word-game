@@ -89,7 +89,6 @@ function BackpackTab() {
         <div className="p-4">
           {filteredCards.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-4xl mb-4">📭</div>
               <div className="text-[#888]">暂无卡牌</div>
             </div>
           ) : (
@@ -177,7 +176,6 @@ function AltarTab() {
         {/* 祭坛列表 */}
         {!altars || altars.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-4">🗿</div>
             <div className="text-[#888]">暂未发现祭坛</div>
             <div className="text-xs text-[#666] mt-1">探索野外可发现祭坛</div>
           </div>
@@ -232,12 +230,12 @@ function AltarTab() {
         {/* 操作反馈 */}
         {collectMutation.isSuccess && collectMutation.data && (
           <div className="mt-4 p-3 bg-[#1a3a1a] border border-[#4a9]/30 text-sm text-[#4a9]">
-            🎴 获得 {collectMutation.data.card.rarity} 卡牌: {collectMutation.data.card.name}
+            获得 {collectMutation.data.card.rarity} 卡牌: {collectMutation.data.card.name}
           </div>
         )}
         {collectAllMutation.isSuccess && collectAllMutation.data && (
           <div className="mt-4 p-3 bg-[#1a3a1a] border border-[#4a9]/30 text-sm text-[#4a9]">
-            🎴 收集了 {collectAllMutation.data.collectedCount} 张卡牌
+            收集了 {collectAllMutation.data.collectedCount} 张卡牌
           </div>
         )}
         {challengeMutation.isSuccess && challengeMutation.data && (
@@ -362,7 +360,6 @@ function ShopTab() {
                 <div className="text-center py-12 text-[#888]">加载中...</div>
               ) : items.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-4xl mb-4">🏪</div>
                   <div className="text-[#888]">暂无商品</div>
                 </div>
               ) : (
@@ -438,7 +435,6 @@ function ShopTab() {
             <div className="p-4">
               {sellableCards.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-4xl mb-4">📭</div>
                   <div className="text-[#888]">暂无可出售物品</div>
                 </div>
               ) : (

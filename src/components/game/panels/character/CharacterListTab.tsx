@@ -21,7 +21,6 @@ export default function CharacterListTab({
       <div className="p-4">
         {characters.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-4">👤</div>
             <div className="text-[#888]">暂无角色</div>
             <div className="text-xs text-[#666] mt-1">使用招募卡获得角色</div>
           </div>

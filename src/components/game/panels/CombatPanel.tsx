@@ -299,9 +299,9 @@ export default function CombatPanel({
                     status === "victory" ? "text-[#4a9]" : status === "fled" ? "text-[#c9a227]" : "text-[#e74c3c]"
                   }`}
                 >
-                  {status === "victory" && "🎉 战斗胜利！"}
-                  {status === "defeat" && "💀 战斗失败..."}
-                  {status === "fled" && "🏃 成功逃跑"}
+                  {status === "victory" && "战斗胜利！"}
+                  {status === "defeat" && "战斗失败..."}
+                  {status === "fled" && "成功逃跑"}
                 </div>
                 <button
                   onClick={handleClose}

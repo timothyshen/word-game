@@ -99,7 +99,6 @@ export function GuidancePanel({ hints, onClose, onHintClick }: GuidancePanelProp
 
           {hints.length === 0 && (
             <div className="text-center py-12 text-[#5a6a7a]">
-              <div className="text-4xl mb-2">✨</div>
               <div className="text-sm">一切就绪，自由探索吧！</div>
             </div>
           )}

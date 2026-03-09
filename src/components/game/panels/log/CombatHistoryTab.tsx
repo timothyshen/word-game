@@ -146,7 +146,7 @@ export default function CombatHistoryTab({ onResumeCombat }: CombatHistoryTabPro
 
       {/* 底部提示 */}
       <div className="flex-shrink-0 p-3 bg-[#0a0a0c] border-t border-[#2a2a30] text-xs text-[#666] text-center">
-        💡 击败强敌可获得稀有卡牌奖励
+        击败强敌可获得稀有卡牌奖励
       </div>
     </div>
   );

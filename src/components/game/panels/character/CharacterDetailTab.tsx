@@ -162,7 +162,6 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
           <SectionTitle>技能 ({character.skills.length}/{character.skillSlots})</SectionTitle>
           {character.skills.length === 0 ? (
             <div className="mt-2 text-center py-4 text-[#666]">
-              <div className="text-2xl mb-2">📖</div>
               <div className="text-sm">暂无技能</div>
             </div>
           ) : (

@@ -81,7 +81,7 @@ export default function BossPanel({ onClose }: BossPanelProps) {
         {battleResult && (
           <div className={`p-4 ${battleResult.victory ? "bg-[#1a3a1a]/50" : "bg-[#3a1a1a]/50"} border-b border-[#2a3a4a]`}>
             <div className={`text-center text-lg font-bold mb-2 ${battleResult.victory ? "text-[#4a9]" : "text-[#e74c3c]"}`}>
-              {battleResult.victory ? "🎉 胜利!" : "💀 失败"}
+              {battleResult.victory ? "胜利!" : "失败"}
             </div>
             <div className="text-sm text-center text-[#888]">{battleResult.message}</div>
             {battleResult.victory && battleResult.rewards && (

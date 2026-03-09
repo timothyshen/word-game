@@ -204,7 +204,6 @@ export default function CharacterDetailPanel({
               <SectionTitle>技能 ({character.skills.length}/{character.skillSlots})</SectionTitle>
               {character.skills.length === 0 ? (
                 <div className="mt-2 text-center py-4 text-[#666]">
-                  <div className="text-2xl mb-2">📖</div>
                   <div className="text-sm">暂无技能</div>
                 </div>
               ) : (
@@ -256,12 +255,12 @@ export default function CharacterDetailPanel({
             {/* 操作反馈 */}
             {levelUpMutation.isSuccess && (
               <div className="p-3 bg-[#1a3a1a] text-sm text-[#4a9]">
-                🎉 升级成功！
+                升级成功！
               </div>
             )}
             {healMutation.isSuccess && (
               <div className="p-3 bg-[#1a3a1a] text-sm text-[#4a9]">
-                ✨ 恢复成功！
+                恢复成功！
               </div>
             )}
             {(levelUpMutation.error ?? healMutation.error) && (

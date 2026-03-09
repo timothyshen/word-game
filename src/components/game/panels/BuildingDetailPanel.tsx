@@ -207,7 +207,7 @@ export default function BuildingDetailPanel({
                 if (!output || Object.keys(output).length === 0) return null;
                 return (
                   <div className="mt-3 p-2 bg-[#050810] border border-[#4a9]/30">
-                    <div className="text-xs text-[#4a9] mb-1">📦 每日产出</div>
+                    <div className="text-xs text-[#4a9] mb-1">每日产出</div>
                     <div className="flex gap-4">
                       {Object.entries(output).map(([resource, amount]) => (
                         <span key={resource} className="text-sm">
@@ -380,7 +380,6 @@ export default function BuildingDetailPanel({
                   )}
                   {idleCharacters.length === 0 ? (
                     <div className="text-center py-6 text-[#666]">
-                      <div className="text-3xl mb-2">👤</div>
                       <div>没有可分配的角色</div>
                       <div className="text-xs mt-1">所有角色都在工作中</div>
                     </div>

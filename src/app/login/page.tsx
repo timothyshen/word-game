@@ -72,7 +72,6 @@ function LoginForm() {
     <div className="w-full max-w-sm p-6 border border-[var(--game-border-warm)] bg-[var(--game-bg-elevated)]">
       {/* Logo */}
       <div className="text-center mb-6">
-        <div className="text-5xl mb-2">🏰</div>
         <h1 className="font-display text-3xl text-[var(--game-gold)]">诸天领域</h1>
         <p className="text-xs text-[var(--game-text-muted)] mt-1">
           {mode === "login" ? "登录" : "注册"}
@@ -211,7 +210,6 @@ function LoginSkeleton() {
   return (
     <div className="w-full max-w-sm p-6 border border-[var(--game-border-warm)] bg-[var(--game-bg-elevated)]">
       <div className="text-center mb-6">
-        <div className="text-5xl mb-2">🏰</div>
         <h1 className="font-display text-3xl text-[var(--game-gold)]">诸天领域</h1>
         <p className="text-xs text-[var(--game-text-muted)] mt-1">加载中...</p>
       </div>

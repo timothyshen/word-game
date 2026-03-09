@@ -84,7 +84,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
               <div className="mt-2 space-y-2">
                 {/* 收入 */}
                 <div className="p-3 bg-[#0d1020]/60 border-l-2 border-[#4a9]">
-                  <div className="text-xs text-[#4a9] mb-2">📈 收入</div>
+                  <div className="text-xs text-[#4a9] mb-2">收入</div>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     <IncomeItem icon="🪙" value={totalOutput.gold ?? 0} />
                     <IncomeItem icon="🪵" value={totalOutput.wood ?? 0} />
@@ -96,7 +96,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
 
                 {/* 支出 */}
                 <div className="p-3 bg-[#0d1020]/60 border-l-2 border-[#e74c3c]">
-                  <div className="text-xs text-[#e74c3c] mb-2">📉 支出</div>
+                  <div className="text-xs text-[#e74c3c] mb-2">支出</div>
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     <ExpenseItem icon="🪙" value={0} />
                     <ExpenseItem icon="🪵" value={0} />

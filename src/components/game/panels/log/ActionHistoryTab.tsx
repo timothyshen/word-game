@@ -53,7 +53,6 @@ export default function ActionHistoryTab() {
         <div className="p-4">
           {actions.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-4xl mb-4">📭</div>
               <div className="text-[#888]">今日暂无行动记录</div>
               <div className="text-xs text-[#666] mt-1">去探索、战斗或建设吧！</div>
             </div>
@@ -95,7 +94,7 @@ export default function ActionHistoryTab() {
 
       {/* 底部提示 */}
       <div className="flex-shrink-0 p-3 bg-[#0a0a0c] border-t border-[#2a2a30] text-xs text-[#666] text-center">
-        💡 每日达到200分即可获得奖励卡牌
+        每日达到200分即可获得奖励卡牌
       </div>
     </div>
   );

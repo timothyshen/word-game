@@ -246,7 +246,6 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                     className="relative p-3 bg-[#0d1020]/60 border text-center"
                     style={{ borderColor: RARITY_COLORS[card.rarity] ?? "#888" }}
                   >
-                    <div className="text-2xl mb-1">🃏</div>
                     <div className="text-sm font-bold">×{card.count}</div>
                     <div
                       className="text-xs mt-1"
@@ -267,7 +266,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
               {preview && preview.currentStreakDays > 0 && (
                 <div className="mt-4 p-2 bg-[#0d1020]/60 border-l-2 border-[#e67e22]">
                   <span className="text-sm text-[#e67e22]">
-                    🔥 连续达标 {preview.currentStreakDays} 天
+                    连续达标 {preview.currentStreakDays} 天
                     {preview.currentStreakDays >= 3 && preview.currentStreakDays < 7 && " - 下次连续7日奖励!"}
                     {preview.currentStreakDays >= 7 && " - 史诗卡牌奖励!"}
                   </span>

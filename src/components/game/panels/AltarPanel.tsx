@@ -87,7 +87,6 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
           </DialogHeader>
 
           <div className="p-6 text-center">
-            <div className="text-4xl mb-4">{battleResult.victory ? "🎉" : "💀"}</div>
             <p className="text-[#e0dcd0] mb-4">{battleResult.message}</p>
 
             {battleResult.victory && battleResult.rewards && (
@@ -189,7 +188,6 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
           <div className="p-4">
             {(!altars || altars.length === 0) ? (
               <div className="text-center py-12">
-                <div className="text-4xl mb-4">🔍</div>
                 <div className="text-[#888]">尚未发现任何祭坛</div>
                 <div className="text-sm text-[#666] mt-2">
                   探索地图时有机会发现祭坛

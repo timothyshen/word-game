@@ -123,7 +123,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
         {/* 可领取提示 */}
         {claimableCount > 0 && (
           <div className="px-4 py-2 bg-[#1a3a1a] border-b border-[#4a9]/30 text-sm text-[#4a9] animate-attention">
-            🎉 有 {claimableCount} 个成就可领取奖励！
+            有 {claimableCount} 个成就可领取奖励！
           </div>
         )}
 
@@ -132,7 +132,6 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
           <div className="p-4 space-y-3">
             {filteredAchievements.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-4xl mb-4">📭</div>
                 <div className="text-[#888]">暂无成就</div>
               </div>
             ) : (
@@ -234,7 +233,7 @@ export default function AchievementPanel({ onClose }: AchievementPanelProps) {
         {/* 操作反馈 */}
         {claimMutation.isSuccess && (
           <div className="p-3 bg-[#1a3a1a] border-t border-[#4a9]/30 text-sm text-[#4a9]">
-            🎉 成就奖励已领取！
+            成就奖励已领取！
           </div>
         )}
         {claimMutation.error && (

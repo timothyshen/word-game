@@ -138,7 +138,7 @@ function ProfessionTab() {
         {/* 操作反馈 */}
         {learnMutation.isSuccess && (
           <div className="mt-4 p-3 bg-[#1a3a1a] border border-[#4a9]/30 text-sm text-[#4a9]">
-            🎉 {learnMutation.data.message}
+            {learnMutation.data.message}
           </div>
         )}
         {learnMutation.error && (
@@ -223,7 +223,7 @@ function AchievementTab() {
       {/* 可领取提示 */}
       {claimableCount > 0 && (
         <div className="flex-shrink-0 px-4 py-2 bg-[#1a3a1a] border-b border-[#4a9]/30 text-sm text-[#4a9] animate-attention">
-          🎉 有 {claimableCount} 个成就可领取奖励！
+          有 {claimableCount} 个成就可领取奖励！
         </div>
       )}
 
@@ -232,7 +232,6 @@ function AchievementTab() {
         <div className="p-4 space-y-3">
           {filteredAchievements.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-4xl mb-4">📭</div>
               <div className="text-[#888]">暂无成就</div>
             </div>
           ) : (

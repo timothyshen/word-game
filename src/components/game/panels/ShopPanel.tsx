@@ -254,7 +254,6 @@ export default function ShopPanel({ onClose }: ShopPanelProps) {
               <div className="p-4">
                 {sellableCards.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="text-4xl mb-4">📭</div>
                     <div className="text-[#888]">没有可出售的卡牌</div>
                   </div>
                 ) : (

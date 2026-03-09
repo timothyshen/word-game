@@ -107,7 +107,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
         {battleResult && (
           <div className={`p-4 ${battleResult.victory ? "bg-[#1a3a1a]" : "bg-[#3a1a1a]"} border-b border-[#2a3a4a]`}>
             <div className={`text-center text-lg font-bold mb-2 ${battleResult.victory ? "text-[#4a9]" : "text-[#e74c3c]"}`}>
-              {battleResult.victory ? "🎉 胜利!" : "💀 失败"}
+              {battleResult.victory ? "胜利!" : "失败"}
             </div>
             <div className="text-sm text-center text-[#888]">{battleResult.message}</div>
             {battleResult.victory && battleResult.rewards && (
@@ -285,7 +285,6 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
             {/* 无传送门时的提示 */}
             {(!portals || portals.length === 0) && (
               <div className="text-center py-8 text-[#5a6a7a]">
-                <div className="text-3xl mb-2">🌀</div>
                 <div>尚未发现传送门</div>
                 <div className="text-xs mt-1">在探索中可能发现传送门</div>
               </div>
@@ -296,12 +295,12 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
         {/* 操作反馈 */}
         {travelMutation.isSuccess && (
           <div className="p-3 bg-[#1a3a1a] border-t border-[#4a9]/30 text-sm text-[#4a9] text-center">
-            🌀 传送成功！
+            传送成功！
           </div>
         )}
         {usePortalMutation.isSuccess && (
           <div className="p-3 bg-[#1a3a1a] border-t border-[#4a9]/30 text-sm text-[#4a9] text-center">
-            🌀 通过传送门进入了新的位面！
+            通过传送门进入了新的位面！
           </div>
         )}
         {(travelMutation.error ?? usePortalMutation.error ?? challengeMutation.error) && (
@@ -312,7 +311,7 @@ export default function PortalPanel({ onClose }: PortalPanelProps) {
 
         {/* 底部提示 */}
         <div className="p-3 bg-[#050810] border-t border-[#2a3a4a] text-xs text-[#5a6a7a] text-center">
-          💡 不同位面有独特的资源和怪物
+          不同位面有独特的资源和怪物
         </div>
       </DialogContent>
     </Dialog>

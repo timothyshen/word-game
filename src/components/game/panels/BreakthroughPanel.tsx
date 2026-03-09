@@ -119,7 +119,6 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
 
             {playerStatus.maxTier ? (
               <div className="text-center py-8">
-                <div className="text-4xl mb-4">👑</div>
                 <div className="text-[#c9a227] font-bold">已达最高阶位</div>
                 <div className="text-sm text-[#888] mt-2">恭喜！你已经是最强大的领主了</div>
               </div>
@@ -182,7 +181,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
             {/* 操作反馈 */}
             {playerBreakthroughMutation.isSuccess && (
               <div className="mt-4 p-3 bg-[#1a3a1a] text-sm text-[#4a9] text-center">
-                🎉 突破成功！
+                突破成功！
               </div>
             )}
             {playerBreakthroughMutation.error && (
@@ -277,7 +276,7 @@ export default function BreakthroughPanel({ onClose }: BreakthroughPanelProps) {
 
                   {characterBreakthroughMutation.isSuccess && (
                     <div className="mt-4 p-3 bg-[#1a3a1a] text-sm text-[#4a9] text-center">
-                      🎉 角色突破成功！
+                      角色突破成功！
                     </div>
                   )}
                   {characterBreakthroughMutation.error && (

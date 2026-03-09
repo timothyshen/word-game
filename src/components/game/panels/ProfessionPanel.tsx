@@ -186,7 +186,7 @@ export default function ProfessionPanel({ onClose }: ProfessionPanelProps) {
               {/* 操作反馈 */}
               {learnPlayerMutation.isSuccess && (
                 <div className="mt-4 p-3 bg-[#1a3a1a] text-sm text-[#4a9] text-center">
-                  🎉 职业学习成功！
+                  职业学习成功！
                 </div>
               )}
               {learnPlayerMutation.error && (
@@ -296,7 +296,7 @@ export default function ProfessionPanel({ onClose }: ProfessionPanelProps) {
 
                   {learnCharacterMutation.isSuccess && (
                     <div className="mt-4 p-3 bg-[#1a3a1a] text-sm text-[#4a9] text-center">
-                      🎉 角色职业学习成功！
+                      角色职业学习成功！
                     </div>
                   )}
                   {learnCharacterMutation.error && (
@@ -318,7 +318,7 @@ export default function ProfessionPanel({ onClose }: ProfessionPanelProps) {
 
         {/* 底部提示 */}
         <div className="p-3 bg-[#050810] border-t border-[#2a3a4a] text-xs text-[#5a6a7a] text-center">
-          💡 职业一旦选择无法更改，请谨慎选择
+          职业一旦选择无法更改，请谨慎选择
         </div>
       </DialogContent>
     </Dialog>

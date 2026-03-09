@@ -174,7 +174,7 @@ export default function CombatHistoryPanel({ onClose, onResumeCombat }: CombatHi
 
         {/* 底部提示 */}
         <div className="p-3 bg-[#050810] border-t border-[#2a3a4a] text-xs text-[#5a6a7a] text-center">
-          💡 击败强敌可获得稀有卡牌奖励
+          击败强敌可获得稀有卡牌奖励
         </div>
       </DialogContent>
     </Dialog>

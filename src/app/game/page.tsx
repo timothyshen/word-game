@@ -64,7 +64,6 @@ export default function GamePage() {
     return (
       <div className="min-h-screen bg-[#050810] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl mb-4 animate-pulse">🏰</div>
           <div className="text-[#5a6a7a] text-sm">进入诸天领域...</div>
         </div>
       </div>
@@ -163,7 +162,7 @@ export default function GamePage() {
               <div className="text-5xl font-black text-[#c9a227] leading-none">{player.currentGameDay}</div>
               <div className="text-xs text-[#5a6a7a] tracking-widest uppercase">Day</div>
               <div className="mt-2 flex items-center justify-end gap-2 text-sm">
-                <span className="text-[#e67e22]">🔥 {player.streakDays}</span>
+                <span className="text-[#e67e22]">{player.streakDays}</span>
                 <span className="text-[#3a4a5a]">|</span>
                 <span className="text-[#c9a227]">⭐ {player.currentDayScore}</span>
               </div>
@@ -306,19 +305,19 @@ export default function GamePage() {
                 onClick={() => { panels.setShowMenu(false); panels.openInnerCity(); }}
                 className="w-full py-3 bg-[#1a1a25] border border-[#2a3a4a] hover:border-[#4a9eff] text-[#e0dcd0] rounded transition-colors text-sm"
               >
-                🏙️ 内城管理
+                内城管理
               </button>
               <Link
                 href="/login"
                 className="w-full py-3 bg-[#1a1a25] border border-[#2a3a4a] hover:border-[#4a9eff] text-[#e0dcd0] rounded transition-colors text-sm text-center block"
               >
-                🔄 切换账号
+                切换账号
               </Link>
               <Link
                 href="/"
                 className="w-full py-3 bg-[#1a1a25] border border-[#2a3a4a] hover:border-[#e74c3c] text-[#e0dcd0] rounded transition-colors text-sm text-center block"
               >
-                🏠 返回主页
+                返回主页
               </Link>
             </div>
           </div>
