@@ -480,4 +480,55 @@ export const SEED_RULES: SeedRule[] = [
     }),
     description: "Crafting quality upgrade chances and tier weights",
   },
+
+  // ===== army (~6 rules) =====
+  {
+    name: "army_recruit_cost",
+    category: "army",
+    ruleType: "config",
+    definition: JSON.stringify({
+      tierCosts: { 1: 10, 2: 25, 3: 60, 4: 150 },
+      description: "Gold cost per unit by tier",
+    }),
+    description: "Gold cost per unit by tier",
+  },
+  {
+    name: "army_damage_formula",
+    category: "army",
+    ruleType: "formula",
+    definition: JSON.stringify({
+      formula: "max(1, (atk * count * commandMult) - (def * targetCount * targetDefMult * 0.3))",
+    }),
+    description: "Army combat damage calculation",
+  },
+  {
+    name: "army_casualty_formula",
+    category: "army",
+    ruleType: "formula",
+    definition: JSON.stringify({
+      formula: "min(targetCount, max(1, floor(damage / targetHp)))",
+    }),
+    description: "Army combat casualty calculation",
+  },
+  {
+    name: "army_reward_exp",
+    category: "army",
+    ruleType: "formula",
+    definition: JSON.stringify({ formula: "10 + level * 8" }),
+    description: "Experience reward for army combat victory",
+  },
+  {
+    name: "army_reward_gold",
+    category: "army",
+    ruleType: "formula",
+    definition: JSON.stringify({ formula: "20 + level * 5" }),
+    description: "Gold reward for army combat victory",
+  },
+  {
+    name: "army_troop_scaling",
+    category: "army",
+    ruleType: "formula",
+    definition: JSON.stringify({ formula: "1 + level * 0.12" }),
+    description: "Enemy troop stat scaling by level",
+  },
 ];

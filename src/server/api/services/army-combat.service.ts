@@ -4,7 +4,9 @@
 import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import * as armyRepo from "../repositories/army.repo";
-import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
+import { findPlayerByUserId, updatePlayer, createActionLog } from "../repositories/player.repo";
+import { engine, ruleService } from "~/server/api/engine";
+import { getCurrentGameDay } from "../utils/game-time";
 import type { FormationSlot } from "./army.service";
 
 // ── Types ──
@@ -86,6 +88,24 @@ const ENEMY_TEMPLATES: EnemyTemplate[] = [
   { name: "龙骑士", category: "cavalry", icon: "🐉", tier: 4, baseHp: 200, baseAtk: 30, baseDef: 12, baseSpd: 12 },
 ];
 
+// ── Formula Helper ──
+
+async function calcFormula(
+  ruleName: string,
+  vars: Record<string, number>,
+): Promise<number> {
+  try {
+    const formula = await ruleService.getFormula(ruleName);
+    return engine.formulas.calculate(formula, vars);
+  } catch {
+    // Fallback defaults
+    if (ruleName === "army_reward_exp") return 10 + (vars.level ?? 1) * 8;
+    if (ruleName === "army_reward_gold") return 20 + (vars.level ?? 1) * 5;
+    if (ruleName === "army_troop_scaling") return 1 + (vars.level ?? 1) * 0.12;
+    return 1;
+  }
+}
+
 // ── Start Combat ──
 
 /**
@@ -164,7 +184,7 @@ export async function startArmyCombat(
   }
 
   // Generate enemy army
-  const enemyUnits = generateEnemyArmy(enemyLevel);
+  const enemyUnits = await generateEnemyArmy(enemyLevel);
 
   const state: ArmyCombatState = {
     playerUnits,
@@ -276,7 +296,7 @@ export async function issueCommands(
 
   // If victory, grant rewards
   if (state.status === "victory") {
-    await grantVictoryRewards(db, player.id, state);
+    await grantVictoryRewards(db, player.id, userId, state);
   }
 
   return { state };
@@ -441,10 +461,10 @@ function translateCommand(command: ArmyCommand): string {
 
 // ── Enemy Generation ──
 
-function generateEnemyArmy(level: number): ArmyUnit[] {
+async function generateEnemyArmy(level: number): Promise<ArmyUnit[]> {
   // Number of units scales with level: 2 at low levels, up to 4 at high levels
   const unitCount = Math.min(4, 2 + Math.floor(level / 20));
-  const levelMult = 1 + (level - 1) * 0.15;
+  const levelMult = await calcFormula("army_troop_scaling", { level });
 
   // Select templates based on level (higher level = higher tier allowed)
   const maxTier = Math.min(4, 1 + Math.floor(level / 15));
@@ -496,25 +516,63 @@ function generateEnemyCommands(state: ArmyCombatState): void {
 async function grantVictoryRewards(
   db: FullDbClient,
   playerId: string,
+  userId: string,
   state: ArmyCombatState,
 ): Promise<void> {
-  // Calculate rewards based on enemies defeated
+  // Calculate enemy level (use max level across enemy units)
+  const enemyLevel = state.enemyUnits.reduce((max, u) => Math.max(max, u.level), 1);
+
+  // Use formula engine for rewards
+  const expReward = Math.floor(await calcFormula("army_reward_exp", { level: enemyLevel }));
+  const goldReward = Math.floor(await calcFormula("army_reward_gold", { level: enemyLevel }));
+
+  // Also factor in enemy count/tier for bonus
   const totalEnemyMaxCount = state.enemyUnits.reduce((s, u) => s + u.maxCount, 0);
   const avgTier = state.enemyUnits.length > 0
     ? state.enemyUnits.reduce((s, u) => s + u.tier, 0) / state.enemyUnits.length
     : 1;
 
-  const goldReward = Math.floor(totalEnemyMaxCount * avgTier * 2);
-  const expReward = Math.floor(totalEnemyMaxCount * avgTier * 1.5);
+  const totalExp = Math.floor(expReward * totalEnemyMaxCount * avgTier * 0.1);
+  const totalGold = Math.floor(goldReward * totalEnemyMaxCount * avgTier * 0.1);
 
   await updatePlayer(db, playerId, {
-    gold: { increment: goldReward },
-    exp: { increment: expReward },
+    gold: { increment: totalGold },
+    exp: { increment: totalExp },
+  });
+
+  // Grant experience to surviving troops
+  for (const unit of state.playerUnits) {
+    if (unit.count > 0) {
+      const troopRecord = await db.troop.findFirst({
+        where: { playerId, troopTypeId: unit.troopTypeId },
+      });
+      if (troopRecord) {
+        const expGain = 10 + enemyLevel * 2;
+        const newExp = troopRecord.exp + expGain;
+        const newLevel = Math.min(10, 1 + Math.floor(newExp / 100));
+        await db.troop.update({
+          where: { id: troopRecord.id },
+          data: { exp: newExp, level: newLevel, count: unit.count },
+        });
+      }
+    }
+  }
+
+  // Create action log
+  const gameDay = getCurrentGameDay();
+  await createActionLog(db, {
+    playerId,
+    day: gameDay,
+    type: "army_combat",
+    description: "军团战斗胜利",
+    baseScore: 30,
+    bonus: Math.floor(totalExp / 10),
+    bonusReason: "军团战胜利奖励",
   });
 
   state.logs.push({
     turn: state.turn,
-    message: `获得奖励: ${goldReward} 金币, ${expReward} 经验`,
+    message: `获得奖励: ${totalGold} 金币, ${totalExp} 经验`,
     type: "system",
   });
 }

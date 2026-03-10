@@ -22,9 +22,15 @@ export const armyRouter = createTRPCRouter({
         count: z.number().min(1).max(100),
       }),
     )
-    .mutation(({ ctx, input }) =>
-      armyService.recruitTroops(ctx.db, ctx.session.user.id, input.troopTypeId, input.count),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const result = await armyService.recruitTroops(ctx.db, ctx.session.user.id, input.troopTypeId, input.count);
+      void ctx.engine.events.emit("army:recruit", {
+        userId: ctx.session.user.id,
+        troopTypeId: input.troopTypeId,
+        count: input.count,
+      }, "army-router");
+      return result;
+    }),
 
   // ── Formation ──
 
@@ -57,9 +63,14 @@ export const armyRouter = createTRPCRouter({
         enemyLevel: z.number().min(1).max(100).default(1),
       }),
     )
-    .mutation(({ ctx, input }) =>
-      armyCombatService.startArmyCombat(ctx.db, ctx.session.user.id, input.enemyLevel),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const result = await armyCombatService.startArmyCombat(ctx.db, ctx.session.user.id, input.enemyLevel);
+      void ctx.engine.events.emit("army:combat_start", {
+        userId: ctx.session.user.id,
+        combatId: result.combatId,
+      }, "army-router");
+      return result;
+    }),
 
   issueCommands: protectedProcedure
     .input(
@@ -74,14 +85,20 @@ export const armyRouter = createTRPCRouter({
         ),
       }),
     )
-    .mutation(({ ctx, input }) =>
-      armyCombatService.issueCommands(
+    .mutation(async ({ ctx, input }) => {
+      const result = await armyCombatService.issueCommands(
         ctx.db,
         ctx.session.user.id,
         input.combatId,
         input.commands,
-      ),
-    ),
+      );
+      void ctx.engine.events.emit("army:turn_resolved", {
+        userId: ctx.session.user.id,
+        combatId: input.combatId,
+        status: result.state.status,
+      }, "army-router");
+      return result;
+    }),
 
   useHeroSkill: protectedProcedure
     .input(

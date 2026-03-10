@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import * as armyRepo from "../repositories/army.repo";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
+import { ruleService } from "~/server/api/engine";
 
 // ── Types ──
 
@@ -68,6 +69,15 @@ export async function getTroopTypes(db: FullDbClient): Promise<
   }>
 > {
   const types = await armyRepo.getAllTroopTypes(db);
+
+  let tierCosts = TIER_GOLD_COST;
+  try {
+    const costConfig = await ruleService.getConfig<{ tierCosts: Record<number, number> }>("army_recruit_cost");
+    tierCosts = costConfig.tierCosts;
+  } catch {
+    // Fallback to hardcoded defaults
+  }
+
   return types.map((t) => ({
     id: t.id,
     name: t.name,
@@ -81,7 +91,7 @@ export async function getTroopTypes(db: FullDbClient): Promise<
     baseSpd: t.baseSpd,
     counterInfo: parseCounterInfo(t.counterInfo),
     requiredBuilding: t.requiredBuilding,
-    goldCost: TIER_GOLD_COST[t.tier] ?? 10,
+    goldCost: tierCosts[t.tier] ?? 10,
   }));
 }
 
@@ -137,8 +147,15 @@ export async function recruitTroops(
     throw new TRPCError({ code: "NOT_FOUND", message: "兵种不存在" });
   }
 
-  // Calculate cost
-  const costPerUnit = TIER_GOLD_COST[troopType.tier] ?? 10;
+  // Calculate cost from rule engine (with fallback)
+  let tierCosts = TIER_GOLD_COST;
+  try {
+    const costConfig = await ruleService.getConfig<{ tierCosts: Record<number, number> }>("army_recruit_cost");
+    tierCosts = costConfig.tierCosts;
+  } catch {
+    // Fallback to hardcoded defaults
+  }
+  const costPerUnit = tierCosts[troopType.tier] ?? 10;
   const totalCost = costPerUnit * count;
 
   if (player.gold < totalCost) {
