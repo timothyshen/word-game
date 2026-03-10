@@ -1,7 +1,7 @@
 import { playerRouter, authRouter, settlementRouter } from "~/server/api/routers/core";
 import { combatRouter, bossRouter } from "~/server/api/routers/combat";
 import { buildingRouter, shopRouter, equipmentRouter, altarRouter, craftingRouter } from "~/server/api/routers/economy";
-import { cardRouter, breakthroughRouter, professionRouter, achievementRouter } from "~/server/api/routers/progression";
+import { cardRouter, breakthroughRouter, professionRouter, achievementRouter, skillTreeRouter } from "~/server/api/routers/progression";
 import { explorationRouter } from "~/server/api/routers/exploration";
 import { innerCityRouter, territoryRouter, portalRouter } from "~/server/api/routers/territory";
 import { storyRouter, characterRouter } from "~/server/api/routers/content";
@@ -39,6 +39,7 @@ export const appRouter = createTRPCRouter({
   innerCity: innerCityRouter,
   outerCity: outerCityRouter,
   party: partyRouter,
+  skillTree: skillTreeRouter,
 });
 
 // export type definition of API

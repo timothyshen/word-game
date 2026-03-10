@@ -1,14 +1,18 @@
 // 角色详情标签页
 
+import { useState } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
 import { SectionTitle, StatBar, StatBlock } from "./helpers";
+import SkillTreePanel from "../SkillTreePanel";
 
 interface CharacterDetailTabProps {
   characterId: string | null;
 }
 
 export default function CharacterDetailTab({ characterId }: CharacterDetailTabProps) {
+  const [showSkillTree, setShowSkillTree] = useState(false);
+
   const { data: character, isLoading } = api.character.getById.useQuery(
     { characterId: characterId! },
     { enabled: !!characterId }
@@ -159,7 +163,15 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
 
         {/* 技能 */}
         <div>
-          <SectionTitle>技能 ({character.skills.length}/{character.skillSlots})</SectionTitle>
+          <div className="flex items-center justify-between">
+            <SectionTitle>技能 ({character.skills.length}/{character.skillSlots})</SectionTitle>
+            <button
+              onClick={() => setShowSkillTree(true)}
+              className="text-xs px-2 py-1 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a] transition-colors"
+            >
+              🌳 技能树
+            </button>
+          </div>
           {character.skills.length === 0 ? (
             <div className="mt-2 text-center py-4 text-[#666]">
               <div className="text-sm">暂无技能</div>
@@ -192,6 +204,15 @@ export default function CharacterDetailTab({ characterId }: CharacterDetailTabPr
           </div>
         )}
       </div>
+
+      {/* 技能树面板 */}
+      {showSkillTree && characterId && character && (
+        <SkillTreePanel
+          characterId={characterId}
+          characterName={character.name}
+          onClose={() => setShowSkillTree(false)}
+        />
+      )}
     </ScrollArea>
   );
 }

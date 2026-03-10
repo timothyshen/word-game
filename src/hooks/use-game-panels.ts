@@ -21,6 +21,9 @@ interface PanelState {
   combatLevel: number;
   showInnerCityPanel: boolean;
   showPartyPanel: boolean;
+  showSkillTree: boolean;
+  skillTreeCharacterId: string | null;
+  skillTreeCharacterName: string | null;
   // UI 状态
   showHUD: boolean;
   showMenu: boolean;
@@ -52,6 +55,9 @@ export function useGamePanels() {
   const [combatType, setCombatType] = useState<"normal" | "elite" | "boss">("normal");
   const [showInnerCityPanel, setShowInnerCityPanel] = useState(false);
   const [showPartyPanel, setShowPartyPanel] = useState(false);
+  const [showSkillTree, setShowSkillTree] = useState(false);
+  const [skillTreeCharacterId, setSkillTreeCharacterId] = useState<string | null>(null);
+  const [skillTreeCharacterName, setSkillTreeCharacterName] = useState<string | null>(null);
 
   // UI 状态
   const [showHUD, setShowHUD] = useState(true);
@@ -61,7 +67,7 @@ export function useGamePanels() {
   const anyPanelOpen =
     showCharacterHub || showInventoryHub || showAdventureHub ||
     showProgressHub || showLogHub || showEconomyPanel ||
-    showCombatPanel || showInnerCityPanel || showPartyPanel || showGuidancePanel;
+    showCombatPanel || showInnerCityPanel || showPartyPanel || showSkillTree || showGuidancePanel;
 
   // ESC 键打开/关闭菜单
   useEffect(() => {
@@ -112,6 +118,12 @@ export function useGamePanels() {
     setShowInnerCityPanel(true);
   }, []);
 
+  const openSkillTree = useCallback((characterId: string, characterName: string) => {
+    setSkillTreeCharacterId(characterId);
+    setSkillTreeCharacterName(characterName);
+    setShowSkillTree(true);
+  }, []);
+
   // HintBar action handler
   const handleHintAction = useCallback((action: string, onLevelUp: () => void) => {
     if (action === "levelUp") {
@@ -142,13 +154,14 @@ export function useGamePanels() {
     showCombatPanel, setShowCombatPanel, combatLevel, setCombatLevel, combatType, setCombatType,
     showInnerCityPanel, setShowInnerCityPanel,
     showPartyPanel, setShowPartyPanel,
+    showSkillTree, setShowSkillTree, skillTreeCharacterId, skillTreeCharacterName,
     // UI 状态
     showHUD, setShowHUD,
     showMenu, setShowMenu,
     showGuidancePanel, setShowGuidancePanel,
     // 快捷方法
     openCharacterHub, openInventoryHub, openAdventureHub,
-    openProgressHub, openLogHub, openCombat, openInnerCity,
+    openProgressHub, openLogHub, openCombat, openInnerCity, openSkillTree,
     handleHintAction,
   };
 }

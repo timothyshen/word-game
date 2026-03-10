@@ -12,6 +12,7 @@ import { api } from "~/trpc/react";
 import { RARITY_COLORS } from "~/constants";
 import { SectionTitle } from "./character/helpers";
 import EquipmentPanel from "./EquipmentPanel";
+import SkillTreePanel from "./SkillTreePanel";
 
 interface CharacterDetailPanelProps {
   characterId: string;
@@ -24,6 +25,7 @@ export default function CharacterDetailPanel({
 }: CharacterDetailPanelProps) {
   const [healingType, setHealingType] = useState<"hp" | "mp" | "both" | null>(null);
   const [showEquipmentPanel, setShowEquipmentPanel] = useState(false);
+  const [showSkillTree, setShowSkillTree] = useState(false);
 
   const utils = api.useUtils();
 
@@ -281,6 +283,12 @@ export default function CharacterDetailPanel({
           >
             🛡️ 装备
           </button>
+          <button
+            onClick={() => setShowSkillTree(true)}
+            className="flex-1 py-2 border border-[#c9a227] text-[#c9a227] hover:bg-[#c9a227] hover:text-[#08080a]"
+          >
+            🌳 技能树
+          </button>
           {character.status === "working" ? (
             <button
               className="flex-1 py-2 border border-[#666] text-[#888] hover:border-[#c9a227] hover:text-[#c9a227]"
@@ -306,6 +314,15 @@ export default function CharacterDetailPanel({
           characterId={characterId}
           characterName={character.name}
           onClose={() => setShowEquipmentPanel(false)}
+        />
+      )}
+
+      {/* 技能树面板 */}
+      {showSkillTree && (
+        <SkillTreePanel
+          characterId={characterId}
+          characterName={character.name}
+          onClose={() => setShowSkillTree(false)}
         />
       )}
     </Dialog>

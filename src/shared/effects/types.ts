@@ -190,6 +190,7 @@ export interface CombatAction {
   cooldown: number;
   currentCooldown: number;
   effects: SkillEffect[];
+  category?: string;
 }
 
 export interface CombatResult {
@@ -252,6 +253,13 @@ export interface LootTable {
   skillCards?: Array<{ skillId: string; chance: number }>;
 }
 
+export interface RecentAction {
+  actorId: string;
+  actionCategory: string;
+  turn: number;
+  targetId: string;
+}
+
 export interface ATBCombatState {
   party: PartyMember[];
   enemies: EnemyUnit[];
@@ -261,6 +269,7 @@ export interface ATBCombatState {
   status: "active" | "victory" | "defeat" | "fled";
   combatType: "normal" | "elite" | "boss";
   rating?: CombatRating;
+  recentActions?: RecentAction[];
 }
 
 export interface CombatLog {

@@ -38,6 +38,7 @@ import type {
   ElementalProfile,
   SkillEffect,
   TargetType,
+  RecentAction,
 } from "~/shared/effects/types";
 
 // ── Constants ──
@@ -384,6 +385,27 @@ export async function generateEnemyGroup(
     const tierMult =
       combatType === "boss" ? 3 : combatType === "elite" ? 1.8 : 1;
 
+    // For bosses, ensure at least 3 skills by adding from other templates if needed
+    let enemySkills = template.skills.map((s) => ({
+      ...s,
+      currentCooldown: 0,
+    }));
+    if (combatType === "boss" && enemySkills.length < 3) {
+      const otherTemplates = MONSTER_TEMPLATES.filter((t) => t !== template);
+      const shuffled = [...otherTemplates].sort(() => Math.random() - 0.5);
+      for (const other of shuffled) {
+        for (const s of other.skills) {
+          if (
+            enemySkills.length >= 3 ||
+            enemySkills.some((es) => es.name === s.name)
+          )
+            continue;
+          enemySkills.push({ ...s, currentCooldown: 0 });
+        }
+        if (enemySkills.length >= 3) break;
+      }
+    }
+
     const enemy: EnemyUnit & { skills: EnemySkillSlot[] } = {
       id: `enemy_${i}_${Date.now()}`,
       name:
@@ -411,16 +433,14 @@ export async function generateEnemyGroup(
       isAlive: true,
       teamIndex: i,
       tier: combatType,
+      phase: combatType === "boss" ? 1 : undefined,
       loot: {
         exp: Math.floor((rewardExp * tierMult) / count),
         gold: Math.floor((rewardGold * tierMult) / count),
       },
       specialMechanics:
         combatType === "elite" ? generateEliteMechanics() : undefined,
-      skills: template.skills.map((s) => ({
-        ...s,
-        currentCooldown: 0,
-      })),
+      skills: enemySkills,
     };
 
     enemies.push(enemy);
@@ -429,25 +449,124 @@ export async function generateEnemyGroup(
   return enemies;
 }
 
+const ELITE_MECHANICS: EnemyMechanic[] = [
+  {
+    name: "狂暴",
+    trigger: "hp_threshold",
+    value: 50,
+    effects: [
+      {
+        type: "buff",
+        target: "self",
+        modifiers: [{ stat: "attack", value: 0.5, type: "percent" }],
+        duration: 99,
+      },
+    ],
+    description: "HP低于50%时攻击力提升50%",
+  },
+  {
+    name: "反射护盾",
+    trigger: "turn_interval",
+    value: 3,
+    effects: [
+      {
+        type: "buff",
+        target: "self",
+        modifiers: [{ stat: "damageReduction", value: 0.8, type: "flat" }],
+        duration: 1,
+      },
+    ],
+    description: "每3回合触发反射护盾，减伤80%",
+  },
+  {
+    name: "召唤",
+    trigger: "hp_threshold",
+    value: 40,
+    effects: [
+      { type: "special", action: "summon", params: { count: 2, levelMult: 0.5 } },
+    ],
+    description: "HP低于40%时召唤2只小怪",
+  },
+  {
+    name: "吸血",
+    trigger: "turn_interval",
+    value: 4,
+    effects: [
+      {
+        type: "heal",
+        healType: "hp",
+        target: "self",
+        amount: 0.15,
+        isPercent: true,
+      },
+    ],
+    description: "每4回合恢复15%HP",
+  },
+  {
+    name: "全体攻击",
+    trigger: "hp_threshold",
+    value: 30,
+    effects: [
+      { type: "damage", damageType: "physical", multiplier: 0.8 },
+    ],
+    description: "HP低于30%时对全体队员造成伤害",
+  },
+];
+
 function generateEliteMechanics(): EnemyMechanic[] {
-  const mechanics: EnemyMechanic[] = [
-    {
-      name: "狂暴",
-      trigger: "hp_threshold",
-      value: 50, // triggers at 50% HP
-      effects: [
-        {
-          type: "buff",
-          target: "self",
-          modifiers: [{ stat: "attack", value: 0.5, type: "percent" }],
-          duration: 99,
-        },
-      ],
-      description: "HP低于50%时攻击力提升50%",
-    },
-  ];
-  return [mechanics[Math.floor(Math.random() * mechanics.length)]!];
+  // Pick 1-2 random mechanics from the pool
+  const count = Math.random() < 0.5 ? 1 : 2;
+  const shuffled = [...ELITE_MECHANICS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count).map((m) => ({ ...m, activated: false }));
 }
+
+// ── Boss Phases ──
+
+const BOSS_PHASES = [
+  { hpThreshold: 100, name: "第一阶段", speedMult: 1.0, atkMult: 1.0 },
+  { hpThreshold: 60, name: "第二阶段", speedMult: 1.3, atkMult: 1.5 },
+  { hpThreshold: 30, name: "第三阶段", speedMult: 1.5, atkMult: 2.0 },
+];
+
+// ── Combo System ──
+
+interface ComboRecipe {
+  name: string;
+  description: string;
+  skill1Category: string;
+  skill2Category: string;
+  effects: SkillEffect[];
+}
+
+const COMBO_RECIPES: ComboRecipe[] = [
+  {
+    name: "烈焰穿刺",
+    description: "破甲后火焰灼烧",
+    skill1Category: "sword",
+    skill2Category: "magic_fire",
+    effects: [
+      { type: "damage", damageType: "magic", multiplier: 2.5, element: "fire" },
+    ],
+  },
+  {
+    name: "冰雷交击",
+    description: "冰冻后雷电击碎",
+    skill1Category: "magic_ice",
+    skill2Category: "magic_thunder",
+    effects: [
+      { type: "damage", damageType: "magic", multiplier: 3.0, element: "thunder" },
+    ],
+  },
+  {
+    name: "守护反击",
+    description: "防御后强力反击",
+    skill1Category: "shield",
+    skill2Category: "sword",
+    effects: [
+      { type: "damage", damageType: "physical", multiplier: 2.0 },
+    ],
+  },
+];
 
 // ── Build Party ──
 
@@ -637,6 +756,7 @@ export async function startATBCombat(
     ],
     status: "active",
     combatType: options.combatType,
+    recentActions: [],
   };
 
   // Tick ATB to find first actor
@@ -703,17 +823,176 @@ function processEnemyTurns(state: ATBCombatState): void {
 function executeEnemyAI(state: ATBCombatState, enemy: EnemyUnit): void {
   state.turnCount++;
 
-  // Check special mechanics
+  // ── Boss Phase Transition ──
+  if (enemy.tier === "boss" && enemy.phase !== undefined) {
+    const hpPercent = (enemy.hp / enemy.maxHp) * 100;
+    for (let phaseIdx = BOSS_PHASES.length - 1; phaseIdx >= 0; phaseIdx--) {
+      const phase = BOSS_PHASES[phaseIdx]!;
+      if (hpPercent <= phase.hpThreshold && enemy.phase < phaseIdx + 1) {
+        enemy.phase = phaseIdx + 1;
+        // Apply stat multipliers relative to base (phase 1)
+        enemy.speed = Math.max(
+          1,
+          Math.floor(enemy.speed * phase.speedMult),
+        );
+        enemy.attack = Math.floor(enemy.attack * phase.atkMult);
+        state.logs.push({
+          turn: state.turnCount,
+          actorName: "系统",
+          message: `💀 ${enemy.name} 进入${phase.name}！攻击力×${phase.atkMult}，速度×${phase.speedMult}！`,
+          type: "system",
+        });
+        break;
+      }
+    }
+  }
+
+  // ── Check Special Mechanics ──
   if (enemy.specialMechanics) {
     for (const mech of enemy.specialMechanics) {
-      if (mech.activated) continue;
+      // hp_threshold mechanics — one-time activation
       if (
         mech.trigger === "hp_threshold" &&
+        !mech.activated &&
         (enemy.hp / enemy.maxHp) * 100 <= mech.value
       ) {
         mech.activated = true;
         for (const eff of mech.effects) {
-          resolveSkillEffect(eff, enemy, enemy);
+          if (eff.type === "special" && eff.action === "summon") {
+            // Summon mechanic: create new enemies
+            const summonCount = eff.params.count ?? 1;
+            const summonLevelMult = eff.params.levelMult ?? 0.5;
+            for (let s = 0; s < summonCount; s++) {
+              const template =
+                MONSTER_TEMPLATES[
+                  Math.floor(Math.random() * MONSTER_TEMPLATES.length)
+                ]!;
+              const summonHp = Math.floor(
+                template.baseHp * summonLevelMult,
+              );
+              const summonAtk = Math.floor(
+                template.baseAtk * summonLevelMult,
+              );
+              const summonDef = Math.floor(
+                template.baseDef * summonLevelMult,
+              );
+              const summonId = `summon_${Date.now()}_${s}_${Math.floor(Math.random() * 1000)}`;
+              const summon: EnemyUnit & { skills: EnemySkillSlot[] } = {
+                id: summonId,
+                name: `${template.name}(召唤)`,
+                hp: summonHp,
+                maxHp: summonHp,
+                mp: 50,
+                maxMp: 50,
+                attack: summonAtk,
+                defense: summonDef,
+                speed: template.baseSpd,
+                luck: 3,
+                intellect: template.baseInt,
+                buffs: [],
+                atb: 0,
+                element: template.element,
+                elementalProfile: {
+                  weaknesses: template.weaknesses,
+                  resistances: template.resistances,
+                },
+                isAlive: true,
+                teamIndex: state.enemies.length,
+                tier: "normal",
+                loot: { exp: 5, gold: 3 },
+                skills: template.skills.map((sk) => ({
+                  ...sk,
+                  currentCooldown: 0,
+                })),
+              };
+              state.enemies.push(summon);
+            }
+            state.logs.push({
+              turn: state.turnCount,
+              actorName: enemy.name,
+              message: `${enemy.name} 召唤了${summonCount}只小怪！`,
+              type: "system",
+            });
+          } else if (eff.type === "damage") {
+            // AoE damage mechanic — hit all party members
+            const alivePartyForAoe = state.party.filter((p) => p.isAlive);
+            for (const target of alivePartyForAoe) {
+              const result = resolveSkillEffect(eff, enemy, target);
+              for (const log of result.logs) {
+                state.logs.push({
+                  turn: state.turnCount,
+                  actorName: enemy.name,
+                  message: log,
+                  type: "damage",
+                });
+              }
+              if (target.hp <= 0) {
+                target.hp = 0;
+                target.isAlive = false;
+                state.logs.push({
+                  turn: state.turnCount,
+                  actorName: "系统",
+                  message: `${target.name} 力竭倒下了！`,
+                  type: "system",
+                });
+              }
+            }
+          } else {
+            resolveSkillEffect(eff, enemy, enemy);
+          }
+        }
+        if (
+          !mech.effects.some(
+            (e) =>
+              (e.type === "special" && e.action === "summon") ||
+              e.type === "damage",
+          )
+        ) {
+          state.logs.push({
+            turn: state.turnCount,
+            actorName: enemy.name,
+            message: `${enemy.name} 触发了 ${mech.name}！${mech.description}`,
+            type: "system",
+          });
+        }
+      }
+
+      // turn_interval mechanics — repeating
+      if (
+        mech.trigger === "turn_interval" &&
+        state.turnCount % mech.value === 0
+      ) {
+        for (const eff of mech.effects) {
+          if (eff.type === "heal") {
+            resolveSkillEffect(eff, enemy, enemy);
+          } else if (eff.type === "buff") {
+            resolveSkillEffect(eff, enemy, enemy);
+          } else if (eff.type === "damage") {
+            const alivePartyForAoe = state.party.filter((p) => p.isAlive);
+            for (const target of alivePartyForAoe) {
+              const result = resolveSkillEffect(eff, enemy, target);
+              for (const log of result.logs) {
+                state.logs.push({
+                  turn: state.turnCount,
+                  actorName: enemy.name,
+                  message: log,
+                  type: "damage",
+                });
+              }
+              if (target.hp <= 0) {
+                target.hp = 0;
+                target.isAlive = false;
+                state.logs.push({
+                  turn: state.turnCount,
+                  actorName: "系统",
+                  message: `${target.name} 力竭倒下了！`,
+                  type: "system",
+                });
+              }
+            }
+          } else {
+            resolveSkillEffect(eff, enemy, enemy);
+          }
         }
         state.logs.push({
           turn: state.turnCount,
@@ -795,6 +1074,72 @@ function executeEnemyAI(state: ATBCombatState, enemy: EnemyUnit): void {
 
   // Reset ATB
   enemy.atb = 0;
+}
+
+// ── Combo Detection ──
+
+function checkCombo(
+  state: ATBCombatState,
+  actorId: string,
+  actionCategory: string,
+  targetId: string,
+): ComboRecipe | null {
+  if (!state.recentActions || state.recentActions.length === 0) return null;
+
+  // Look for a matching combo: another party member used a complementary skill
+  // within the same turn or previous turn
+  for (const prev of state.recentActions) {
+    if (prev.actorId === actorId) continue; // must be different party member
+    if (state.turnCount - prev.turn > 1) continue; // must be recent
+
+    for (const recipe of COMBO_RECIPES) {
+      if (
+        (prev.actionCategory === recipe.skill1Category &&
+          actionCategory === recipe.skill2Category) ||
+        (prev.actionCategory === recipe.skill2Category &&
+          actionCategory === recipe.skill1Category)
+      ) {
+        return recipe;
+      }
+    }
+  }
+
+  return null;
+}
+
+function recordRecentAction(
+  state: ATBCombatState,
+  actorId: string,
+  actionCategory: string,
+  targetId: string,
+): void {
+  if (!state.recentActions) state.recentActions = [];
+  state.recentActions.push({
+    actorId,
+    actionCategory,
+    turn: state.turnCount,
+    targetId,
+  });
+  // Keep only last 10 actions
+  if (state.recentActions.length > 10) {
+    state.recentActions = state.recentActions.slice(-10);
+  }
+}
+
+function getActionCategory(action: CombatAction | CombatActionV2): string {
+  // Use explicit category if set
+  if (action.category) return action.category;
+  // Infer from action id / effects
+  if (action.id === "attack") return "sword";
+  if (action.id === "defend") return "shield";
+  for (const eff of action.effects) {
+    if (eff.type === "damage" && eff.element === "fire") return "magic_fire";
+    if (eff.type === "damage" && eff.element === "ice") return "magic_ice";
+    if (eff.type === "damage" && eff.element === "thunder")
+      return "magic_thunder";
+    if (eff.type === "damage" && eff.damageType === "magic") return "magic";
+  }
+  return action.id;
 }
 
 // ── Get Actions ──
@@ -970,6 +1315,51 @@ export async function executeATBAction(
       });
     }
   }
+
+  // ── Combo Detection ──
+  const actionCategory = getActionCategory(action);
+  const primaryTargetId = targetIds[0] ?? "";
+  const combo = checkCombo(state, actor.id, actionCategory, primaryTargetId);
+  if (combo) {
+    // Find a valid target for combo effects
+    const comboTarget = state.enemies.find(
+      (e) => e.id === primaryTargetId && e.isAlive,
+    ) ?? state.enemies.find((e) => e.isAlive);
+    if (comboTarget) {
+      for (const effect of combo.effects) {
+        const profile = comboTarget.elementalProfile;
+        const result = resolveSkillEffect(effect, actor, comboTarget, profile);
+        for (const log of result.logs) {
+          state.logs.push({
+            turn: state.turnCount,
+            actorName: actor.name,
+            message: `【连携】${combo.name}：${log}`,
+            type: "combo",
+          });
+        }
+      }
+      state.logs.push({
+        turn: state.turnCount,
+        actorName: "系统",
+        message: `${combo.name}发动！${combo.description}`,
+        type: "combo",
+      });
+      // Check if combo killed any enemies
+      for (const enemy of state.enemies) {
+        if (enemy.hp <= 0 && enemy.isAlive) {
+          enemy.hp = 0;
+          enemy.isAlive = false;
+          state.logs.push({
+            turn: state.turnCount,
+            actorName: "系统",
+            message: `${enemy.name} 被击败了！`,
+            type: "system",
+          });
+        }
+      }
+    }
+  }
+  recordRecentAction(state, actor.id, actionCategory, primaryTargetId);
 
   // Check victory
   if (state.enemies.every((e) => !e.isAlive)) {

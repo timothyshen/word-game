@@ -17,6 +17,7 @@ import {
   EconomyPanel,
   ATBCombatPanel,
   PartyPanel,
+  SkillTreePanel,
 } from "~/components/game/panels";
 import { InnerCityPanel } from "~/components/game/panels/InnerCityPanel";
 import { useUnlocks } from "~/hooks/use-unlocks";
@@ -403,6 +404,17 @@ export default function GamePage() {
       {panels.showPartyPanel && (
         <GameErrorBoundary>
           <PartyPanel onClose={() => panels.setShowPartyPanel(false)} />
+        </GameErrorBoundary>
+      )}
+
+      {/* 技能树面板 */}
+      {panels.showSkillTree && panels.skillTreeCharacterId && (
+        <GameErrorBoundary>
+          <SkillTreePanel
+            characterId={panels.skillTreeCharacterId}
+            characterName={panels.skillTreeCharacterName ?? ""}
+            onClose={() => panels.setShowSkillTree(false)}
+          />
         </GameErrorBoundary>
       )}
 

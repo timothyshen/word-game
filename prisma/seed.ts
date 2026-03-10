@@ -131,6 +131,802 @@ async function main() {
         { level: 3, effects: [{ type: "special", action: "identify", params: { successRate: 1.0 } }], mpCost: 5, cooldown: 1 },
       ]),
     },
+
+    // ===== 剑客 (Swordsman) Skill Tree =====
+    // Branch 1 - 破甲 (Armor Break)
+    {
+      name: "重击_剑客",
+      description: "全力一击，造成130%物理伤害",
+      icon: "💥",
+      type: "combat",
+      category: "sword_armorbreak",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "damage", damageType: "physical", multiplier: 1.3 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 1.3 }], mpCost: 5, cooldown: 0 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 1.5 }], mpCost: 7, cooldown: 0 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 1.7 }], mpCost: 9, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "穿刺_剑客",
+      description: "精准刺击，造成160%物理伤害并降低目标防御",
+      icon: "🗡️",
+      type: "combat",
+      category: "sword_armorbreak",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 1.6 },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.15, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 1.6 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.15, type: "percent" }], duration: 2 }], mpCost: 15, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 1.9 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.2, type: "percent" }], duration: 2 }], mpCost: 18, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 2.2 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.25, type: "percent" }], duration: 3 }], mpCost: 20, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "破甲斩_剑客",
+      description: "强力劈砍，造成200%物理伤害并大幅降低敌方防御",
+      icon: "⚔️",
+      type: "combat",
+      category: "sword_armorbreak",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 2.0 },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 2.0 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }], duration: 3 }], mpCost: 25, cooldown: 3 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 2.4 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.35, type: "percent" }], duration: 3 }], mpCost: 30, cooldown: 3 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 2.8 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.4, type: "percent" }], duration: 3 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "致命一击_剑客",
+      description: "终极破甲技，造成300%物理伤害并无视目标50%防御",
+      icon: "☠️",
+      type: "combat",
+      category: "sword_armorbreak",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 3.0, armorPenetration: 0.5 },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.5, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 3.0, armorPenetration: 0.5 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.5, type: "percent" }], duration: 2 }], mpCost: 40, cooldown: 4 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 3.5, armorPenetration: 0.6 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.55, type: "percent" }], duration: 2 }], mpCost: 45, cooldown: 4 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 4.0, armorPenetration: 0.7 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.6, type: "percent" }], duration: 3 }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+    // Branch 2 - 剑术 (Sword Arts)
+    {
+      name: "快斩_剑客",
+      description: "快速斩击，造成110%物理伤害，出手极快",
+      icon: "⚡",
+      type: "combat",
+      category: "sword_arts",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "damage", damageType: "physical", multiplier: 1.1 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 1.1 }], mpCost: 5, cooldown: 0 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 1.3 }], mpCost: 7, cooldown: 0 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 1.5 }], mpCost: 8, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "连斩_剑客",
+      description: "连续三次斩击，每次造成80%物理伤害",
+      icon: "🌀",
+      type: "combat",
+      category: "sword_arts",
+      cooldown: 2,
+      effects: JSON.stringify([{ type: "damage", damageType: "physical", multiplier: 0.8, hits: 3 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 0.8, hits: 3 }], mpCost: 18, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 0.9, hits: 3 }], mpCost: 20, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 1.0, hits: 3 }], mpCost: 22, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "剑气_剑客",
+      description: "释放剑气远程攻击，造成220%物理伤害并有几率暴击",
+      icon: "🌊",
+      type: "combat",
+      category: "sword_arts",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 2.2 },
+        { type: "buff", target: "self", modifiers: [{ stat: "critRate", value: 0.15, type: "flat" }], duration: 1 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 2.2 }, { type: "buff", target: "self", modifiers: [{ stat: "critRate", value: 0.15, type: "flat" }], duration: 1 }], mpCost: 28, cooldown: 3 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 2.6 }, { type: "buff", target: "self", modifiers: [{ stat: "critRate", value: 0.2, type: "flat" }], duration: 1 }], mpCost: 32, cooldown: 3 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 3.0 }, { type: "buff", target: "self", modifiers: [{ stat: "critRate", value: 0.25, type: "flat" }], duration: 2 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "万剑归宗_剑客",
+      description: "剑道极致奥义，召唤万千剑气攻击全体敌人",
+      icon: "🗡️",
+      type: "combat",
+      category: "sword_arts",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 3.5, aoe: true },
+        { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.3, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 3.5, aoe: true }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.3, type: "percent" }], duration: 2 }], mpCost: 45, cooldown: 4 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 4.0, aoe: true }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.35, type: "percent" }], duration: 2 }], mpCost: 48, cooldown: 4 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 4.5, aoe: true }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.4, type: "percent" }], duration: 3 }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+    // Branch 3 - 战意 (Battle Spirit)
+    {
+      name: "战吼_剑客",
+      description: "发出战吼，提升自身攻击力10%持续3回合",
+      icon: "📣",
+      type: "combat",
+      category: "sword_spirit",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.1, type: "percent" }], duration: 3 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.1, type: "percent" }], duration: 3 }], mpCost: 8, cooldown: 0 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.15, type: "percent" }], duration: 3 }], mpCost: 10, cooldown: 0 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.2, type: "percent" }], duration: 3 }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "蓄力_剑客",
+      description: "蓄积战意，下次攻击伤害翻倍",
+      icon: "🔋",
+      type: "combat",
+      category: "sword_spirit",
+      cooldown: 2,
+      effects: JSON.stringify([{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 1.0, type: "percent" }], duration: 1 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 1.0, type: "percent" }], duration: 1 }], mpCost: 15, cooldown: 2 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 1.2, type: "percent" }], duration: 1 }], mpCost: 18, cooldown: 2 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 1.5, type: "percent" }], duration: 2 }], mpCost: 20, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "狂暴_剑客",
+      description: "进入狂暴状态，大幅提升攻击力和暴击率但降低防御",
+      icon: "😤",
+      type: "combat",
+      category: "sword_spirit",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "critRate", value: 0.2, type: "flat" }], duration: 3 },
+        { type: "debuff", target: "self", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "critRate", value: 0.2, type: "flat" }], duration: 3 }, { type: "debuff", target: "self", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }], duration: 3 }], mpCost: 30, cooldown: 3 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.6, type: "percent" }, { stat: "critRate", value: 0.25, type: "flat" }], duration: 3 }, { type: "debuff", target: "self", modifiers: [{ stat: "defense", value: -0.25, type: "percent" }], duration: 3 }], mpCost: 33, cooldown: 3 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.7, type: "percent" }, { stat: "critRate", value: 0.3, type: "flat" }], duration: 4 }, { type: "debuff", target: "self", modifiers: [{ stat: "defense", value: -0.2, type: "percent" }], duration: 3 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "背水一战_剑客",
+      description: "生命越低伤害越高，HP低于30%时造成400%物理伤害",
+      icon: "🔥",
+      type: "combat",
+      category: "sword_spirit",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 4.0, conditionalMultiplier: { hpBelow: 0.3, bonusMultiplier: 1.5 } },
+        { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "critRate", value: 0.3, type: "flat" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 4.0, conditionalMultiplier: { hpBelow: 0.3, bonusMultiplier: 1.5 } }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "critRate", value: 0.3, type: "flat" }], duration: 2 }], mpCost: 40, cooldown: 4 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 4.5, conditionalMultiplier: { hpBelow: 0.35, bonusMultiplier: 1.8 } }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.6, type: "percent" }, { stat: "critRate", value: 0.35, type: "flat" }], duration: 2 }], mpCost: 45, cooldown: 4 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 5.0, conditionalMultiplier: { hpBelow: 0.4, bonusMultiplier: 2.0 } }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.7, type: "percent" }, { stat: "critRate", value: 0.4, type: "flat" }], duration: 3 }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+
+    // ===== 术士 (Mage) Skill Tree =====
+    // Branch 1 - 火焰 (Fire)
+    {
+      name: "火球_术士",
+      description: "发射火球，造成120%魔法伤害（火焰属性）",
+      icon: "🔥",
+      type: "combat",
+      category: "magic_fire",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "damage", damageType: "magic", multiplier: 1.2, element: "fire" }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 1.2, element: "fire" }], mpCost: 8, cooldown: 0 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 1.4, element: "fire" }], mpCost: 10, cooldown: 0 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 1.6, element: "fire" }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "火柱_术士",
+      description: "召唤火柱，造成170%魔法伤害并附加灼烧效果",
+      icon: "🌋",
+      type: "combat",
+      category: "magic_fire",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 1.7, element: "fire" },
+        { type: "dot", damageType: "magic", multiplier: 0.3, element: "fire", duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 1.7, element: "fire" }, { type: "dot", damageType: "magic", multiplier: 0.3, element: "fire", duration: 3 }], mpCost: 18, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 2.0, element: "fire" }, { type: "dot", damageType: "magic", multiplier: 0.4, element: "fire", duration: 3 }], mpCost: 20, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 2.3, element: "fire" }, { type: "dot", damageType: "magic", multiplier: 0.5, element: "fire", duration: 3 }], mpCost: 22, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "烈焰风暴_术士",
+      description: "召唤烈焰风暴，对全体敌人造成250%魔法伤害",
+      icon: "🔥",
+      type: "combat",
+      category: "magic_fire",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 2.5, element: "fire", aoe: true },
+        { type: "dot", damageType: "magic", multiplier: 0.5, element: "fire", duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 2.5, element: "fire", aoe: true }, { type: "dot", damageType: "magic", multiplier: 0.5, element: "fire", duration: 2 }], mpCost: 30, cooldown: 3 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 2.9, element: "fire", aoe: true }, { type: "dot", damageType: "magic", multiplier: 0.6, element: "fire", duration: 2 }], mpCost: 33, cooldown: 3 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 3.3, element: "fire", aoe: true }, { type: "dot", damageType: "magic", multiplier: 0.7, element: "fire", duration: 3 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "陨石术_术士",
+      description: "召唤陨石从天而降，造成毁灭性火焰伤害",
+      icon: "☄️",
+      type: "combat",
+      category: "magic_fire",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 4.0, element: "fire", aoe: true },
+        { type: "dot", damageType: "magic", multiplier: 0.8, element: "fire", duration: 3 },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.2, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 4.0, element: "fire", aoe: true }, { type: "dot", damageType: "magic", multiplier: 0.8, element: "fire", duration: 3 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.2, type: "percent" }], duration: 2 }], mpCost: 45, cooldown: 4 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 4.5, element: "fire", aoe: true }, { type: "dot", damageType: "magic", multiplier: 1.0, element: "fire", duration: 3 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.25, type: "percent" }], duration: 2 }], mpCost: 48, cooldown: 4 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 5.0, element: "fire", aoe: true }, { type: "dot", damageType: "magic", multiplier: 1.2, element: "fire", duration: 3 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }], duration: 3 }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+    // Branch 2 - 冰霜 (Ice)
+    {
+      name: "冰箭_术士",
+      description: "发射冰箭，造成110%魔法伤害并减速敌人",
+      icon: "❄️",
+      type: "combat",
+      category: "magic_ice",
+      cooldown: 0,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 1.1, element: "ice" },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.1, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 1.1, element: "ice" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.1, type: "percent" }], duration: 2 }], mpCost: 7, cooldown: 0 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 1.3, element: "ice" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.15, type: "percent" }], duration: 2 }], mpCost: 9, cooldown: 0 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 1.5, element: "ice" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.2, type: "percent" }], duration: 2 }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "冰盾_术士",
+      description: "召唤冰盾保护自身，提升防御并反弹部分伤害",
+      icon: "🧊",
+      type: "combat",
+      category: "magic_ice",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.4, type: "percent" }], duration: 3 },
+        { type: "special", action: "damageReflect", params: { percentage: 0.1 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.4, type: "percent" }], duration: 3 }, { type: "special", action: "damageReflect", params: { percentage: 0.1 } }], mpCost: 15, cooldown: 2 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }], duration: 3 }, { type: "special", action: "damageReflect", params: { percentage: 0.15 } }], mpCost: 18, cooldown: 2 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.6, type: "percent" }], duration: 4 }, { type: "special", action: "damageReflect", params: { percentage: 0.2 } }], mpCost: 20, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "暴风雪_术士",
+      description: "召唤暴风雪，对全体敌人造成冰霜伤害并降低攻速",
+      icon: "🌨️",
+      type: "combat",
+      category: "magic_ice",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 2.2, element: "ice", aoe: true },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.3, type: "percent" }, { stat: "attack", value: -0.15, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 2.2, element: "ice", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.3, type: "percent" }, { stat: "attack", value: -0.15, type: "percent" }], duration: 2 }], mpCost: 28, cooldown: 3 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 2.6, element: "ice", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.35, type: "percent" }, { stat: "attack", value: -0.2, type: "percent" }], duration: 2 }], mpCost: 32, cooldown: 3 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 3.0, element: "ice", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.4, type: "percent" }, { stat: "attack", value: -0.25, type: "percent" }], duration: 3 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "绝对零度_术士",
+      description: "释放绝对零度，冻结敌人并造成巨额冰霜伤害",
+      icon: "💎",
+      type: "combat",
+      category: "magic_ice",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 3.8, element: "ice" },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.8, type: "percent" }], duration: 2 },
+        { type: "special", action: "freeze", params: { chance: 0.5, duration: 1 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 3.8, element: "ice" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.8, type: "percent" }], duration: 2 }, { type: "special", action: "freeze", params: { chance: 0.5, duration: 1 } }], mpCost: 42, cooldown: 4 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 4.3, element: "ice" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -0.9, type: "percent" }], duration: 2 }, { type: "special", action: "freeze", params: { chance: 0.6, duration: 1 } }], mpCost: 46, cooldown: 4 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 5.0, element: "ice" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "speed", value: -1.0, type: "percent" }], duration: 3 }, { type: "special", action: "freeze", params: { chance: 0.7, duration: 2 } }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+    // Branch 3 - 雷电 (Thunder)
+    {
+      name: "雷击_术士",
+      description: "召唤雷电攻击敌人，造成130%魔法伤害",
+      icon: "⚡",
+      type: "combat",
+      category: "magic_thunder",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "damage", damageType: "magic", multiplier: 1.3, element: "thunder" }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 1.3, element: "thunder" }], mpCost: 10, cooldown: 0 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 1.5, element: "thunder" }], mpCost: 10, cooldown: 0 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 1.8, element: "thunder" }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "闪电链_术士",
+      description: "闪电在敌人之间跳跃，对多个目标造成伤害",
+      icon: "🔗",
+      type: "combat",
+      category: "magic_thunder",
+      cooldown: 2,
+      effects: JSON.stringify([{ type: "damage", damageType: "magic", multiplier: 1.5, element: "thunder", aoe: true, chainCount: 3 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 1.5, element: "thunder", aoe: true, chainCount: 3 }], mpCost: 18, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 1.8, element: "thunder", aoe: true, chainCount: 4 }], mpCost: 20, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 2.1, element: "thunder", aoe: true, chainCount: 5 }], mpCost: 22, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "雷云_术士",
+      description: "召唤雷云笼罩战场，持续造成雷电伤害",
+      icon: "🌩️",
+      type: "combat",
+      category: "magic_thunder",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 2.0, element: "thunder", aoe: true },
+        { type: "dot", damageType: "magic", multiplier: 0.6, element: "thunder", duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 2.0, element: "thunder", aoe: true }, { type: "dot", damageType: "magic", multiplier: 0.6, element: "thunder", duration: 3 }], mpCost: 30, cooldown: 3 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 2.4, element: "thunder", aoe: true }, { type: "dot", damageType: "magic", multiplier: 0.8, element: "thunder", duration: 3 }], mpCost: 33, cooldown: 3 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 2.8, element: "thunder", aoe: true }, { type: "dot", damageType: "magic", multiplier: 1.0, element: "thunder", duration: 3 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "天罚_术士",
+      description: "引导天雷降世，造成毁天灭地的雷电伤害",
+      icon: "⛈️",
+      type: "combat",
+      category: "magic_thunder",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 4.2, element: "thunder", aoe: true },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.25, type: "percent" }, { stat: "speed", value: -0.25, type: "percent" }], duration: 2 },
+        { type: "special", action: "stun", params: { chance: 0.3, duration: 1 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 4.2, element: "thunder", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.25, type: "percent" }, { stat: "speed", value: -0.25, type: "percent" }], duration: 2 }, { type: "special", action: "stun", params: { chance: 0.3, duration: 1 } }], mpCost: 45, cooldown: 4 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 4.8, element: "thunder", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }, { stat: "speed", value: -0.3, type: "percent" }], duration: 2 }, { type: "special", action: "stun", params: { chance: 0.4, duration: 1 } }], mpCost: 48, cooldown: 4 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 5.5, element: "thunder", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.35, type: "percent" }, { stat: "speed", value: -0.35, type: "percent" }], duration: 3 }, { type: "special", action: "stun", params: { chance: 0.5, duration: 1 } }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+
+    // ===== 守护者 (Guardian) Skill Tree =====
+    // Branch 1 - 铁壁 (Iron Wall)
+    {
+      name: "格挡_守护者",
+      description: "举盾格挡，提升20%防御持续2回合",
+      icon: "🛡️",
+      type: "combat",
+      category: "guardian_ironwall",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.2, type: "percent" }], duration: 2 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.2, type: "percent" }], duration: 2 }], mpCost: 5, cooldown: 0 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.3, type: "percent" }], duration: 2 }], mpCost: 7, cooldown: 0 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.4, type: "percent" }], duration: 3 }], mpCost: 8, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "铁壁_守护者",
+      description: "化身铁壁，大幅提升防御并减少受到的伤害",
+      icon: "🏰",
+      type: "combat",
+      category: "guardian_ironwall",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }, { stat: "damageReduction", value: 0.15, type: "flat" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }, { stat: "damageReduction", value: 0.15, type: "flat" }], duration: 3 }], mpCost: 15, cooldown: 2 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.6, type: "percent" }, { stat: "damageReduction", value: 0.2, type: "flat" }], duration: 3 }], mpCost: 18, cooldown: 2 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.7, type: "percent" }, { stat: "damageReduction", value: 0.25, type: "flat" }], duration: 4 }], mpCost: 20, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "反击_守护者",
+      description: "进入反击姿态，受到攻击时自动反击并造成150%伤害",
+      icon: "🔄",
+      type: "combat",
+      category: "guardian_ironwall",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.3, type: "percent" }], duration: 3 },
+        { type: "special", action: "counterAttack", params: { multiplier: 1.5, chance: 0.6 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.3, type: "percent" }], duration: 3 }, { type: "special", action: "counterAttack", params: { multiplier: 1.5, chance: 0.6 } }], mpCost: 25, cooldown: 3 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.4, type: "percent" }], duration: 3 }, { type: "special", action: "counterAttack", params: { multiplier: 1.8, chance: 0.7 } }], mpCost: 30, cooldown: 3 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }], duration: 4 }, { type: "special", action: "counterAttack", params: { multiplier: 2.0, chance: 0.8 } }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "不动如山_守护者",
+      description: "化身不可动摇的堡垒，免疫控制并大幅减伤",
+      icon: "⛰️",
+      type: "combat",
+      category: "guardian_ironwall",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 1.0, type: "percent" }, { stat: "damageReduction", value: 0.4, type: "flat" }], duration: 3 },
+        { type: "special", action: "immuneCC", params: { duration: 3 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 1.0, type: "percent" }, { stat: "damageReduction", value: 0.4, type: "flat" }], duration: 3 }, { type: "special", action: "immuneCC", params: { duration: 3 } }], mpCost: 40, cooldown: 4 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 1.2, type: "percent" }, { stat: "damageReduction", value: 0.45, type: "flat" }], duration: 3 }, { type: "special", action: "immuneCC", params: { duration: 3 } }], mpCost: 45, cooldown: 4 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 1.5, type: "percent" }, { stat: "damageReduction", value: 0.5, type: "flat" }], duration: 4 }, { type: "special", action: "immuneCC", params: { duration: 4 } }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+    // Branch 2 - 守护 (Protection)
+    {
+      name: "嘲讽_守护者",
+      description: "嘲讽敌人，迫使其攻击自己",
+      icon: "😠",
+      type: "combat",
+      category: "guardian_protection",
+      cooldown: 0,
+      effects: JSON.stringify([
+        { type: "special", action: "taunt", params: { duration: 2 } },
+        { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.1, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "special", action: "taunt", params: { duration: 2 } }, { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.1, type: "percent" }], duration: 2 }], mpCost: 8, cooldown: 0 },
+        { level: 2, effects: [{ type: "special", action: "taunt", params: { duration: 3 } }, { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.15, type: "percent" }], duration: 3 }], mpCost: 10, cooldown: 0 },
+        { level: 3, effects: [{ type: "special", action: "taunt", params: { duration: 3 } }, { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.2, type: "percent" }], duration: 3 }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "护盾_守护者",
+      description: "为自身生成一个吸收伤害的护盾",
+      icon: "🔰",
+      type: "combat",
+      category: "guardian_protection",
+      cooldown: 2,
+      effects: JSON.stringify([{ type: "special", action: "shield", params: { absorb: 0.3 } }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "special", action: "shield", params: { absorb: 0.3 } }], mpCost: 18, cooldown: 2 },
+        { level: 2, effects: [{ type: "special", action: "shield", params: { absorb: 0.4 } }], mpCost: 20, cooldown: 2 },
+        { level: 3, effects: [{ type: "special", action: "shield", params: { absorb: 0.5 } }], mpCost: 22, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "生命连接_守护者",
+      description: "与队友建立生命连接，分担其受到的伤害",
+      icon: "💞",
+      type: "combat",
+      category: "guardian_protection",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "special", action: "lifeLink", params: { damageShare: 0.4, duration: 3 } },
+        { type: "buff", target: "self", modifiers: [{ stat: "maxHp", value: 0.2, type: "percent" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "special", action: "lifeLink", params: { damageShare: 0.4, duration: 3 } }, { type: "buff", target: "self", modifiers: [{ stat: "maxHp", value: 0.2, type: "percent" }], duration: 3 }], mpCost: 28, cooldown: 3 },
+        { level: 2, effects: [{ type: "special", action: "lifeLink", params: { damageShare: 0.5, duration: 3 } }, { type: "buff", target: "self", modifiers: [{ stat: "maxHp", value: 0.25, type: "percent" }], duration: 3 }], mpCost: 32, cooldown: 3 },
+        { level: 3, effects: [{ type: "special", action: "lifeLink", params: { damageShare: 0.6, duration: 4 } }, { type: "buff", target: "self", modifiers: [{ stat: "maxHp", value: 0.3, type: "percent" }], duration: 4 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "圣光守护_守护者",
+      description: "召唤圣光守护全队，治愈并提供强力护盾",
+      icon: "✨",
+      type: "combat",
+      category: "guardian_protection",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "heal", target: "all_allies", multiplier: 2.0 },
+        { type: "special", action: "shield", params: { absorb: 0.5 } },
+        { type: "buff", target: "all_allies", modifiers: [{ stat: "defense", value: 0.3, type: "percent" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "heal", target: "all_allies", multiplier: 2.0 }, { type: "special", action: "shield", params: { absorb: 0.5 } }, { type: "buff", target: "all_allies", modifiers: [{ stat: "defense", value: 0.3, type: "percent" }], duration: 3 }], mpCost: 45, cooldown: 4 },
+        { level: 2, effects: [{ type: "heal", target: "all_allies", multiplier: 2.5 }, { type: "special", action: "shield", params: { absorb: 0.6 } }, { type: "buff", target: "all_allies", modifiers: [{ stat: "defense", value: 0.35, type: "percent" }], duration: 3 }], mpCost: 48, cooldown: 4 },
+        { level: 3, effects: [{ type: "heal", target: "all_allies", multiplier: 3.0 }, { type: "special", action: "shield", params: { absorb: 0.7 } }, { type: "buff", target: "all_allies", modifiers: [{ stat: "defense", value: 0.4, type: "percent" }], duration: 4 }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+    // Branch 3 - 制裁 (Judgment)
+    {
+      name: "盾击_守护者",
+      description: "用盾牌猛击敌人，造成120%物理伤害",
+      icon: "🛡️",
+      type: "combat",
+      category: "guardian_judgment",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "damage", damageType: "physical", multiplier: 1.2 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 1.2 }], mpCost: 6, cooldown: 0 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 1.4 }], mpCost: 8, cooldown: 0 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 1.6 }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "圣锤_守护者",
+      description: "召唤圣锤打击敌人，造成神圣伤害并有几率眩晕",
+      icon: "🔨",
+      type: "combat",
+      category: "guardian_judgment",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 1.8, element: "holy" },
+        { type: "special", action: "stun", params: { chance: 0.25, duration: 1 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 1.8, element: "holy" }, { type: "special", action: "stun", params: { chance: 0.25, duration: 1 } }], mpCost: 18, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 2.1, element: "holy" }, { type: "special", action: "stun", params: { chance: 0.3, duration: 1 } }], mpCost: 20, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 2.5, element: "holy" }, { type: "special", action: "stun", params: { chance: 0.4, duration: 1 } }], mpCost: 22, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "制裁之光_守护者",
+      description: "释放制裁之光，对邪恶目标造成额外伤害并削弱其攻击",
+      icon: "🌟",
+      type: "combat",
+      category: "guardian_judgment",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 2.5, element: "holy" },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "attack", value: -0.25, type: "percent" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 2.5, element: "holy" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "attack", value: -0.25, type: "percent" }], duration: 3 }], mpCost: 28, cooldown: 3 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 2.9, element: "holy" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "attack", value: -0.3, type: "percent" }], duration: 3 }], mpCost: 32, cooldown: 3 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 3.5, element: "holy" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "attack", value: -0.35, type: "percent" }], duration: 3 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "神圣裁决_守护者",
+      description: "以神圣之力裁决一切邪恶，造成巨额神圣伤害",
+      icon: "⚖️",
+      type: "combat",
+      category: "guardian_judgment",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 4.0, element: "holy", aoe: true },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "attack", value: -0.3, type: "percent" }, { stat: "defense", value: -0.3, type: "percent" }], duration: 3 },
+        { type: "special", action: "stun", params: { chance: 0.4, duration: 1 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 4.0, element: "holy", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "attack", value: -0.3, type: "percent" }, { stat: "defense", value: -0.3, type: "percent" }], duration: 3 }, { type: "special", action: "stun", params: { chance: 0.4, duration: 1 } }], mpCost: 42, cooldown: 4 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 4.5, element: "holy", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "attack", value: -0.35, type: "percent" }, { stat: "defense", value: -0.35, type: "percent" }], duration: 3 }, { type: "special", action: "stun", params: { chance: 0.5, duration: 1 } }], mpCost: 46, cooldown: 4 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 5.0, element: "holy", aoe: true }, { type: "debuff", target: "enemy", modifiers: [{ stat: "attack", value: -0.4, type: "percent" }, { stat: "defense", value: -0.4, type: "percent" }], duration: 3 }, { type: "special", action: "stun", params: { chance: 0.6, duration: 2 } }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+
+    // ===== 工匠大师 (Master Craftsman) Skill Tree =====
+    // Branch 1 - 机械 (Mechanical)
+    {
+      name: "投掷_工匠大师",
+      description: "投掷手工武器，造成110%物理伤害",
+      icon: "🪃",
+      type: "combat",
+      category: "craft_mechanical",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "damage", damageType: "physical", multiplier: 1.1 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 1.1 }], mpCost: 6, cooldown: 0 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 1.3 }], mpCost: 8, cooldown: 0 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 1.5 }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "炸弹_工匠大师",
+      description: "投掷炸弹，对范围敌人造成火焰伤害",
+      icon: "💣",
+      type: "combat",
+      category: "craft_mechanical",
+      cooldown: 2,
+      effects: JSON.stringify([{ type: "damage", damageType: "physical", multiplier: 1.6, element: "fire", aoe: true }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 1.6, element: "fire", aoe: true }], mpCost: 15, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 1.9, element: "fire", aoe: true }], mpCost: 18, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 2.2, element: "fire", aoe: true }], mpCost: 20, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "机关枪_工匠大师",
+      description: "部署机关枪进行连续射击，对单体造成多段伤害",
+      icon: "🔫",
+      type: "combat",
+      category: "craft_mechanical",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 0.6, hits: 5 },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.1, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 0.6, hits: 5 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.1, type: "percent" }], duration: 2 }], mpCost: 28, cooldown: 3 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 0.7, hits: 5 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.15, type: "percent" }], duration: 2 }], mpCost: 32, cooldown: 3 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 0.8, hits: 6 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.2, type: "percent" }], duration: 3 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "巨型机甲_工匠大师",
+      description: "召唤巨型机甲，大幅提升全属性并获得强力攻击",
+      icon: "🤖",
+      type: "combat",
+      category: "craft_mechanical",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "defense", value: 0.5, type: "percent" }, { stat: "speed", value: -0.2, type: "percent" }], duration: 4 },
+        { type: "damage", damageType: "physical", multiplier: 3.0 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "defense", value: 0.5, type: "percent" }, { stat: "speed", value: -0.2, type: "percent" }], duration: 4 }, { type: "damage", damageType: "physical", multiplier: 3.0 }], mpCost: 45, cooldown: 4 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.6, type: "percent" }, { stat: "defense", value: 0.6, type: "percent" }, { stat: "speed", value: -0.15, type: "percent" }], duration: 4 }, { type: "damage", damageType: "physical", multiplier: 3.5 }], mpCost: 48, cooldown: 4 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.7, type: "percent" }, { stat: "defense", value: 0.7, type: "percent" }, { stat: "speed", value: -0.1, type: "percent" }], duration: 5 }, { type: "damage", damageType: "physical", multiplier: 4.0 }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+    // Branch 2 - 药剂 (Alchemy)
+    {
+      name: "投毒_工匠大师",
+      description: "投掷毒瓶，使敌人中毒持续受到伤害",
+      icon: "🧪",
+      type: "combat",
+      category: "craft_alchemy",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "dot", damageType: "magic", multiplier: 0.3, element: "poison", duration: 3 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "dot", damageType: "magic", multiplier: 0.3, element: "poison", duration: 3 }], mpCost: 7, cooldown: 0 },
+        { level: 2, effects: [{ type: "dot", damageType: "magic", multiplier: 0.4, element: "poison", duration: 3 }], mpCost: 9, cooldown: 0 },
+        { level: 3, effects: [{ type: "dot", damageType: "magic", multiplier: 0.5, element: "poison", duration: 4 }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "强酸_工匠大师",
+      description: "投掷强酸，造成伤害并大幅降低敌人防御",
+      icon: "⚗️",
+      type: "combat",
+      category: "craft_alchemy",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "magic", multiplier: 1.4, element: "poison" },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.25, type: "percent" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "magic", multiplier: 1.4, element: "poison" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.25, type: "percent" }], duration: 3 }], mpCost: 16, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "magic", multiplier: 1.7, element: "poison" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }], duration: 3 }], mpCost: 19, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "magic", multiplier: 2.0, element: "poison" }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.35, type: "percent" }], duration: 3 }], mpCost: 22, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "治疗药剂_工匠大师",
+      description: "使用特制治疗药剂，恢复大量生命值并清除异常状态",
+      icon: "🧴",
+      type: "combat",
+      category: "craft_alchemy",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "heal", target: "self", multiplier: 2.5 },
+        { type: "special", action: "cleanse", params: { debuffCount: 2 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "heal", target: "self", multiplier: 2.5 }, { type: "special", action: "cleanse", params: { debuffCount: 2 } }], mpCost: 25, cooldown: 3 },
+        { level: 2, effects: [{ type: "heal", target: "self", multiplier: 3.0 }, { type: "special", action: "cleanse", params: { debuffCount: 3 } }], mpCost: 30, cooldown: 3 },
+        { level: 3, effects: [{ type: "heal", target: "self", multiplier: 3.5 }, { type: "special", action: "cleanse", params: { debuffCount: 99 } }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "万能药_工匠大师",
+      description: "传说中的万能药，全队回满并获得强力增益",
+      icon: "💊",
+      type: "combat",
+      category: "craft_alchemy",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "heal", target: "all_allies", multiplier: 4.0 },
+        { type: "buff", target: "all_allies", modifiers: [{ stat: "attack", value: 0.2, type: "percent" }, { stat: "defense", value: 0.2, type: "percent" }], duration: 3 },
+        { type: "special", action: "cleanse", params: { debuffCount: 99 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "heal", target: "all_allies", multiplier: 4.0 }, { type: "buff", target: "all_allies", modifiers: [{ stat: "attack", value: 0.2, type: "percent" }, { stat: "defense", value: 0.2, type: "percent" }], duration: 3 }, { type: "special", action: "cleanse", params: { debuffCount: 99 } }], mpCost: 45, cooldown: 4 },
+        { level: 2, effects: [{ type: "heal", target: "all_allies", multiplier: 5.0 }, { type: "buff", target: "all_allies", modifiers: [{ stat: "attack", value: 0.25, type: "percent" }, { stat: "defense", value: 0.25, type: "percent" }], duration: 3 }, { type: "special", action: "cleanse", params: { debuffCount: 99 } }], mpCost: 48, cooldown: 4 },
+        { level: 3, effects: [{ type: "heal", target: "all_allies", multiplier: 6.0 }, { type: "buff", target: "all_allies", modifiers: [{ stat: "attack", value: 0.3, type: "percent" }, { stat: "defense", value: 0.3, type: "percent" }], duration: 4 }, { type: "special", action: "cleanse", params: { debuffCount: 99 } }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
+    // Branch 3 - 强化 (Enhancement)
+    {
+      name: "磨刃_工匠大师",
+      description: "磨砺武器，提升攻击力",
+      icon: "🔪",
+      type: "combat",
+      category: "craft_enhancement",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.15, type: "percent" }], duration: 3 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.15, type: "percent" }], duration: 3 }], mpCost: 8, cooldown: 0 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.2, type: "percent" }], duration: 3 }], mpCost: 10, cooldown: 0 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.25, type: "percent" }], duration: 4 }], mpCost: 10, cooldown: 0 },
+      ]),
+    },
+    {
+      name: "附魔_工匠大师",
+      description: "为武器附上元素之力，攻击附加额外元素伤害",
+      icon: "✨",
+      type: "combat",
+      category: "craft_enhancement",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.25, type: "percent" }], duration: 3 },
+        { type: "special", action: "elementalEnchant", params: { bonusDamage: 0.2, duration: 3 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.25, type: "percent" }], duration: 3 }, { type: "special", action: "elementalEnchant", params: { bonusDamage: 0.2, duration: 3 } }], mpCost: 18, cooldown: 2 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.3, type: "percent" }], duration: 3 }, { type: "special", action: "elementalEnchant", params: { bonusDamage: 0.3, duration: 3 } }], mpCost: 20, cooldown: 2 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.35, type: "percent" }], duration: 4 }, { type: "special", action: "elementalEnchant", params: { bonusDamage: 0.4, duration: 4 } }], mpCost: 22, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "超载_工匠大师",
+      description: "超载武器和装甲，大幅提升攻防但持续消耗生命",
+      icon: "⚡",
+      type: "combat",
+      category: "craft_enhancement",
+      cooldown: 3,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "defense", value: 0.3, type: "percent" }], duration: 3 },
+        { type: "dot", damageType: "physical", multiplier: 0.1, target: "self", duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "defense", value: 0.3, type: "percent" }], duration: 3 }, { type: "dot", damageType: "physical", multiplier: 0.1, target: "self", duration: 3 }], mpCost: 25, cooldown: 3 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.6, type: "percent" }, { stat: "defense", value: 0.4, type: "percent" }], duration: 3 }, { type: "dot", damageType: "physical", multiplier: 0.08, target: "self", duration: 3 }], mpCost: 30, cooldown: 3 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.7, type: "percent" }, { stat: "defense", value: 0.5, type: "percent" }], duration: 4 }, { type: "dot", damageType: "physical", multiplier: 0.06, target: "self", duration: 3 }], mpCost: 35, cooldown: 3 },
+      ]),
+    },
+    {
+      name: "究极强化_工匠大师",
+      description: "使用终极锻造术强化全队装备，全属性大幅提升",
+      icon: "🌟",
+      type: "combat",
+      category: "craft_enhancement",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "buff", target: "all_allies", modifiers: [{ stat: "attack", value: 0.4, type: "percent" }, { stat: "defense", value: 0.4, type: "percent" }, { stat: "speed", value: 0.2, type: "percent" }], duration: 4 },
+        { type: "special", action: "equipmentBoost", params: { multiplier: 1.5, duration: 4 } },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "all_allies", modifiers: [{ stat: "attack", value: 0.4, type: "percent" }, { stat: "defense", value: 0.4, type: "percent" }, { stat: "speed", value: 0.2, type: "percent" }], duration: 4 }, { type: "special", action: "equipmentBoost", params: { multiplier: 1.5, duration: 4 } }], mpCost: 42, cooldown: 4 },
+        { level: 2, effects: [{ type: "buff", target: "all_allies", modifiers: [{ stat: "attack", value: 0.5, type: "percent" }, { stat: "defense", value: 0.5, type: "percent" }, { stat: "speed", value: 0.25, type: "percent" }], duration: 4 }, { type: "special", action: "equipmentBoost", params: { multiplier: 1.8, duration: 4 } }], mpCost: 46, cooldown: 4 },
+        { level: 3, effects: [{ type: "buff", target: "all_allies", modifiers: [{ stat: "attack", value: 0.6, type: "percent" }, { stat: "defense", value: 0.6, type: "percent" }, { stat: "speed", value: 0.3, type: "percent" }], duration: 5 }, { type: "special", action: "equipmentBoost", params: { multiplier: 2.0, duration: 5 } }], mpCost: 50, cooldown: 4 },
+      ]),
+    },
   ];
 
   for (const skill of skills) {
@@ -510,10 +1306,19 @@ async function main() {
     {
       name: "剑客",
       description: "精通剑术的武者，近战攻击力卓越",
-      bonuses: JSON.stringify([
-        { stat: "attack", value: 0.2, type: "percent" },
-        { stat: "critRate", value: 0.05, type: "flat" },
-      ]),
+      bonuses: JSON.stringify({
+        stats: [
+          { stat: "attack", value: 0.2, type: "percent" },
+          { stat: "critRate", value: 0.05, type: "flat" },
+        ],
+        skillTree: {
+          branches: [
+            { name: "破甲", skills: ["重击_剑客", "穿刺_剑客", "破甲斩_剑客", "致命一击_剑客"] },
+            { name: "剑术", skills: ["快斩_剑客", "连斩_剑客", "剑气_剑客", "万剑归宗_剑客"] },
+            { name: "战意", skills: ["战吼_剑客", "蓄力_剑客", "狂暴_剑客", "背水一战_剑客"] },
+          ],
+        },
+      }),
       unlockConditions: JSON.stringify([
         { type: "skill", category: "sword", minLevel: 3 },
       ]),
@@ -521,10 +1326,19 @@ async function main() {
     {
       name: "术士",
       description: "掌握神秘法术的施法者",
-      bonuses: JSON.stringify([
-        { stat: "intellect", value: 0.15, type: "percent" },
-        { stat: "maxMp", value: 0.2, type: "percent" },
-      ]),
+      bonuses: JSON.stringify({
+        stats: [
+          { stat: "intellect", value: 0.15, type: "percent" },
+          { stat: "maxMp", value: 0.2, type: "percent" },
+        ],
+        skillTree: {
+          branches: [
+            { name: "火焰", skills: ["火球_术士", "火柱_术士", "烈焰风暴_术士", "陨石术_术士"] },
+            { name: "冰霜", skills: ["冰箭_术士", "冰盾_术士", "暴风雪_术士", "绝对零度_术士"] },
+            { name: "雷电", skills: ["雷击_术士", "闪电链_术士", "雷云_术士", "天罚_术士"] },
+          ],
+        },
+      }),
       unlockConditions: JSON.stringify([
         { type: "skillCount", skillType: "magic", count: 2 },
       ]),
@@ -532,10 +1346,19 @@ async function main() {
     {
       name: "工匠大师",
       description: "锻造技艺登峰造极的匠人",
-      bonuses: JSON.stringify([
-        { stat: "craftingQuality", value: 1, type: "flat" },
-        { stat: "productionSpeed", value: 0.3, type: "percent" },
-      ]),
+      bonuses: JSON.stringify({
+        stats: [
+          { stat: "craftingQuality", value: 1, type: "flat" },
+          { stat: "productionSpeed", value: 0.3, type: "percent" },
+        ],
+        skillTree: {
+          branches: [
+            { name: "机械", skills: ["投掷_工匠大师", "炸弹_工匠大师", "机关枪_工匠大师", "巨型机甲_工匠大师"] },
+            { name: "药剂", skills: ["投毒_工匠大师", "强酸_工匠大师", "治疗药剂_工匠大师", "万能药_工匠大师"] },
+            { name: "强化", skills: ["磨刃_工匠大师", "附魔_工匠大师", "超载_工匠大师", "究极强化_工匠大师"] },
+          ],
+        },
+      }),
       unlockConditions: JSON.stringify([
         { type: "skill", category: "crafting", minLevel: 5 },
       ]),
@@ -543,11 +1366,20 @@ async function main() {
     {
       name: "守护者",
       description: "铜墙铁壁般的防御专家",
-      bonuses: JSON.stringify([
-        { stat: "defense", value: 0.3, type: "percent" },
-        { stat: "maxHp", value: 0.2, type: "percent" },
-        { stat: "damageReduction", value: 0.1, type: "flat" },
-      ]),
+      bonuses: JSON.stringify({
+        stats: [
+          { stat: "defense", value: 0.3, type: "percent" },
+          { stat: "maxHp", value: 0.2, type: "percent" },
+          { stat: "damageReduction", value: 0.1, type: "flat" },
+        ],
+        skillTree: {
+          branches: [
+            { name: "铁壁", skills: ["格挡_守护者", "铁壁_守护者", "反击_守护者", "不动如山_守护者"] },
+            { name: "守护", skills: ["嘲讽_守护者", "护盾_守护者", "生命连接_守护者", "圣光守护_守护者"] },
+            { name: "制裁", skills: ["盾击_守护者", "圣锤_守护者", "制裁之光_守护者", "神圣裁决_守护者"] },
+          ],
+        },
+      }),
       unlockConditions: JSON.stringify([
         { type: "skill", category: "shield", minLevel: 3 },
       ]),
