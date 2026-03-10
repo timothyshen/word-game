@@ -7,6 +7,7 @@ import { innerCityRouter, territoryRouter, portalRouter } from "~/server/api/rou
 import { storyRouter, characterRouter } from "~/server/api/routers/content";
 import { adminRouter } from "~/server/api/routers/admin";
 import { outerCityRouter } from "~/server/api/routers/outerCity";
+import { partyRouter } from "./routers/party";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -37,6 +38,7 @@ export const appRouter = createTRPCRouter({
   auth: authRouter,
   innerCity: innerCityRouter,
   outerCity: outerCityRouter,
+  party: partyRouter,
 });
 
 // export type definition of API

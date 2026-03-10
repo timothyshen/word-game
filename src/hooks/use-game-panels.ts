@@ -20,6 +20,7 @@ interface PanelState {
   showCombatPanel: boolean;
   combatLevel: number;
   showInnerCityPanel: boolean;
+  showPartyPanel: boolean;
   // UI 状态
   showHUD: boolean;
   showMenu: boolean;
@@ -48,7 +49,9 @@ export function useGamePanels() {
   const [showEconomyPanel, setShowEconomyPanel] = useState(false);
   const [showCombatPanel, setShowCombatPanel] = useState(false);
   const [combatLevel, setCombatLevel] = useState(1);
+  const [combatType, setCombatType] = useState<"normal" | "elite" | "boss">("normal");
   const [showInnerCityPanel, setShowInnerCityPanel] = useState(false);
+  const [showPartyPanel, setShowPartyPanel] = useState(false);
 
   // UI 状态
   const [showHUD, setShowHUD] = useState(true);
@@ -58,7 +61,7 @@ export function useGamePanels() {
   const anyPanelOpen =
     showCharacterHub || showInventoryHub || showAdventureHub ||
     showProgressHub || showLogHub || showEconomyPanel ||
-    showCombatPanel || showInnerCityPanel || showGuidancePanel;
+    showCombatPanel || showInnerCityPanel || showPartyPanel || showGuidancePanel;
 
   // ESC 键打开/关闭菜单
   useEffect(() => {
@@ -99,8 +102,9 @@ export function useGamePanels() {
     setShowLogHub(true);
   }, []);
 
-  const openCombat = useCallback((level = 1) => {
+  const openCombat = useCallback((level = 1, type: "normal" | "elite" | "boss" = "normal") => {
     setCombatLevel(level);
+    setCombatType(type);
     setShowCombatPanel(true);
   }, []);
 
@@ -135,8 +139,9 @@ export function useGamePanels() {
     showLogHub, setShowLogHub, logHubTab,
     // 独立面板
     showEconomyPanel, setShowEconomyPanel,
-    showCombatPanel, setShowCombatPanel, combatLevel, setCombatLevel,
+    showCombatPanel, setShowCombatPanel, combatLevel, setCombatLevel, combatType, setCombatType,
     showInnerCityPanel, setShowInnerCityPanel,
+    showPartyPanel, setShowPartyPanel,
     // UI 状态
     showHUD, setShowHUD,
     showMenu, setShowMenu,

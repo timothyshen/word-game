@@ -1,5 +1,6 @@
 import type {
   SkillEffect, CombatUnit, CombatBuff, CombatResult,
+  Element, ElementalProfile,
 } from "./types";
 
 /**
@@ -19,16 +20,31 @@ export function calculateDamage(
 }
 
 /**
+ * Calculate elemental damage multiplier.
+ * Weakness = 1.5x, Resistance = 0.5x, Neutral = 1.0x
+ */
+export function getElementMultiplier(
+  attackElement: Element | undefined,
+  profile: ElementalProfile | undefined,
+): { multiplier: number; isWeak: boolean; isResist: boolean } {
+  if (!attackElement || !profile) return { multiplier: 1.0, isWeak: false, isResist: false };
+  if (profile.weaknesses.includes(attackElement)) return { multiplier: 1.5, isWeak: true, isResist: false };
+  if (profile.resistances.includes(attackElement)) return { multiplier: 0.5, isWeak: false, isResist: true };
+  return { multiplier: 1.0, isWeak: false, isResist: false };
+}
+
+/**
  * Resolves a single skill effect against an attacker and defender.
  */
 export function resolveSkillEffect(
   effect: SkillEffect,
   attacker: CombatUnit,
   defender: CombatUnit,
+  defenderProfile?: ElementalProfile,
 ): CombatResult {
   switch (effect.type) {
     case "damage":
-      return resolveDamage(effect, attacker, defender);
+      return resolveDamage(effect, attacker, defender, defenderProfile);
     case "heal":
       return resolveHeal(effect, attacker);
     case "buff":
@@ -47,6 +63,7 @@ function resolveDamage(
   effect: Extract<SkillEffect, { type: "damage" }>,
   attacker: CombatUnit,
   defender: CombatUnit,
+  defenderProfile?: ElementalProfile,
 ): CombatResult {
   const attackStat = effect.damageType === "magic"
     ? getBuffedStat(attacker, "intellect") * 2.5
@@ -65,6 +82,13 @@ function resolveDamage(
 
   let damage = calculateDamage(attackStat, defenseStat, effect.multiplier, isCrit, critMultiplier);
 
+  // Apply elemental multiplier
+  const elemResult = getElementMultiplier(
+    effect.element as Element | undefined,
+    defenderProfile,
+  );
+  damage = Math.floor(damage * elemResult.multiplier);
+
   // Apply defender's damageReduction
   const dmgReduction = getBuffedStat(defender, "damageReduction");
   if (dmgReduction > 0) {
@@ -74,6 +98,10 @@ function resolveDamage(
   defender.hp -= damage;
 
   const logs: string[] = [];
+  // Element logs
+  if (elemResult.isWeak) logs.push(`弱点命中！伤害提升50%`);
+  if (elemResult.isResist) logs.push(`属性抗性！伤害降低50%`);
+
   const typeLabel = effect.damageType === "magic" ? "魔法" : "物理";
   const elementLabel = effect.element ? `[${effect.element}]` : "";
   logs.push(
@@ -181,4 +209,36 @@ export function getBuffedStat(unit: CombatUnit, stat: string): number {
     }
   }
   return Math.floor((base + flat) * (1 + pct));
+}
+
+/**
+ * Resolve an action against multiple targets, returning combined results.
+ */
+export function resolveActionMultiTarget(
+  action: { effects: SkillEffect[] },
+  attacker: CombatUnit,
+  targets: Array<{ unit: CombatUnit; profile?: ElementalProfile }>,
+): CombatResult {
+  const allLogs: string[] = [];
+  let totalDamage = 0;
+  let totalHeal = 0;
+  const allBuffs: CombatBuff[] = [];
+
+  for (const { unit: target, profile } of targets) {
+    for (const effect of action.effects) {
+      const result = resolveSkillEffect(effect, attacker, target, profile);
+      allLogs.push(...result.logs);
+      if (result.damageDealt) totalDamage += result.damageDealt;
+      if (result.healAmount) totalHeal += result.healAmount;
+      if (result.buffsApplied) allBuffs.push(...result.buffsApplied);
+      if (result.fled) return { logs: allLogs, fled: true };
+    }
+  }
+
+  return {
+    logs: allLogs,
+    damageDealt: totalDamage || undefined,
+    healAmount: totalHeal || undefined,
+    buffsApplied: allBuffs.length > 0 ? allBuffs : undefined,
+  };
 }

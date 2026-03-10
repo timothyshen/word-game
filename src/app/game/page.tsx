@@ -15,7 +15,8 @@ import {
   LogHub,
   BuildingDetailPanel,
   EconomyPanel,
-  CombatPanel,
+  ATBCombatPanel,
+  PartyPanel,
 } from "~/components/game/panels";
 import { InnerCityPanel } from "~/components/game/panels/InnerCityPanel";
 import { useUnlocks } from "~/hooks/use-unlocks";
@@ -230,6 +231,7 @@ export default function GamePage() {
                 { icon: "🎒", label: "背包", system: "backpack", onClick: () => panels.openInventoryHub() },
                 { icon: "🗺️", label: "冒险", system: "exploration", onClick: () => panels.openAdventureHub() },
                 { icon: "⚔️", label: "战斗", system: "combat", onClick: () => panels.openCombat() },
+                { icon: "🛡️", label: "编队", system: "combat", onClick: () => panels.setShowPartyPanel(true) },
                 { icon: "🏙️", label: "城市", system: "inner_city", onClick: () => panels.openInnerCity() },
               ].filter(a => unlocks.has(a.system)).map((action, i) => (
                 <button
@@ -389,10 +391,18 @@ export default function GamePage() {
       {/* 战斗面板 */}
       {panels.showCombatPanel && (
         <GameErrorBoundary>
-          <CombatPanel
+          <ATBCombatPanel
             monsterLevel={panels.combatLevel}
+            combatType={panels.combatType}
             onClose={() => panels.setShowCombatPanel(false)}
           />
+        </GameErrorBoundary>
+      )}
+
+      {/* 编队面板 */}
+      {panels.showPartyPanel && (
+        <GameErrorBoundary>
+          <PartyPanel onClose={() => panels.setShowPartyPanel(false)} />
         </GameErrorBoundary>
       )}
 

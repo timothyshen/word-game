@@ -10,6 +10,7 @@ export { default as HubPanel } from "./HubPanel";
 export { default as BuildingDetailPanel } from "./BuildingDetailPanel";
 export { default as EconomyPanel } from "./EconomyPanel";
 export { default as CombatPanel } from "./CombatPanel";
+export { default as ATBCombatPanel } from "./ATBCombatPanel";
 
 // 旧面板 - 仍可单独使用
 export { default as CharacterDetailPanel } from "./CharacterDetailPanel";
@@ -26,3 +27,4 @@ export { default as PortalPanel } from "./PortalPanel";
 export { default as StoryPanel } from "./StoryPanel";
 export { default as CombatHistoryPanel } from "./CombatHistoryPanel";
 export { default as ActionHistoryPanel } from "./ActionHistoryPanel";
+export { default as PartyPanel } from "./PartyPanel";

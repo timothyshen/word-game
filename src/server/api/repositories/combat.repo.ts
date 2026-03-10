@@ -23,6 +23,7 @@ export function createCombatSession(
     areaLevel: number;
     logs: string;
     rewards: string;
+    combatState?: string;
   },
 ) {
   return db.combatSession.create({ data });
@@ -37,6 +38,7 @@ export function updateCombatSession(
     playerTeam?: string;
     enemyTeam?: string;
     logs?: string;
+    combatState?: string;
   },
 ) {
   return db.combatSession.update({ where: { id }, data });

@@ -144,6 +144,9 @@ model Player {
     // 战斗记录
     combatSessions       CombatSession[]
 
+    // 编队系统
+    party                PlayerParty?
+
     // 统计数据
     combatWins           Int @default(0)
     bossKills            Int @default(0)
@@ -593,6 +596,9 @@ model CombatSession {
     combatType   String @default("normal") // normal/boss/pvp
     areaLevel    Int    @default(1)
 
+    // ATB combat state (JSON — full ATBCombatState)
+    combatState  String @default("{}")
+
     // 战斗日志（JSON数组）
     logs         String @default("[]")
 
@@ -603,6 +609,19 @@ model CombatSession {
     updatedAt    DateTime @updatedAt
 
     @@index([playerId])
+}
+
+// ===== 编队系统 =====
+
+model PlayerParty {
+    id       String @id @default(cuid())
+    playerId String @unique
+    player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    // JSON array of character Entity IDs (max 3)
+    members  String @default("[]")
+
+    updatedAt DateTime @updatedAt
 }
 
 // ===== 管理后台模型 =====

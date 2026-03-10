@@ -110,6 +110,10 @@ export interface MonsterConfig {
   attack: number;
   defense: number;
   speed: number;
+  intellect?: number;
+  element?: Element;
+  weaknesses?: Element[];
+  resistances?: Element[];
   skills: MonsterSkill[];
   rewards: RewardEntry[];
 }
@@ -195,6 +199,91 @@ export interface CombatResult {
   buffsApplied?: CombatBuff[];
   fled?: boolean;
   specialAction?: { action: string; params: Record<string, number> };
+}
+
+// --- Element System ---
+
+export const ELEMENTS = ["physical", "fire", "ice", "thunder", "light", "dark"] as const;
+export type Element = (typeof ELEMENTS)[number];
+
+export interface ElementalProfile {
+  weaknesses: Element[];
+  resistances: Element[];
+}
+
+// --- ATB Combat Types ---
+
+export interface ATBUnit extends CombatUnit {
+  atb: number;
+  element?: Element;
+  elementalProfile?: ElementalProfile;
+  isAlive: boolean;
+  teamIndex: number;
+}
+
+export interface PartyMember extends ATBUnit {
+  characterId: string;
+  portrait: string;
+  baseClass: string;
+  skillSlots: CombatAction[];
+}
+
+export interface EnemyUnit extends ATBUnit {
+  tier: "normal" | "elite" | "boss";
+  phase?: number;
+  specialMechanics?: EnemyMechanic[];
+  loot: LootTable;
+}
+
+export interface EnemyMechanic {
+  name: string;
+  trigger: "hp_threshold" | "turn_interval" | "on_hit";
+  value: number;
+  effects: SkillEffect[];
+  description: string;
+  activated?: boolean;
+}
+
+export interface LootTable {
+  exp: number;
+  gold: number;
+  materials?: Array<{ templateId: string; chance: number; count: number }>;
+  equipment?: Array<{ equipmentId: string; chance: number }>;
+  skillCards?: Array<{ skillId: string; chance: number }>;
+}
+
+export interface ATBCombatState {
+  party: PartyMember[];
+  enemies: EnemyUnit[];
+  currentActorId: string | null;
+  turnCount: number;
+  logs: CombatLog[];
+  status: "active" | "victory" | "defeat" | "fled";
+  combatType: "normal" | "elite" | "boss";
+  rating?: CombatRating;
+}
+
+export interface CombatLog {
+  turn: number;
+  actorName: string;
+  message: string;
+  type: "action" | "damage" | "heal" | "buff" | "system" | "critical" | "weakness" | "combo";
+}
+
+export interface CombatRating {
+  grade: "S" | "A" | "B" | "C";
+  turnsUsed: number;
+  survivorCount: number;
+  weaknessHits: number;
+  combosTriggered: number;
+  multiplier: number;
+}
+
+export type TargetType = "single_enemy" | "all_enemies" | "single_ally" | "all_allies" | "self";
+
+export interface CombatActionV2 extends CombatAction {
+  targetType: TargetType;
+  element?: Element;
 }
 
 // --- Stat Calculator Types ---
