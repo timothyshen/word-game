@@ -24,6 +24,9 @@ interface PanelState {
   showSkillTree: boolean;
   skillTreeCharacterId: string | null;
   skillTreeCharacterName: string | null;
+  showArmyPanel: boolean;
+  showArmyCombat: boolean;
+  armyCombatLevel: number;
   // UI 状态
   showHUD: boolean;
   showMenu: boolean;
@@ -58,6 +61,9 @@ export function useGamePanels() {
   const [showSkillTree, setShowSkillTree] = useState(false);
   const [skillTreeCharacterId, setSkillTreeCharacterId] = useState<string | null>(null);
   const [skillTreeCharacterName, setSkillTreeCharacterName] = useState<string | null>(null);
+  const [showArmyPanel, setShowArmyPanel] = useState(false);
+  const [showArmyCombat, setShowArmyCombat] = useState(false);
+  const [armyCombatLevel, setArmyCombatLevel] = useState(1);
 
   // UI 状态
   const [showHUD, setShowHUD] = useState(true);
@@ -67,7 +73,8 @@ export function useGamePanels() {
   const anyPanelOpen =
     showCharacterHub || showInventoryHub || showAdventureHub ||
     showProgressHub || showLogHub || showEconomyPanel ||
-    showCombatPanel || showInnerCityPanel || showPartyPanel || showSkillTree || showGuidancePanel;
+    showCombatPanel || showInnerCityPanel || showPartyPanel || showSkillTree || showGuidancePanel ||
+    showArmyPanel || showArmyCombat;
 
   // ESC 键打开/关闭菜单
   useEffect(() => {
@@ -124,6 +131,15 @@ export function useGamePanels() {
     setShowSkillTree(true);
   }, []);
 
+  const openArmy = useCallback(() => {
+    setShowArmyPanel(true);
+  }, []);
+
+  const openArmyCombat = useCallback((level = 1) => {
+    setArmyCombatLevel(level);
+    setShowArmyCombat(true);
+  }, []);
+
   // HintBar action handler
   const handleHintAction = useCallback((action: string, onLevelUp: () => void) => {
     if (action === "levelUp") {
@@ -162,6 +178,9 @@ export function useGamePanels() {
     // 快捷方法
     openCharacterHub, openInventoryHub, openAdventureHub,
     openProgressHub, openLogHub, openCombat, openInnerCity, openSkillTree,
+    openArmy, openArmyCombat,
+    showArmyPanel, setShowArmyPanel,
+    showArmyCombat, setShowArmyCombat, armyCombatLevel,
     handleHintAction,
   };
 }

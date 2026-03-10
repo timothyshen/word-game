@@ -29,3 +29,5 @@ export { default as CombatHistoryPanel } from "./CombatHistoryPanel";
 export { default as ActionHistoryPanel } from "./ActionHistoryPanel";
 export { default as PartyPanel } from "./PartyPanel";
 export { default as SkillTreePanel } from "./SkillTreePanel";
+export { default as ArmyPanel } from "./ArmyPanel";
+export { default as ArmyCombatPanel } from "./ArmyCombatPanel";

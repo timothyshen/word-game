@@ -18,6 +18,8 @@ import {
   ATBCombatPanel,
   PartyPanel,
   SkillTreePanel,
+  ArmyPanel,
+  ArmyCombatPanel,
 } from "~/components/game/panels";
 import { InnerCityPanel } from "~/components/game/panels/InnerCityPanel";
 import { useUnlocks } from "~/hooks/use-unlocks";
@@ -233,6 +235,7 @@ export default function GamePage() {
                 { icon: "🗺️", label: "冒险", system: "exploration", onClick: () => panels.openAdventureHub() },
                 { icon: "⚔️", label: "战斗", system: "combat", onClick: () => panels.openCombat() },
                 { icon: "🛡️", label: "编队", system: "combat", onClick: () => panels.setShowPartyPanel(true) },
+                ...((levelUpInfo?.currentLevel ?? 1) >= 15 ? [{ icon: "🏰", label: "军团", system: "combat", onClick: () => panels.openArmy() }] : []),
                 { icon: "🏙️", label: "城市", system: "inner_city", onClick: () => panels.openInnerCity() },
               ].filter(a => unlocks.has(a.system)).map((action, i) => (
                 <button
@@ -414,6 +417,29 @@ export default function GamePage() {
             characterId={panels.skillTreeCharacterId}
             characterName={panels.skillTreeCharacterName ?? ""}
             onClose={() => panels.setShowSkillTree(false)}
+          />
+        </GameErrorBoundary>
+      )}
+
+      {/* 军团面板 */}
+      {panels.showArmyPanel && (
+        <GameErrorBoundary>
+          <ArmyPanel
+            onClose={() => panels.setShowArmyPanel(false)}
+            onStartCombat={() => {
+              panels.setShowArmyPanel(false);
+              panels.openArmyCombat(1);
+            }}
+          />
+        </GameErrorBoundary>
+      )}
+
+      {/* 军团战斗面板 */}
+      {panels.showArmyCombat && (
+        <GameErrorBoundary>
+          <ArmyCombatPanel
+            enemyLevel={panels.armyCombatLevel}
+            onClose={() => panels.setShowArmyCombat(false)}
           />
         </GameErrorBoundary>
       )}

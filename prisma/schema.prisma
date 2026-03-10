@@ -158,6 +158,11 @@ model Player {
 
     // 外城系统
     heroInstances        HeroInstance[]
+
+    // 军团系统
+    troops               Troop[]
+    army                 Army?
+    armyCombats          ArmyCombat[]
 }
 
 // 职业模板
@@ -879,4 +884,86 @@ model Entity {
 
   @@index([ownerId])
   @@index([templateId])
+}
+
+// ===== 军团系统 =====
+
+// 兵种模板
+model TroopType {
+    id          String @id @default(cuid())
+    name        String @unique   // 民兵, 重装步兵, etc.
+    category    String           // infantry, archer, cavalry, mage, siege
+    tier        Int    @default(1) // 1=基础, 2=进阶1, 3=进阶2, 4=进阶3
+    description String @default("")
+    icon        String @default("")
+
+    // 基础属性
+    baseHp      Int @default(100)
+    baseAtk     Int @default(10)
+    baseDef     Int @default(5)
+    baseSpd     Int @default(5)
+
+    // 克制关系 (JSON: { strong: ["archer"], weak: ["cavalry"] })
+    counterInfo String @default("{}")
+
+    // 升级条件 (JSON: { requiredBuildingLevel: 3, cost: { gold: 100, iron: 50 } })
+    upgradeInfo String @default("{}")
+
+    // 解锁所需建筑类型
+    requiredBuilding String @default("")  // barracks, archery_range, stable, mage_tower, workshop
+
+    troops      Troop[]
+}
+
+// 玩家拥有的兵种实例
+model Troop {
+    id          String @id @default(cuid())
+    playerId    String
+    player      Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+    troopTypeId String
+    troopType   TroopType @relation(fields: [troopTypeId], references: [id])
+
+    count       Int @default(0)  // 当前数量
+    maxCount    Int @default(50) // 最大容量（受建筑影响）
+    exp         Int @default(0)  // 兵种经验
+    level       Int @default(1)  // 兵种等级（影响属性倍率）
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@unique([playerId, troopTypeId])
+    @@index([playerId])
+}
+
+// 军团编制
+model Army {
+    id          String @id @default(cuid())
+    playerId    String @unique
+    player      Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    // JSON: 编队数据 [{ slotIndex: 0, troopTypeId: "xxx", count: 50, heroEntityId: "yyy" }, ...]
+    formation   String @default("[]")
+
+    updatedAt   DateTime @updatedAt
+}
+
+// 军团战斗记录
+model ArmyCombat {
+    id          String @id @default(cuid())
+    playerId    String
+    player      Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+    status      String @default("active")  // active, victory, defeat
+    combatType  String @default("field")   // field, siege, defense
+
+    // JSON: full combat state
+    combatState String @default("{}")
+
+    // JSON: combat log
+    logs        String @default("[]")
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([playerId])
 }

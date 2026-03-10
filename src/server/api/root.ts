@@ -8,6 +8,7 @@ import { storyRouter, characterRouter } from "~/server/api/routers/content";
 import { adminRouter } from "~/server/api/routers/admin";
 import { outerCityRouter } from "~/server/api/routers/outerCity";
 import { partyRouter } from "./routers/party";
+import { armyRouter } from "./routers/army";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -39,6 +40,7 @@ export const appRouter = createTRPCRouter({
   innerCity: innerCityRouter,
   outerCity: outerCityRouter,
   party: partyRouter,
+  army: armyRouter,
   skillTree: skillTreeRouter,
 });
 

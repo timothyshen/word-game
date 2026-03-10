@@ -1867,6 +1867,79 @@ async function main() {
   // ===== 实体系统 =====
   await seedEntitySystem(prisma);
 
+  // ===== 兵种模板 =====
+  const troopTypes = [
+    // Infantry
+    { name: "民兵", category: "infantry", tier: 1, icon: "🗡️", baseHp: 100, baseAtk: 10, baseDef: 8, baseSpd: 5, requiredBuilding: "barracks",
+      counterInfo: JSON.stringify({ strong: ["archer"], weak: ["cavalry"] }) },
+    { name: "重装步兵", category: "infantry", tier: 2, icon: "⚔️", baseHp: 180, baseAtk: 18, baseDef: 15, baseSpd: 4, requiredBuilding: "barracks",
+      counterInfo: JSON.stringify({ strong: ["archer"], weak: ["cavalry", "mage"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 3, cost: { gold: 200, iron: 100 } }) },
+    { name: "剑圣", category: "infantry", tier: 3, icon: "🤺", baseHp: 250, baseAtk: 28, baseDef: 20, baseSpd: 6, requiredBuilding: "barracks",
+      counterInfo: JSON.stringify({ strong: ["archer", "siege"], weak: ["cavalry"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 5, cost: { gold: 500, iron: 250 } }) },
+    { name: "皇家近卫", category: "infantry", tier: 4, icon: "👑", baseHp: 350, baseAtk: 40, baseDef: 30, baseSpd: 7, requiredBuilding: "barracks",
+      counterInfo: JSON.stringify({ strong: ["archer", "siege", "mage"], weak: ["cavalry"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 8, cost: { gold: 1000, iron: 500, crystals: 50 } }) },
+    // Archer
+    { name: "猎手", category: "archer", tier: 1, icon: "🏹", baseHp: 70, baseAtk: 12, baseDef: 4, baseSpd: 7, requiredBuilding: "archery_range",
+      counterInfo: JSON.stringify({ strong: ["cavalry"], weak: ["infantry"] }) },
+    { name: "长弓手", category: "archer", tier: 2, icon: "🎯", baseHp: 100, baseAtk: 22, baseDef: 6, baseSpd: 7, requiredBuilding: "archery_range",
+      counterInfo: JSON.stringify({ strong: ["cavalry"], weak: ["infantry"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 3, cost: { gold: 180, wood: 120 } }) },
+    { name: "弩兵", category: "archer", tier: 3, icon: "🔫", baseHp: 130, baseAtk: 35, baseDef: 8, baseSpd: 6, requiredBuilding: "archery_range",
+      counterInfo: JSON.stringify({ strong: ["cavalry", "infantry"], weak: ["cavalry"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 5, cost: { gold: 400, wood: 200, iron: 100 } }) },
+    { name: "神射手", category: "archer", tier: 4, icon: "💫", baseHp: 160, baseAtk: 50, baseDef: 10, baseSpd: 8, requiredBuilding: "archery_range",
+      counterInfo: JSON.stringify({ strong: ["cavalry", "siege"], weak: [] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 8, cost: { gold: 800, wood: 400, crystals: 30 } }) },
+    // Cavalry
+    { name: "轻骑", category: "cavalry", tier: 1, icon: "🐴", baseHp: 120, baseAtk: 14, baseDef: 6, baseSpd: 10, requiredBuilding: "stable",
+      counterInfo: JSON.stringify({ strong: ["infantry", "siege"], weak: ["archer"] }) },
+    { name: "重骑士", category: "cavalry", tier: 2, icon: "🏇", baseHp: 200, baseAtk: 24, baseDef: 12, baseSpd: 8, requiredBuilding: "stable",
+      counterInfo: JSON.stringify({ strong: ["infantry", "siege"], weak: ["archer"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 3, cost: { gold: 250, food: 150 } }) },
+    { name: "龙骑兵", category: "cavalry", tier: 3, icon: "🐉", baseHp: 280, baseAtk: 35, baseDef: 16, baseSpd: 9, requiredBuilding: "stable",
+      counterInfo: JSON.stringify({ strong: ["infantry", "siege", "archer"], weak: [] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 5, cost: { gold: 600, food: 300, iron: 150 } }) },
+    { name: "圣骑士", category: "cavalry", tier: 4, icon: "⚜️", baseHp: 380, baseAtk: 45, baseDef: 22, baseSpd: 9, requiredBuilding: "stable",
+      counterInfo: JSON.stringify({ strong: ["infantry", "siege", "mage"], weak: [] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 8, cost: { gold: 1200, food: 500, crystals: 60 } }) },
+    // Mage
+    { name: "学徒", category: "mage", tier: 1, icon: "🔮", baseHp: 60, baseAtk: 15, baseDef: 3, baseSpd: 6, requiredBuilding: "mage_tower",
+      counterInfo: JSON.stringify({ strong: ["infantry"], weak: ["cavalry"] }) },
+    { name: "元素师", category: "mage", tier: 2, icon: "🌟", baseHp: 90, baseAtk: 25, baseDef: 5, baseSpd: 6, requiredBuilding: "mage_tower",
+      counterInfo: JSON.stringify({ strong: ["infantry"], weak: ["cavalry"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 3, cost: { gold: 220, crystals: 20 } }) },
+    { name: "祭司", category: "mage", tier: 3, icon: "📿", baseHp: 120, baseAtk: 38, baseDef: 7, baseSpd: 7, requiredBuilding: "mage_tower",
+      counterInfo: JSON.stringify({ strong: ["infantry", "cavalry"], weak: [] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 5, cost: { gold: 500, crystals: 50 } }) },
+    { name: "大贤者", category: "mage", tier: 4, icon: "🧙", baseHp: 150, baseAtk: 55, baseDef: 10, baseSpd: 8, requiredBuilding: "mage_tower",
+      counterInfo: JSON.stringify({ strong: ["infantry", "cavalry", "siege"], weak: [] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 8, cost: { gold: 1000, crystals: 100 } }) },
+    // Siege
+    { name: "投石手", category: "siege", tier: 1, icon: "🪨", baseHp: 150, baseAtk: 20, baseDef: 10, baseSpd: 2, requiredBuilding: "workshop",
+      counterInfo: JSON.stringify({ strong: ["fortification"], weak: ["cavalry"] }) },
+    { name: "攻城锤", category: "siege", tier: 2, icon: "🔨", baseHp: 250, baseAtk: 30, baseDef: 15, baseSpd: 2, requiredBuilding: "workshop",
+      counterInfo: JSON.stringify({ strong: ["fortification"], weak: ["cavalry"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 3, cost: { gold: 300, wood: 200, iron: 100 } }) },
+    { name: "火炮兵", category: "siege", tier: 3, icon: "💣", baseHp: 200, baseAtk: 50, baseDef: 8, baseSpd: 3, requiredBuilding: "workshop",
+      counterInfo: JSON.stringify({ strong: ["fortification", "infantry"], weak: ["cavalry"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 5, cost: { gold: 700, iron: 350 } }) },
+    { name: "魔导炮", category: "siege", tier: 4, icon: "⚡", baseHp: 180, baseAtk: 70, baseDef: 5, baseSpd: 3, requiredBuilding: "workshop",
+      counterInfo: JSON.stringify({ strong: ["fortification", "infantry", "mage"], weak: ["cavalry"] }),
+      upgradeInfo: JSON.stringify({ requiredBuildingLevel: 8, cost: { gold: 1500, iron: 500, crystals: 80 } }) },
+  ];
+
+  for (const tt of troopTypes) {
+    await prisma.troopType.upsert({
+      where: { name: tt.name },
+      create: tt,
+      update: tt,
+    });
+  }
+  console.log(`Seeded ${troopTypes.length} troop types`);
+
   console.log("Seeding complete!");
 }
 
