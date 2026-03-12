@@ -31,7 +31,7 @@ export default function CombatHistoryPanel({ onClose, onResumeCombat }: CombatHi
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+        <DialogContent className="p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -50,7 +50,7 @@ export default function CombatHistoryPanel({ onClose, onResumeCombat }: CombatHi
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
+        className="p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}

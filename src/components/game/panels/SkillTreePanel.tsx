@@ -115,7 +115,7 @@ export default function SkillTreePanel({
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+        <DialogContent className="game-panel p-8">
           <div className="text-center text-[#888]">加载技能树...</div>
         </DialogContent>
       </Dialog>
@@ -125,7 +125,7 @@ export default function SkillTreePanel({
   if (!tree) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+        <DialogContent className="game-panel p-8">
           <div className="text-center text-[#e74c3c]">无法加载技能树</div>
         </DialogContent>
       </Dialog>
@@ -135,7 +135,7 @@ export default function SkillTreePanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-2xl h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="game-panel p-0 max-w-2xl h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 头部 */}
@@ -212,7 +212,7 @@ export default function SkillTreePanel({
         {/* 确认对话框 */}
         {confirmSkill && confirmAction && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#050810]/80 backdrop-blur-sm">
-            <div className="w-72 bg-[#0a0a15]/95 border border-[#2a3a4a] rounded-lg p-5">
+            <div className="w-72 game-panel rounded-lg p-5">
               <div className="text-center">
                 <div className="text-3xl mb-2">{confirmSkill.icon}</div>
                 <div className="font-display font-bold text-[#e0dcd0]">

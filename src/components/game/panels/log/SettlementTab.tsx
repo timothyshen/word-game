@@ -1,7 +1,6 @@
 // 结算标签页
 
 import { useState } from "react";
-import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
 import { ACTION_ICONS, RARITY_COLORS } from "~/constants";
 import { ScoreBar } from "./helpers";
@@ -31,6 +30,15 @@ export default function SettlementTab() {
     onSuccess: () => {
       void utils.player.getStatus.invalidate();
       void utils.settlement.getSettlementPreview.invalidate();
+    },
+  });
+
+  const skipDayMutation = api.settlement.skipDay.useMutation({
+    onSuccess: () => {
+      void utils.player.getStatus.invalidate();
+      void utils.settlement.getSettlementPreview.invalidate();
+      void utils.settlement.getHistory.invalidate();
+      setSettlementResult(null);
     },
   });
 
@@ -72,8 +80,8 @@ export default function SettlementTab() {
     <div className="h-full flex flex-col">
       {/* 结算成功提示 */}
       {settlementResult?.settled && (
-        <div className="flex-shrink-0 p-4 bg-[#1a3a1a] border-b border-[#4a9]/30">
-          <div className="text-[#4a9] font-bold mb-2">✨ 结算完成！</div>
+        <div className="flex-shrink-0 p-4 bg-[#1a3a1a] border-b border-[#4a9]/30" role="status">
+          <div className="text-[#4a9] font-bold mb-2"><span aria-hidden="true">✨</span> 结算完成！</div>
           {settlementResult.grantedCards && settlementResult.grantedCards.length > 0 && (
             <div className="text-sm">
               获得卡牌: {settlementResult.grantedCards.map((c, i) => (
@@ -86,7 +94,7 @@ export default function SettlementTab() {
         </div>
       )}
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4 text-[#e0dcd0]">
           {/* 总分展示 */}
           <div className="pb-4 border-b border-[#2a2a30]">
@@ -253,8 +261,22 @@ export default function SettlementTab() {
               奖励将添加到您的卡牌背包
             </div>
           </div>
+
+          {/* 跳过今天 - 时间加速 */}
+          <div className="py-3 border-t border-[#2a2a30]">
+            <button
+              onClick={() => void skipDayMutation.mutateAsync()}
+              disabled={skipDayMutation.isPending}
+              className="w-full py-2 bg-[#2a2a30] border border-[#5a6a7a] text-[#888] text-sm hover:border-[#c9a227] hover:text-[#c9a227] transition-colors disabled:opacity-50"
+            >
+              {skipDayMutation.isPending ? "跳过中..." : "⏩ 跳过到下一天"}
+            </button>
+            <div className="text-center text-xs text-[#666] mt-1">
+              加速游戏进程，立即进入新的一天
+            </div>
+          </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

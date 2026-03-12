@@ -29,7 +29,7 @@ export function GuidancePanel({ hints, onClose, onHintClick }: GuidancePanelProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050810]/80 backdrop-blur-sm">
-      <div className="w-[480px] max-h-[80vh] bg-[#0a0a15]/95 border border-[#2a3a4a] rounded-lg overflow-hidden flex flex-col">
+      <div className="w-[480px] max-h-[80vh] game-panel rounded-lg overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#2a3a4a] flex items-center justify-between">
           <div>

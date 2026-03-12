@@ -240,3 +240,197 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ── Game Panel Frame ── */
+/* Wrapped in @layer components so Tailwind utilities (fixed, absolute) can override position */
+@layer components {
+.game-panel {
+  background:
+    linear-gradient(135deg, rgba(201,162,39,0.03) 0%, transparent 40%, transparent 60%, rgba(201,162,39,0.03) 100%),
+    linear-gradient(180deg, #0d0d1a 0%, #0a0a15 100%);
+  border: 1px solid var(--game-gold-dark);
+  box-shadow:
+    0 0 30px rgba(201, 162, 39, 0.06),
+    0 0 60px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(201, 162, 39, 0.08),
+    inset 0 1px 0 rgba(201, 162, 39, 0.1),
+    inset 0 -1px 0 rgba(201, 162, 39, 0.05);
+  position: relative;
+}
+}
+
+/* Top decorative gold line */
+.game-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--game-gold) 20%, var(--game-gold) 80%, transparent);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Bottom decorative gold line */
+.game-panel::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--game-gold-dark) 30%, var(--game-gold-dark) 70%, transparent);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Corner decorations — top-left + top-right */
+.game-panel-corners {
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.game-panel-corners::before,
+.game-panel-corners::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--game-gold);
+  border-style: solid;
+  opacity: 0.6;
+}
+
+.game-panel-corners::before {
+  top: 4px;
+  left: 4px;
+  border-width: 2px 0 0 2px;
+}
+
+.game-panel-corners::after {
+  top: 4px;
+  right: 4px;
+  border-width: 2px 2px 0 0;
+}
+
+/* Corner decorations — bottom-left + bottom-right */
+.game-panel-corners-bottom {
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.game-panel-corners-bottom::before,
+.game-panel-corners-bottom::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--game-gold);
+  border-style: solid;
+  opacity: 0.6;
+}
+
+.game-panel-corners-bottom::before {
+  bottom: 4px;
+  left: 4px;
+  border-width: 0 0 2px 2px;
+}
+
+.game-panel-corners-bottom::after {
+  bottom: 4px;
+  right: 4px;
+  border-width: 0 2px 2px 0;
+}
+
+/* ── Game Panel Header / Title Plate ── */
+@layer components {
+.game-panel-header {
+  background:
+    linear-gradient(180deg,
+      rgba(201, 162, 39, 0.08) 0%,
+      rgba(201, 162, 39, 0.03) 50%,
+      transparent 100%
+    );
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+  position: relative;
+}
+}
+
+.game-panel-header::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(201, 162, 39, 0.5) 20%,
+    rgba(201, 162, 39, 0.5) 80%,
+    transparent
+  );
+}
+
+/* ── Game Buttons ── */
+.game-btn-primary {
+  background: linear-gradient(180deg, #ddb52f 0%, #c9a227 40%, #a68520 100%);
+  color: #0a0a0c;
+  font-weight: 700;
+  border: 1px solid #c9a227;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.15) inset,
+    0 2px 8px rgba(201, 162, 39, 0.2);
+  transition: all 0.15s ease;
+}
+
+.game-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #e8c340 0%, #ddb52f 40%, #c9a227 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 0 16px rgba(201, 162, 39, 0.3),
+    0 2px 12px rgba(201, 162, 39, 0.25);
+}
+
+.game-btn-primary:active:not(:disabled) {
+  background: linear-gradient(180deg, #a68520 0%, #c9a227 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.game-btn-secondary {
+  background: linear-gradient(180deg, #1a1a25 0%, #12121a 100%);
+  color: #888;
+  border: 1px solid #2a3a4a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: all 0.15s ease;
+}
+
+.game-btn-secondary:hover:not(:disabled) {
+  color: #e0dcd0;
+  border-color: #c9a227;
+  box-shadow:
+    inset 0 1px 0 rgba(201, 162, 39, 0.05),
+    0 0 8px rgba(201, 162, 39, 0.1);
+}
+
+/* ── Gold Divider ── */
+.game-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.3) 20%, rgba(201, 162, 39, 0.3) 80%, transparent);
+}
+
+/* ── Subtle background texture ── */
+.game-texture {
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(201, 162, 39, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, rgba(201, 162, 39, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 0%, rgba(201, 162, 39, 0.03) 0%, transparent 40%);
+}

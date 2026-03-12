@@ -143,7 +143,7 @@ export default function ArmyPanel({ onClose, onStartCombat }: ArmyPanelProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="w-full max-w-3xl mx-4 flex flex-col bg-[#0a0a15]/95 border border-[#2a3a4a] max-h-[90vh]">
+      <div className="w-full max-w-3xl mx-4 flex flex-col game-panel max-h-[90vh]">
 
         {/* Header with tabs */}
         <div

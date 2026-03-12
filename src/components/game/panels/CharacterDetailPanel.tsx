@@ -51,7 +51,7 @@ export default function CharacterDetailPanel({
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+        <DialogContent className="p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -61,7 +61,7 @@ export default function CharacterDetailPanel({
   if (!character) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+        <DialogContent className="p-8">
           <div className="text-center text-[#e74c3c]">角色不存在</div>
         </DialogContent>
       </Dialog>
@@ -74,7 +74,7 @@ export default function CharacterDetailPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-lg h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="p-0 max-w-lg h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 固定头部 */}

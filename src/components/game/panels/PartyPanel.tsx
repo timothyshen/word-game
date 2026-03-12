@@ -76,7 +76,7 @@ export default function PartyPanel({ onClose }: PartyPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 border border-[#3d3529] p-0 max-w-2xl max-h-[85vh] flex flex-col gap-0"
+        className="p-0 max-w-2xl max-h-[85vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* Header */}

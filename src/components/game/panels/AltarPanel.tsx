@@ -68,7 +68,7 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+        <DialogContent className="p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -79,7 +79,7 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
   if (battleResult) {
     return (
       <Dialog open={true} onOpenChange={() => setBattleResult(null)}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-md" showCloseButton={false}>
+        <DialogContent className="p-0 max-w-md" showCloseButton={false}>
           <DialogHeader className={`p-6 ${battleResult.victory ? "bg-gradient-to-r from-[#0a1510] to-[#050810]" : "bg-gradient-to-r from-[#150a0a] to-[#050810]"}`}>
             <DialogTitle className={`text-xl font-bold text-center ${battleResult.victory ? "text-[#4a9]" : "text-[#e74c3c]"}`}>
               {battleResult.victory ? "战斗胜利!" : "战斗失败"}
@@ -116,7 +116,7 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
   if (collectResult) {
     return (
       <Dialog open={true} onOpenChange={() => setCollectResult(null)}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#9b59b6]/30 p-0 max-w-md" showCloseButton={false}>
+        <DialogContent className="p-0 max-w-md" showCloseButton={false}>
           <DialogHeader className="bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-6">
             <DialogTitle className="text-[#9b59b6] text-xl font-bold text-center">
               获得卡牌!
@@ -154,7 +154,7 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 border border-[#9b59b6]/30 p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}

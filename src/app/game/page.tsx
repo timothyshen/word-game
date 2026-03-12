@@ -51,7 +51,7 @@ export default function GamePage() {
     if (innerCityStatus && !innerCityStatus.initialized) {
       panels.setShowInnerCityPanel(true);
     }
-  }, [innerCityStatus]);
+  }, [innerCityStatus, panels]);
 
   const utils = api.useUtils();
 
@@ -295,7 +295,7 @@ export default function GamePage() {
       {/* ESC Menu */}
       {panels.showMenu && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#050810]/80 backdrop-blur-sm">
-          <div className="w-80 bg-[#0a0a15]/95 border border-[#2a3a4a] rounded-lg overflow-hidden">
+          <div className="w-80 game-panel rounded-lg overflow-hidden">
             <div className="px-6 py-5 border-b border-[#2a3a4a] text-center">
               <h2 className="font-display text-3xl text-[#c9a227]">诸天领域</h2>
               <p className="text-xs text-[#5a6a7a] mt-1">按 ESC 返回游戏</p>

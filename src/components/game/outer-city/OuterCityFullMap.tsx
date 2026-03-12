@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { api } from "~/trpc/react";
@@ -11,6 +11,9 @@ import { FogBoundary } from "./MapMarkers";
 import HeroSidebar from "./HeroSidebar";
 import CombatOverlay from "./CombatOverlay";
 import POIInteractionPanel from "./POIInteractionPanel";
+import Minimap from "./Minimap";
+import WorldMap from "./WorldMap";
+import BaseIndicator from "./BaseIndicator";
 
 export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?: () => void }) {
   const [selectedHeroId, setSelectedHeroId] = useState<string | null>(null);
@@ -18,6 +21,7 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
   const [actionLog, setActionLog] = useState<string | null>(null);
   const [showHeroSidebar, setShowHeroSidebar] = useState(true);
   const [currentEvent, setCurrentEvent] = useState<ExplorationEvent | null>(null);
+  const [showWorldMap, setShowWorldMap] = useState(false);
 
   const utils = api.useUtils();
 
@@ -76,6 +80,26 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
       }
     },
   });
+
+  // Auto-select first hero if none selected
+  useEffect(() => {
+    if (!selectedHeroId && status?.heroes?.length) {
+      setSelectedHeroId(status.heroes[0]!.id);
+    }
+  }, [status?.heroes, selectedHeroId]);
+
+  // 'M' key to toggle world map
+  const handleCloseWorldMap = useCallback(() => setShowWorldMap(false), []);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        setShowWorldMap((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const selectedHero = status?.heroes.find((h) => h.id === selectedHeroId);
   const centerX = selectedHero?.positionX ?? 0;
@@ -291,6 +315,29 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
           {actionLog}
         </div>
       )}
+
+      {/* Minimap */}
+      <Minimap
+        heroPosition={selectedHero ? { x: selectedHero.positionX, y: selectedHero.positionY } : null}
+        viewportCenter={{ x: centerX, y: centerY }}
+        viewportRadius={mapRadius}
+        onOpenWorldMap={() => setShowWorldMap(true)}
+      />
+
+      {/* Base Location Indicator */}
+      <BaseIndicator
+        heroPosition={selectedHero ? { x: selectedHero.positionX, y: selectedHero.positionY } : null}
+        viewportRadius={mapRadius}
+      />
+
+      {/* World Map Overlay */}
+      {showWorldMap && (
+          <WorldMap
+            onClose={handleCloseWorldMap}
+            initialCenter={selectedHero ? { x: selectedHero.positionX, y: selectedHero.positionY } : undefined}
+            selectedHeroId={selectedHeroId}
+          />
+        )}
 
       {/* Bottom Status */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">

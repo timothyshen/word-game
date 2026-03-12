@@ -80,7 +80,7 @@ export default function EquipmentPanel({
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+        <DialogContent className="p-8">
           <div className="text-center text-[#888]">加载中...</div>
         </DialogContent>
       </Dialog>
@@ -98,7 +98,7 @@ export default function EquipmentPanel({
     return (
       <Dialog open={true} onOpenChange={() => setSelectedSlot(null)}>
         <DialogContent
-          className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-md"
+          className="p-0 max-w-md"
           showCloseButton={false}
         >
           <DialogHeader className="bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a]/50 p-4">
@@ -174,7 +174,7 @@ export default function EquipmentPanel({
     return (
       <Dialog open={true} onOpenChange={() => setShowEnhance(null)}>
         <DialogContent
-          className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-sm"
+          className="p-0 max-w-sm"
           showCloseButton={false}
         >
           <DialogHeader className="bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a]/50 p-4">
@@ -241,7 +241,7 @@ export default function EquipmentPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
+        className="p-0 max-w-2xl max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 头部 */}

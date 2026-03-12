@@ -161,7 +161,7 @@ export default function ArmyCombatPanel({ onClose, enemyLevel = 1 }: ArmyCombatP
   if (!combatId || startMutation.isPending) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="w-full max-w-2xl mx-4 p-8 bg-[#0a0a15]/95 border border-[#2a3a4a] text-center">
+        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center">
           <h2 className="font-display text-2xl text-[var(--game-gold)] mb-4">集结军队</h2>
           <p className="text-[var(--game-text-muted)]">部署中...</p>
         </div>
@@ -173,7 +173,7 @@ export default function ArmyCombatPanel({ onClose, enemyLevel = 1 }: ArmyCombatP
   if (startMutation.isError) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="w-full max-w-2xl mx-4 p-8 bg-[#0a0a15]/95 border border-[#2a3a4a] text-center">
+        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center">
           <h2 className="font-display text-2xl text-[var(--game-red)] mb-4">部署失败</h2>
           <p className="text-[var(--game-text-muted)] mb-4">{startMutation.error?.message ?? "未知错误"}</p>
           <div className="flex gap-3 justify-center">
@@ -198,7 +198,7 @@ export default function ArmyCombatPanel({ onClose, enemyLevel = 1 }: ArmyCombatP
   if (!state) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="w-full max-w-2xl mx-4 p-8 bg-[#0a0a15]/95 border border-[#2a3a4a] text-center">
+        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center">
           <p className="text-[var(--game-text-muted)]">加载战场状态...</p>
         </div>
       </div>
@@ -209,7 +209,7 @@ export default function ArmyCombatPanel({ onClose, enemyLevel = 1 }: ArmyCombatP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="w-full max-w-2xl mx-4 flex flex-col bg-[#0a0a15]/95 border border-[#2a3a4a] max-h-[90vh]">
+      <div className="w-full max-w-2xl mx-4 flex flex-col game-panel max-h-[90vh]">
 
         {/* Header */}
         <div

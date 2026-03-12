@@ -29,7 +29,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
   if (isLoading) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-8">
+        <DialogContent className="p-8">
           <div className="text-center font-display text-[#c9a227] text-lg mb-2">经济发展</div>
           <div className="text-center text-[#5a6a7a] font-game-serif">加载中...</div>
         </DialogContent>
@@ -48,7 +48,7 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="p-0 max-w-4xl max-h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 固定头部 */}

@@ -129,7 +129,7 @@ export default function BuildingDetailPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
+        className="game-panel p-0 max-w-lg max-h-[90vh] flex flex-col gap-0"
         showCloseButton={false}
       >
         {/* 固定头部 */}
@@ -368,7 +368,7 @@ export default function BuildingDetailPanel({
             {/* 角色分配对话框 */}
             {showAssignDialog && (
               <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAssignDialog(false)}>
-                <div className="bg-[#0a0a15]/95 border border-[#2a3a4a] p-4 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                <div className="game-panel p-4 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between mb-4">
                     <span className="font-display text-[#c9a227]">选择角色</span>
                     <button onClick={() => setShowAssignDialog(false)} className="text-[#5a6a7a] hover:text-[#c9a227]">✕</button>
