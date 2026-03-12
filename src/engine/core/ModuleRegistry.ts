@@ -10,7 +10,7 @@ export class ModuleRegistry implements IModuleRegistry {
   private modules = new Map<string, ModuleEntry>();
   private initOrder: string[] = [];
 
-  register<TConfig>(module: GameModule<TConfig>, config?: TConfig): void {
+  register<TConfig>(module: GameModule<TConfig>, config?: Partial<TConfig>): void {
     if (this.modules.has(module.name)) {
       throw new Error(`Module "${module.name}" is already registered`);
     }

@@ -1,5 +1,5 @@
-import type { GameEngine, GamePlugin } from "../types";
-import type { TypedGameEvent } from "../events";
+import type { GameEngine, GamePlugin } from "../../types";
+import type { GameEventMap } from "../events";
 
 export class SettlementModule implements GamePlugin {
   name = "settlement";
@@ -25,10 +25,8 @@ export class SettlementModule implements GamePlugin {
     }
   }
 
-  private handleDailyReset = async (
-    event: TypedGameEvent<"system:dailyReset">,
-  ): Promise<void> => {
-    const { userId } = event.payload;
+  private handleDailyReset = async (event: unknown): Promise<void> => {
+    const { userId } = (event as { payload: GameEventMap["system:dailyReset"] }).payload;
     await this.engine?.events.emit(
       "settlement:daily",
       { userId },

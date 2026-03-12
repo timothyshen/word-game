@@ -1,4 +1,4 @@
-import type { GameEngine } from "../types";
+import type { GameEngine } from "../../types";
 import { CoreModule } from "./core.module";
 import { CombatModule } from "./combat.module";
 import { ExplorationModule } from "./exploration.module";

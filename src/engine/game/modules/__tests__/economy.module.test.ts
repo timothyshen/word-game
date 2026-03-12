@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { ExplorationModule } from "../exploration.module";
-import type { EventHandler, GameEngine, GameEvent } from "../../types";
+import { EconomyModule } from "../economy.module";
+import type { EventHandler, GameEngine, GameEvent } from "../../../types";
 
 function createMockEngine(): GameEngine {
   const handlers = new Map<
@@ -48,90 +48,112 @@ function createMockEngine(): GameEngine {
   };
 }
 
-describe("ExplorationModule", () => {
+describe("EconomyModule", () => {
   it("has the correct module name", () => {
-    const mod = new ExplorationModule();
-    expect(mod.name).toBe("exploration");
+    const mod = new EconomyModule();
+    expect(mod.name).toBe("economy");
   });
 
   it('has dependencies on ["core"]', () => {
-    const mod = new ExplorationModule();
+    const mod = new EconomyModule();
     expect(mod.dependencies).toEqual(["core"]);
   });
 
   it("registers event handlers on init", async () => {
     const engine = createMockEngine();
-    const mod = new ExplorationModule();
+    const mod = new EconomyModule();
 
     await mod.init(engine);
 
     expect(engine.events.on).toHaveBeenCalledWith(
-      "exploration:start",
+      "settlement:daily",
+      expect.any(Function),
+    );
+    expect(engine.events.on).toHaveBeenCalledWith(
+      "building:upgrade",
       expect.any(Function),
     );
   });
 
   it("unregisters event handlers on destroy", async () => {
     const engine = createMockEngine();
-    const mod = new ExplorationModule();
+    const mod = new EconomyModule();
 
     await mod.init(engine);
     await mod.destroy();
 
     expect(engine.events.off).toHaveBeenCalledWith(
-      "exploration:start",
+      "settlement:daily",
+      expect.any(Function),
+    );
+    expect(engine.events.off).toHaveBeenCalledWith(
+      "building:upgrade",
       expect.any(Function),
     );
   });
 
-  it("emits exploration:complete when exploration:start is received", async () => {
+  it("emits economy:output when settlement:daily has output", async () => {
     const engine = createMockEngine();
-    const mod = new ExplorationModule();
+    const mod = new EconomyModule();
 
     await mod.init(engine);
     await engine.events.emit(
-      "exploration:start",
-      { userId: "user-1", areaLevel: 3, result: { loot: "sword" } },
+      "settlement:daily",
+      { userId: "user-1", output: { gold: 100, wood: 50 } },
       "test",
     );
 
     expect(engine.events.emit).toHaveBeenCalledWith(
-      "exploration:complete",
-      { userId: "user-1", result: { loot: "sword" } },
-      "exploration",
+      "economy:output",
+      { userId: "user-1", output: { gold: 100, wood: 50 } },
+      "economy",
     );
   });
 
-  it("emits both exploration:complete and exploration:encounter when encounter is present", async () => {
+  it("does not emit economy:output when settlement:daily has no output", async () => {
     const engine = createMockEngine();
-    const mod = new ExplorationModule();
+    const mod = new EconomyModule();
+
+    await mod.init(engine);
+
+    (engine.events.emit as ReturnType<typeof vi.fn>).mockClear();
+
+    await engine.events.emit(
+      "settlement:daily",
+      { userId: "user-1" },
+      "test",
+    );
+
+    // Only the direct emit call should exist — no economy:output emission
+    expect(engine.events.emit).toHaveBeenCalledTimes(1);
+    expect(engine.events.emit).not.toHaveBeenCalledWith(
+      "economy:output",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("emits building:upgraded when building:upgrade is received", async () => {
+    const engine = createMockEngine();
+    const mod = new EconomyModule();
 
     await mod.init(engine);
     await engine.events.emit(
-      "exploration:start",
-      {
-        userId: "user-1",
-        areaLevel: 5,
-        encounter: { monsterType: "goblin", monsterLevel: 4 },
-      },
+      "building:upgrade",
+      { userId: "user-1", buildingId: "b-1", newLevel: 3 },
       "test",
     );
 
     expect(engine.events.emit).toHaveBeenCalledWith(
-      "exploration:complete",
-      { userId: "user-1", result: undefined },
-      "exploration",
-    );
-    expect(engine.events.emit).toHaveBeenCalledWith(
-      "exploration:encounter",
-      { userId: "user-1", monsterType: "goblin", monsterLevel: 4 },
-      "exploration",
+      "building:upgraded",
+      { userId: "user-1", buildingId: "b-1", newLevel: 3 },
+      "economy",
     );
   });
 
   it("does not emit events after destroy", async () => {
     const engine = createMockEngine();
-    const mod = new ExplorationModule();
+    const mod = new EconomyModule();
 
     await mod.init(engine);
     await mod.destroy();
@@ -139,15 +161,15 @@ describe("ExplorationModule", () => {
     (engine.events.emit as ReturnType<typeof vi.fn>).mockClear();
 
     await engine.events.emit(
-      "exploration:start",
-      { userId: "user-2", areaLevel: 1 },
+      "settlement:daily",
+      { userId: "user-2", output: { gold: 200 } },
       "test",
     );
 
     // After destroy, handlers were removed — only the direct emit call exists
     expect(engine.events.emit).toHaveBeenCalledTimes(1);
     expect(engine.events.emit).not.toHaveBeenCalledWith(
-      "exploration:complete",
+      "economy:output",
       expect.anything(),
       expect.anything(),
     );

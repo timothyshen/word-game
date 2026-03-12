@@ -1,10 +1,15 @@
 // ---------------------------------------------------------------------------
 // Game Engine — foundational type definitions
 // ---------------------------------------------------------------------------
-
-import type { GameEventMap, TypedGameEvent } from "./events";
+// This file is game-agnostic. Game-specific event maps live in game/events.ts.
+// ---------------------------------------------------------------------------
 
 // ---- Events ----------------------------------------------------------------
+
+/** Base constraint for any game's event map */
+export interface BaseEventMap {
+  [event: string]: Record<string, unknown>;
+}
 
 export interface GameEvent {
   /** Event identifier, e.g. "combat:victory", "exploration:complete" */
@@ -15,6 +20,13 @@ export interface GameEvent {
   timestamp: number;
   /** Which module emitted this event */
   source: string;
+}
+
+/** A typed event — carries the correct payload type based on event key */
+export interface TypedEvent<TMap extends BaseEventMap, K extends keyof TMap>
+  extends Omit<GameEvent, "payload"> {
+  type: K & string;
+  payload: TMap[K];
 }
 
 export type EventHandler = (event: GameEvent) => Promise<void> | void;
@@ -54,20 +66,20 @@ export interface GamePlugin<TConfig = void> extends GameModule<TConfig> {
 
 // ---- Sub-system interfaces -------------------------------------------------
 
-export interface IEventBus {
+export interface IEventBus<TMap extends BaseEventMap = BaseEventMap> {
   // Typed overloads — compile-time only
-  on<K extends keyof GameEventMap>(
+  on<K extends keyof TMap & string>(
     event: K,
-    handler: (event: TypedGameEvent<K>) => Promise<void> | void,
+    handler: (event: TypedEvent<TMap, K>) => Promise<void> | void,
     priority?: number,
   ): void;
-  off<K extends keyof GameEventMap>(
+  off<K extends keyof TMap & string>(
     event: K,
-    handler: (event: TypedGameEvent<K>) => Promise<void> | void,
+    handler: (event: TypedEvent<TMap, K>) => Promise<void> | void,
   ): void;
-  emit<K extends keyof GameEventMap>(
+  emit<K extends keyof TMap & string>(
     event: K,
-    payload: GameEventMap[K],
+    payload: TMap[K],
     source?: string,
   ): Promise<void>;
   // Backward-compatible string overloads
@@ -93,7 +105,7 @@ export interface IRuleEngine {
 }
 
 export interface IModuleRegistry {
-  register<TConfig>(module: GameModule<TConfig>, config?: TConfig): void;
+  register<TConfig>(module: GameModule<TConfig>, config?: Partial<TConfig>): void;
   get(name: string): GameModule | undefined;
   getAll(): GameModule[];
   initAll(engine: GameEngine): Promise<void>;
@@ -132,7 +144,7 @@ export interface GameEngine {
   state: IStateManager;
   entities: IEntityManager;
   /** Register a module/plugin and return the engine for chaining */
-  use<TConfig>(plugin: GameModule<TConfig>, config?: TConfig): this;
+  use<TConfig>(plugin: GameModule<TConfig>, config?: Partial<TConfig>): this;
 }
 
 // ---- Conditions & weighted random ------------------------------------------

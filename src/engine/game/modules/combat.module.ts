@@ -1,5 +1,5 @@
-import type { GameEngine, GamePlugin } from "../types";
-import type { TypedGameEvent } from "../events";
+import type { GameEngine, GamePlugin } from "../../types";
+import type { GameEventMap } from "../events";
 
 export class CombatModule implements GamePlugin {
   name = "combat";
@@ -27,10 +27,8 @@ export class CombatModule implements GamePlugin {
     }
   }
 
-  private handleStart = async (
-    event: TypedGameEvent<"combat:start">,
-  ): Promise<void> => {
-    const { userId, combatId } = event.payload;
+  private handleStart = async (event: unknown): Promise<void> => {
+    const { userId, combatId } = (event as { payload: GameEventMap["combat:start"] }).payload;
     await this.engine?.events.emit(
       "combat:started",
       { userId, combatId },
@@ -38,10 +36,8 @@ export class CombatModule implements GamePlugin {
     );
   };
 
-  private handleAction = async (
-    event: TypedGameEvent<"combat:action">,
-  ): Promise<void> => {
-    const { userId, result } = event.payload;
+  private handleAction = async (event: unknown): Promise<void> => {
+    const { userId, result } = (event as { payload: GameEventMap["combat:action"] }).payload;
     const resultObj = result as
       | { status: string; rewards?: unknown }
       | undefined;

@@ -2,7 +2,7 @@ import { createEngine } from "~/engine";
 import { GameRuleService } from "~/engine/rules/GameRuleService";
 import { PrismaRuleStore } from "~/engine/rules/PrismaRuleStore";
 import { PrismaEntityStore } from "~/engine/entity/PrismaEntityStore";
-import { registerAllModules } from "~/engine/modules";
+import { registerAllModules } from "~/engine/game/modules";
 import { db } from "~/server/db";
 
 // Create store implementations

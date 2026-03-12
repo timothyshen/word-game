@@ -1,11 +1,11 @@
-import type { EventHandler, GameEvent, IEventBus } from "../types";
+import type { EventHandler, GameEvent } from "../types";
 
 interface HandlerEntry {
   handler: EventHandler;
   priority: number;
 }
 
-export class EventBus implements IEventBus {
+export class EventBus {
   private handlers = new Map<string, HandlerEntry[]>();
 
   on(event: string, handler: EventHandler, priority = 0): void {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { ContentModule } from "../content.module";
 import { TerritoryModule } from "../territory.module";
 import { SettlementModule } from "../settlement.module";
-import type { EventHandler, GameEngine, GameEvent } from "../../types";
+import type { EventHandler, GameEngine, GameEvent } from "../../../types";
 
 function createMockEngine(): GameEngine {
   const handlers = new Map<

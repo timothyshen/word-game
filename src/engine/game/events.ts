@@ -2,14 +2,16 @@
 // Game Engine — central event type registry
 // ---------------------------------------------------------------------------
 
-import type { GameEvent } from "./types";
+import type { TypedEvent } from "../types";
 
 /**
- * Central event type registry.
+ * 诸天领域 — game-specific event type registry.
  * Add new events here to get compile-time type checking on event names
  * and payloads across all emit() and on() call sites.
+ *
+ * Other games define their own event map (e.g. DetectiveEventMap).
  */
-export interface GameEventMap {
+export interface GameEventMap extends Record<string, Record<string, unknown>> {
   // Core / Player
   "player:expGain": { userId: string; amount: number };
   "player:statusChanged": { userId: string; trigger?: string };
@@ -103,8 +105,4 @@ export interface GameEventMap {
 }
 
 /** A typed event — carries the correct payload type based on event key */
-export interface TypedGameEvent<K extends keyof GameEventMap>
-  extends Omit<GameEvent, "payload"> {
-  type: K;
-  payload: GameEventMap[K];
-}
+export type TypedGameEvent<K extends keyof GameEventMap> = TypedEvent<GameEventMap, K>;

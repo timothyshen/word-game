@@ -1,5 +1,5 @@
-import type { GameEngine, GamePlugin } from "../types";
-import type { TypedGameEvent } from "../events";
+import type { GameEngine, GamePlugin } from "../../types";
+import type { GameEventMap } from "../events";
 
 export class EconomyModule implements GamePlugin {
   name = "economy";
@@ -27,10 +27,8 @@ export class EconomyModule implements GamePlugin {
     }
   }
 
-  private handleDailySettlement = async (
-    event: TypedGameEvent<"settlement:daily">,
-  ): Promise<void> => {
-    const { userId, output } = event.payload;
+  private handleDailySettlement = async (event: unknown): Promise<void> => {
+    const { userId, output } = (event as { payload: GameEventMap["settlement:daily"] }).payload;
     if (output) {
       await this.engine?.events.emit(
         "economy:output",
@@ -40,10 +38,8 @@ export class EconomyModule implements GamePlugin {
     }
   };
 
-  private handleBuildingUpgrade = async (
-    event: TypedGameEvent<"building:upgrade">,
-  ): Promise<void> => {
-    const { userId, buildingId, newLevel } = event.payload;
+  private handleBuildingUpgrade = async (event: unknown): Promise<void> => {
+    const { userId, buildingId, newLevel } = (event as { payload: GameEventMap["building:upgrade"] }).payload;
     await this.engine?.events.emit(
       "building:upgraded",
       { userId, buildingId, newLevel },

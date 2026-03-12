@@ -1,5 +1,5 @@
-import type { GameEngine, GamePlugin } from "../types";
-import type { TypedGameEvent } from "../events";
+import type { GameEngine, GamePlugin } from "../../types";
+import type { GameEventMap } from "../events";
 
 export class CraftingModule implements GamePlugin {
   name = "crafting";
@@ -25,10 +25,8 @@ export class CraftingModule implements GamePlugin {
     }
   }
 
-  private handleCraftCompleted = async (
-    event: TypedGameEvent<"crafting:completed">,
-  ): Promise<void> => {
-    const { userId } = event.payload;
+  private handleCraftCompleted = async (event: unknown): Promise<void> => {
+    const { userId } = (event as { payload: GameEventMap["crafting:completed"] }).payload;
     await this.engine?.events.emit(
       "progression:check",
       { userId, trigger: "crafting_completed" },

@@ -1,5 +1,5 @@
-import type { GameEngine, GamePlugin } from "../types";
-import type { TypedGameEvent } from "../events";
+import type { GameEngine, GamePlugin } from "../../types";
+import type { GameEventMap } from "../events";
 
 export class ProgressionModule implements GamePlugin {
   name = "progression";
@@ -45,10 +45,8 @@ export class ProgressionModule implements GamePlugin {
     }
   }
 
-  private handleCombatVictory = async (
-    event: TypedGameEvent<"combat:victory">,
-  ): Promise<void> => {
-    const { userId, rewards } = event.payload;
+  private handleCombatVictory = async (event: unknown): Promise<void> => {
+    const { userId, rewards } = (event as { payload: GameEventMap["combat:victory"] }).payload;
     const rewardsObj = rewards as
       | { cards?: Array<{ id: string; name: string }> }
       | undefined;
@@ -69,10 +67,8 @@ export class ProgressionModule implements GamePlugin {
     );
   };
 
-  private handleExplorationComplete = async (
-    event: TypedGameEvent<"exploration:complete">,
-  ): Promise<void> => {
-    const { userId, result } = event.payload;
+  private handleExplorationComplete = async (event: unknown): Promise<void> => {
+    const { userId, result } = (event as { payload: GameEventMap["exploration:complete"] }).payload;
     const resultObj = result as
       | { cards?: Array<{ id: string; name: string }> }
       | undefined;
@@ -92,10 +88,8 @@ export class ProgressionModule implements GamePlugin {
     );
   };
 
-  private handleBossChallenge = async (
-    event: TypedGameEvent<"boss:challenge">,
-  ): Promise<void> => {
-    const { userId, victory } = event.payload;
+  private handleBossChallenge = async (event: unknown): Promise<void> => {
+    const { userId, victory } = (event as { payload: GameEventMap["boss:challenge"] }).payload;
     if (victory) {
       await this.engine?.events.emit(
         "combat:victory",
@@ -110,10 +104,8 @@ export class ProgressionModule implements GamePlugin {
     );
   };
 
-  private handleCardUsed = async (
-    event: TypedGameEvent<"card:used">,
-  ): Promise<void> => {
-    const { userId } = event.payload;
+  private handleCardUsed = async (event: unknown): Promise<void> => {
+    const { userId } = (event as { payload: GameEventMap["card:used"] }).payload;
     await this.engine?.events.emit(
       "progression:check",
       { userId, trigger: "card_used" },
@@ -121,10 +113,8 @@ export class ProgressionModule implements GamePlugin {
     );
   };
 
-  private handleCharacterLevelUp = async (
-    event: TypedGameEvent<"character:levelUp">,
-  ): Promise<void> => {
-    const { userId, characterId, newLevel } = event.payload;
+  private handleCharacterLevelUp = async (event: unknown): Promise<void> => {
+    const { userId, characterId, newLevel } = (event as { payload: GameEventMap["character:levelUp"] }).payload;
     await this.engine?.events.emit(
       "progression:check",
       { userId, trigger: "character_level_up", characterId, newLevel },
@@ -132,10 +122,8 @@ export class ProgressionModule implements GamePlugin {
     );
   };
 
-  private handleBreakthrough = async (
-    event: TypedGameEvent<"breakthrough:complete">,
-  ): Promise<void> => {
-    const { userId, target, newTier } = event.payload;
+  private handleBreakthrough = async (event: unknown): Promise<void> => {
+    const { userId, target, newTier } = (event as { payload: GameEventMap["breakthrough:complete"] }).payload;
     await this.engine?.events.emit(
       "progression:check",
       { userId, trigger: "breakthrough", target, newTier },

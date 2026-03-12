@@ -1,5 +1,5 @@
 import { PrismaClient } from "../generated/prisma";
-import { SEED_RULES } from "../src/engine/rules/seed-rules";
+import { SEED_RULES } from "../src/engine/game/rules/seed-rules";
 
 const prisma = new PrismaClient();
 

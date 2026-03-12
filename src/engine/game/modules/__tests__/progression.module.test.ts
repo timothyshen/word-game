@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { CombatModule } from "../combat.module";
-import type { EventHandler, GameEngine, GameEvent } from "../../types";
+import { ProgressionModule } from "../progression.module";
+import type { EventHandler, GameEngine, GameEvent } from "../../../types";
 
 function createMockEngine(): GameEngine {
   const handlers = new Map<
@@ -48,149 +48,143 @@ function createMockEngine(): GameEngine {
   };
 }
 
-describe("CombatModule", () => {
+describe("ProgressionModule", () => {
   it("has the correct module name", () => {
-    const mod = new CombatModule();
-    expect(mod.name).toBe("combat");
+    const mod = new ProgressionModule();
+    expect(mod.name).toBe("progression");
   });
 
-  it('has dependencies on ["core"]', () => {
-    const mod = new CombatModule();
-    expect(mod.dependencies).toEqual(["core"]);
+  it('has dependencies on ["core", "combat", "exploration"]', () => {
+    const mod = new ProgressionModule();
+    expect(mod.dependencies).toEqual(["core", "combat", "exploration"]);
   });
 
   it("registers event handlers on init", async () => {
     const engine = createMockEngine();
-    const mod = new CombatModule();
+    const mod = new ProgressionModule();
 
     await mod.init(engine);
 
     expect(engine.events.on).toHaveBeenCalledWith(
-      "combat:start",
+      "combat:victory",
       expect.any(Function),
     );
     expect(engine.events.on).toHaveBeenCalledWith(
-      "combat:action",
+      "exploration:complete",
       expect.any(Function),
     );
   });
 
   it("unregisters event handlers on destroy", async () => {
     const engine = createMockEngine();
-    const mod = new CombatModule();
+    const mod = new ProgressionModule();
 
     await mod.init(engine);
     await mod.destroy();
 
     expect(engine.events.off).toHaveBeenCalledWith(
-      "combat:start",
+      "combat:victory",
       expect.any(Function),
     );
     expect(engine.events.off).toHaveBeenCalledWith(
-      "combat:action",
+      "exploration:complete",
       expect.any(Function),
     );
   });
 
-  it("emits combat:started when combat:start is received", async () => {
+  it("emits card:acquired for each card in combat:victory rewards", async () => {
     const engine = createMockEngine();
-    const mod = new CombatModule();
+    const mod = new ProgressionModule();
 
     await mod.init(engine);
     await engine.events.emit(
-      "combat:start",
-      { userId: "user-1", combatId: "c-1", monsterLevel: 5 },
-      "test",
-    );
-
-    expect(engine.events.emit).toHaveBeenCalledWith(
-      "combat:started",
-      { userId: "user-1", combatId: "c-1" },
-      "combat",
-    );
-  });
-
-  it("emits combat:victory when combat:action result is victory", async () => {
-    const engine = createMockEngine();
-    const mod = new CombatModule();
-
-    await mod.init(engine);
-    await engine.events.emit(
-      "combat:action",
-      {
-        userId: "user-1",
-        combatId: "c-1",
-        actionId: "attack",
-        result: { status: "victory", rewards: { gold: 100, exp: 50 } },
-      },
-      "test",
-    );
-
-    expect(engine.events.emit).toHaveBeenCalledWith(
       "combat:victory",
-      { userId: "user-1", rewards: { gold: 100, exp: 50 } },
-      "combat",
-    );
-  });
-
-  it("emits combat:defeat when combat:action result is defeat", async () => {
-    const engine = createMockEngine();
-    const mod = new CombatModule();
-
-    await mod.init(engine);
-    await engine.events.emit(
-      "combat:action",
       {
         userId: "user-1",
-        combatId: "c-1",
-        actionId: "attack",
-        result: { status: "defeat" },
+        rewards: {
+          cards: [
+            { id: "card-1", name: "Flame Sword" },
+            { id: "card-2", name: "Ice Shield" },
+          ],
+        },
       },
       "test",
     );
 
     expect(engine.events.emit).toHaveBeenCalledWith(
-      "combat:defeat",
-      { userId: "user-1" },
-      "combat",
+      "card:acquired",
+      { userId: "user-1", cardId: "card-1", cardName: "Flame Sword" },
+      "progression",
+    );
+    expect(engine.events.emit).toHaveBeenCalledWith(
+      "card:acquired",
+      { userId: "user-1", cardId: "card-2", cardName: "Ice Shield" },
+      "progression",
     );
   });
 
-  it("does not emit extra events when combat:action has no result", async () => {
+  it("emits progression:check even when combat:victory has no cards", async () => {
     const engine = createMockEngine();
-    const mod = new CombatModule();
+    const mod = new ProgressionModule();
 
     await mod.init(engine);
-
-    (engine.events.emit as ReturnType<typeof vi.fn>).mockClear();
-
     await engine.events.emit(
-      "combat:action",
+      "combat:victory",
+      { userId: "user-1", rewards: {} },
+      "test",
+    );
+
+    expect(engine.events.emit).toHaveBeenCalledWith(
+      "progression:check",
+      { userId: "user-1", trigger: "combat_victory" },
+      "progression",
+    );
+  });
+
+  it("emits card:acquired for each card in exploration:complete result", async () => {
+    const engine = createMockEngine();
+    const mod = new ProgressionModule();
+
+    await mod.init(engine);
+    await engine.events.emit(
+      "exploration:complete",
       {
         userId: "user-1",
-        combatId: "c-1",
-        actionId: "attack",
+        result: {
+          cards: [{ id: "card-3", name: "Healing Herb" }],
+        },
       },
       "test",
     );
 
-    // Only the direct emit call should exist — no victory/defeat emission
-    expect(engine.events.emit).toHaveBeenCalledTimes(1);
-    expect(engine.events.emit).not.toHaveBeenCalledWith(
-      "combat:victory",
-      expect.anything(),
-      expect.anything(),
+    expect(engine.events.emit).toHaveBeenCalledWith(
+      "card:acquired",
+      { userId: "user-1", cardId: "card-3", cardName: "Healing Herb" },
+      "progression",
     );
-    expect(engine.events.emit).not.toHaveBeenCalledWith(
-      "combat:defeat",
-      expect.anything(),
-      expect.anything(),
+  });
+
+  it("emits progression:check even when exploration:complete has no cards", async () => {
+    const engine = createMockEngine();
+    const mod = new ProgressionModule();
+
+    await mod.init(engine);
+    await engine.events.emit(
+      "exploration:complete",
+      { userId: "user-1", result: {} },
+      "test",
+    );
+
+    expect(engine.events.emit).toHaveBeenCalledWith(
+      "progression:check",
+      { userId: "user-1", trigger: "exploration_complete" },
+      "progression",
     );
   });
 
   it("does not emit events after destroy", async () => {
     const engine = createMockEngine();
-    const mod = new CombatModule();
+    const mod = new ProgressionModule();
 
     await mod.init(engine);
     await mod.destroy();
@@ -198,15 +192,15 @@ describe("CombatModule", () => {
     (engine.events.emit as ReturnType<typeof vi.fn>).mockClear();
 
     await engine.events.emit(
-      "combat:start",
-      { userId: "user-2", monsterLevel: 3 },
+      "combat:victory",
+      { userId: "user-2", rewards: { cards: [{ id: "c1", name: "X" }] } },
       "test",
     );
 
     // After destroy, handlers were removed — only the direct emit call exists
     expect(engine.events.emit).toHaveBeenCalledTimes(1);
     expect(engine.events.emit).not.toHaveBeenCalledWith(
-      "combat:started",
+      "card:acquired",
       expect.anything(),
       expect.anything(),
     );

@@ -1,5 +1,5 @@
-import type { GameEngine, GamePlugin } from "../types";
-import type { TypedGameEvent } from "../events";
+import type { GameEngine, GamePlugin } from "../../types";
+import type { GameEventMap } from "../events";
 
 export class ContentModule implements GamePlugin {
   name = "content";
@@ -29,10 +29,8 @@ export class ContentModule implements GamePlugin {
     }
   }
 
-  private handleLevelUp = async (
-    event: TypedGameEvent<"player:levelUp">,
-  ): Promise<void> => {
-    const { userId, newLevel } = event.payload;
+  private handleLevelUp = async (event: unknown): Promise<void> => {
+    const { userId, newLevel } = (event as { payload: GameEventMap["player:levelUp"] }).payload;
     await this.engine?.events.emit(
       "content:checkUnlocks",
       { userId, newLevel },
@@ -40,10 +38,8 @@ export class ContentModule implements GamePlugin {
     );
   };
 
-  private handleCharacterLevelUp = async (
-    event: TypedGameEvent<"character:levelUp">,
-  ): Promise<void> => {
-    const { userId, newLevel } = event.payload;
+  private handleCharacterLevelUp = async (event: unknown): Promise<void> => {
+    const { userId, newLevel } = (event as { payload: GameEventMap["character:levelUp"] }).payload;
     await this.engine?.events.emit(
       "content:checkUnlocks",
       { userId, newLevel },
@@ -51,10 +47,8 @@ export class ContentModule implements GamePlugin {
     );
   };
 
-  private handleBreakthrough = async (
-    event: TypedGameEvent<"breakthrough:complete">,
-  ): Promise<void> => {
-    const { userId, newTier } = event.payload;
+  private handleBreakthrough = async (event: unknown): Promise<void> => {
+    const { userId, newTier } = (event as { payload: GameEventMap["breakthrough:complete"] }).payload;
     await this.engine?.events.emit(
       "content:checkUnlocks",
       { userId, newTier },

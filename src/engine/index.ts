@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import type {
+  BaseEventMap,
   GameEngine,
   GameModule,
   IEntityManager,
@@ -24,6 +25,7 @@ import type { IRuleStore } from "./rules/IRuleStore";
 
 // Re-export types
 export type {
+  BaseEventMap,
   Condition,
   EventHandler,
   GameEngine,
@@ -37,10 +39,11 @@ export type {
   IRuleEngine,
   IStateManager,
   PluginManifest,
+  TypedEvent,
   WeightedItem,
 } from "./types";
 
-export type { GameEventMap, TypedGameEvent } from "./events";
+export type { GameEventMap, TypedGameEvent } from "./game/events";
 export type { IEntityStore } from "./entity/IEntityStore";
 export type { IRuleStore } from "./rules/IRuleStore";
 
@@ -68,8 +71,8 @@ export interface CreateEngineOptions {
 // GameEngineImpl
 // ---------------------------------------------------------------------------
 
-export class GameEngineImpl implements GameEngine {
-  readonly events: IEventBus;
+export class GameEngineImpl<TMap extends BaseEventMap = BaseEventMap> implements GameEngine {
+  readonly events: IEventBus<TMap>;
   readonly rules: IRuleEngine;
   readonly formulas: IFormulaEngine;
   readonly modules: IModuleRegistry;
@@ -77,7 +80,7 @@ export class GameEngineImpl implements GameEngine {
   readonly entities: IEntityManager;
 
   constructor(options?: CreateEngineOptions) {
-    this.events = new EventBus();
+    this.events = new EventBus() as unknown as IEventBus<TMap>;
     this.state = new StateManager();
     this.formulas = new FormulaEngine();
     this.rules = new RuleEngine(this.formulas);
@@ -113,7 +116,7 @@ export class GameEngineImpl implements GameEngine {
   }
 
   /** Register a module/plugin and return the engine for chaining */
-  use<TConfig>(plugin: GameModule<TConfig>, config?: TConfig): this {
+  use<TConfig>(plugin: GameModule<TConfig>, config?: Partial<TConfig>): this {
     this.modules.register(plugin, config);
     return this;
   }
@@ -134,6 +137,6 @@ export class GameEngineImpl implements GameEngine {
 // Factory function
 // ---------------------------------------------------------------------------
 
-export function createEngine(options?: CreateEngineOptions): GameEngineImpl {
-  return new GameEngineImpl(options);
+export function createEngine<TMap extends BaseEventMap = BaseEventMap>(options?: CreateEngineOptions): GameEngineImpl<TMap> {
+  return new GameEngineImpl<TMap>(options);
 }

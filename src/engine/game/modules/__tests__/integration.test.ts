@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { createEngine } from "../../index";
+import { createEngine } from "../../../index";
 import { registerAllModules } from "../index";
-import type { GameEvent } from "../../types";
+import type { GameEvent } from "../../../types";
 
 describe("Module integration", () => {
   it("full event flow: combat -> progression -> content", async () => {

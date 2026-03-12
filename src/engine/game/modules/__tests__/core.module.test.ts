@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { CoreModule } from "../core.module";
-import type { EventHandler, GameEngine, GameEvent, GameModule } from "../../types";
+import type { EventHandler, GameEngine, GameEvent, GameModule } from "../../../types";
 
 function createMockEngine(): GameEngine {
   const handlers = new Map<

@@ -1,5 +1,5 @@
-import type { GameEngine, GamePlugin } from "../types";
-import type { TypedGameEvent } from "../events";
+import type { GameEngine, GamePlugin } from "../../types";
+import type { GameEventMap } from "../events";
 
 export interface ExplorationConfig {
   maxEncountersPerDay?: number;
@@ -36,10 +36,8 @@ export class ExplorationModule implements GamePlugin<ExplorationConfig> {
     }
   }
 
-  private handleStart = async (
-    event: TypedGameEvent<"exploration:start">,
-  ): Promise<void> => {
-    const { userId, result, encounter } = event.payload;
+  private handleStart = async (event: unknown): Promise<void> => {
+    const { userId, result, encounter } = (event as { payload: GameEventMap["exploration:start"] }).payload;
     await this.engine?.events.emit(
       "exploration:complete",
       { userId, result },
