@@ -28,7 +28,7 @@ src/
 ├── components/
 │   ├── game/              # 游戏组件
 │   │   ├── panels/        # 各类面板组件
-│   │   ├── outer-city/    # 外城组件
+│   │   ├── outer-city/    # 外城组件（3D地图 + 2D小地图/世界地图）
 │   │   └── IsometricMap.tsx
 │   └── ui/                # shadcn/ui 组件
 ├── engine/                 # 游戏引擎（ECS、规则、模块）
@@ -140,7 +140,18 @@ src/
 - 卡牌使用（建筑卡、招募卡、技能卡、道具卡）
 - 卡牌背包管理
 
-### 14. 管理系统 (`admin.ts`)
+### 14. 军队系统 (`army.ts`)
+- 部队编制与管理
+- 军团回合制指挥战斗
+- ATB（Active Time Battle）3人小队战斗
+
+### 15. 小地图与世界地图系统
+- **小地图** (`outer-city/Minimap.tsx`): 右下角常驻，Canvas 2D 渲染所有已探索区域
+- **世界地图** (`outer-city/WorldMap.tsx`): 全屏覆盖，拖拽平移/滚轮缩放/触摸手势
+- **基地指示器** (`outer-city/BaseIndicator.tsx`): 主城(0,0)不在视野时显示金色方向箭头
+- **共享渲染** (`outer-city/map-canvas-renderer.ts`): 纯 TS Canvas 渲染模块，供小地图和世界地图共用
+
+### 16. 管理系统 (`admin.ts`)
 - 卡牌 CRUD
 - 剧情章节/节点管理
 - 冒险事件管理
@@ -188,6 +199,14 @@ src/
 | 装备面板 | `EquipmentPanel.tsx` | 11槽位装备管理 |
 | 角色详情 | `CharacterDetailPanel.tsx` | 角色信息 |
 | 建筑详情 | `BuildingDetailPanel.tsx` | 建筑升级、工人分配 |
+| ATB战斗 | `ATBCombatPanel.tsx` | 3人小队即时战斗 |
+| 军团战斗 | `ArmyCombatPanel.tsx` | 回合制指挥战斗 |
+| 军队管理 | `ArmyPanel.tsx` | 部队编制管理 |
+| 队伍编成 | `PartyPanel.tsx` | 队伍成员编成 |
+| 技能树 | `SkillTreePanel.tsx` | 技能学习与升级 |
+| 小地图 | `outer-city/Minimap.tsx` | 右下角2D小地图（已探索区域） |
+| 世界地图 | `outer-city/WorldMap.tsx` | 全屏2D地图（拖拽/缩放） |
+| 基地指示器 | `outer-city/BaseIndicator.tsx` | 主城方向箭头 |
 
 ## 开发命令
 
@@ -255,6 +274,8 @@ bun install
 7. **认证**: 简易邮箱认证，cookie 名为 `dev-session`
 8. **实体系统**: 所有玩家实例（角色、卡牌、建筑、装备）存储为 Entity 记录，使用 JSON state
 9. **规则引擎**: 游戏常量定义为 `GameRule` 记录，通过 `ruleService.getConfig/getFormula/getWeights` 访问
+10. **游戏面板样式**: 所有面板使用 `game-panel` CSS 类（定义在 `globals.css` 的 `@layer components` 中）。DialogContent 基类已包含 `game-panel game-texture`，非 Dialog 面板需手动添加。`.game-panel` 的 `position: relative` 可被 Tailwind 的 `fixed`/`absolute` 覆盖。
+11. **小地图/世界地图**: 使用 `fixed` 定位跳出父级层叠上下文，M 键切换世界地图
 
 ## 待优化项
 

@@ -3,7 +3,8 @@
 ## 概述
 
 游戏所有面板组件，采用 Hub 容器 + 标签页模式组织。Hub 组件作为 Dialog 弹窗容器，内嵌多个标签页面板。
-统一使用深色主题（#101014 背景, #c9a227 金色强调），基于 shadcn/ui 的 Dialog + ScrollArea。
+统一使用 `game-panel` 样式（金色边框、装饰角标、渐变背景），基于 shadcn/ui 的 Dialog + ScrollArea。
+非 Dialog 面板直接在 div 上使用 `game-panel` 类。Dialog 面板通过 `DialogContent` 基类自动获得 `game-panel game-texture` 样式。
 
 ## 文件清单
 
@@ -23,6 +24,11 @@
 | 文件 | 说明 |
 |------|------|
 | CombatPanel.tsx | 回合制战斗界面（技能选择、战斗日志） |
+| ATBCombatPanel.tsx | ATB战斗面板（3人小队即时战斗） |
+| ArmyCombatPanel.tsx | 军团战斗面板（回合制指挥战斗） |
+| ArmyPanel.tsx | 军队管理面板（部队编制/阵容管理） |
+| PartyPanel.tsx | 队伍编成面板 |
+| SkillTreePanel.tsx | 技能树面板（技能学习/升级） |
 | EconomyPanel.tsx | 经济总览（资源统计、产出） |
 | BuildingDetailPanel.tsx | 建筑详情、升级、工人分配 |
 | InnerCityPanel.tsx | 内城建筑管理 |
