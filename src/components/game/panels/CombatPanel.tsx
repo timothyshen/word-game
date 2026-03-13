@@ -165,7 +165,9 @@ export default function CombatPanel({
               <div className="h-px bg-gradient-to-r from-[#e74c3c]/40 to-transparent mt-1" />
             </div>
             {status !== "ongoing" && (
-              <button onClick={handleClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
+              <button onClick={handleClose} className="text-[var(--game-text-subtle)] hover:text-[var(--game-gold)] transition-colors" aria-label="关闭">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+              </button>
             )}
           </div>
         </DialogHeader>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
 import HubPanel, { type HubTab } from "./HubPanel";
+import { PanelSkeleton } from "~/components/game/PanelSkeleton";
 
 interface ProgressHubProps {
   onClose: () => void;
@@ -56,9 +57,7 @@ function ProfessionTab() {
 
   if (loadingProfessions) {
     return (
-      <div className="h-full flex items-center justify-center text-[#888]">
-        加载中...
-      </div>
+      <PanelSkeleton />
     );
   }
 
@@ -184,9 +183,7 @@ function AchievementTab() {
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center text-[#888]">
-        加载中...
-      </div>
+      <PanelSkeleton />
     );
   }
 

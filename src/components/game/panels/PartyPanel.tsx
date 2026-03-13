@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { PanelSkeleton } from "~/components/game/PanelSkeleton";
 import {
   Dialog,
   DialogContent,
@@ -98,7 +99,7 @@ export default function PartyPanel({ onClose }: PartyPanelProps) {
         </DialogHeader>
 
         {isLoading ? (
-          <div className="p-8 text-center text-[#888]">加载中...</div>
+          <PanelSkeleton />
         ) : (
           <div className="flex-1 min-h-0 flex flex-col">
             {/* Party Slots */}

@@ -1,7 +1,7 @@
 "use client";
 
 // 游戏主页面 - Cinematic设计
-import { useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { api } from "~/trpc/react";
 
@@ -62,6 +62,41 @@ export default function GamePage() {
       void utils.player.getLevelUpInfo.invalidate();
     },
   });
+
+  // Level-up burst detection
+  const prevLevelRef = useRef<number | null>(null);
+  const [showLevelBurst, setShowLevelBurst] = useState(false);
+
+  const currentLevel = levelUpInfo?.currentLevel ?? 1;
+  useEffect(() => {
+    if (prevLevelRef.current !== null && currentLevel > prevLevelRef.current) {
+      setShowLevelBurst(true);
+      const timer = setTimeout(() => setShowLevelBurst(false), 700);
+      return () => clearTimeout(timer);
+    }
+    prevLevelRef.current = currentLevel;
+  }, [currentLevel]);
+
+  // Day reset countdown
+  const [resetCountdown, setResetCountdown] = useState("");
+  const computeCountdown = useCallback(() => {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const diff = tomorrow.getTime() - now.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  }, []);
+
+  useEffect(() => {
+    setResetCountdown(computeCountdown());
+    const interval = setInterval(() => {
+      setResetCountdown(computeCountdown());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [computeCountdown]);
 
   // 加载中
   if (isLoading) {
@@ -128,7 +163,7 @@ export default function GamePage() {
                   )}
                 </div>
                 <div className="flex items-center gap-3 text-sm">
-                  <span className="text-[#5a6a7a]">Lv.{levelUpInfo?.currentLevel ?? 1}</span>
+                  <span className={`text-[#5a6a7a] inline-block ${showLevelBurst ? "level-up-burst" : ""}`}>Lv.{levelUpInfo?.currentLevel ?? 1}</span>
                   <span className="text-[#3a4a5a]">•</span>
                   <span style={{ color: STATUS_COLORS.hp }}>♥ {player.characters[0]?.hp ?? 100}</span>
                   <span style={{ color: STATUS_COLORS.stamina }}>⚡ {player.stamina}</span>
@@ -166,10 +201,15 @@ export default function GamePage() {
               <div className="text-5xl font-black text-[#c9a227] leading-none">{player.currentGameDay}</div>
               <div className="text-xs text-[#5a6a7a] tracking-widest uppercase">Day</div>
               <div className="mt-2 flex items-center justify-end gap-2 text-sm">
-                <span className="text-[#e67e22]">{player.streakDays}</span>
+                <span className="text-[var(--game-orange)]">{player.streakDays}</span>
                 <span className="text-[#3a4a5a]">|</span>
-                <span className="text-[#c9a227]">⭐ {player.currentDayScore}</span>
+                <span className="text-[var(--game-gold)]">⭐ {player.currentDayScore}</span>
               </div>
+              {resetCountdown && (
+                <div className="text-[10px] text-[var(--game-text-subtle)] text-right mt-1">
+                  重置: {resetCountdown}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -241,11 +281,14 @@ export default function GamePage() {
                 <button
                   key={i}
                   onClick={action.onClick}
-                  className="w-11 h-11 bg-[#0a0a15]/80 border border-[#2a3a4a] hover:border-[#c9a227] rounded-full flex items-center justify-center transition-all hover:scale-110 group"
+                  className="flex flex-col items-center gap-0.5 transition-all hover:scale-110 group"
                   title={action.label}
                   aria-label={action.label}
                 >
-                  <span className="text-lg" aria-hidden="true">{action.icon}</span>
+                  <span className="w-11 h-11 bg-[#0a0a15]/80 border border-[#2a3a4a] group-hover:border-[var(--game-gold)] rounded-full flex items-center justify-center transition-colors">
+                    <span className="text-lg" aria-hidden="true">{action.icon}</span>
+                  </span>
+                  <span className="text-[10px] leading-tight text-[var(--game-text-subtle)] group-hover:text-[var(--game-gold)] transition-colors">{action.label}</span>
                 </button>
               ))}
             </div>

@@ -37,32 +37,32 @@ export default function HubPanel({
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="bg-[#0a0a15]/95 backdrop-blur-sm border border-[#2a3a4a] p-0 max-w-6xl h-[90vh] flex flex-col gap-0 overflow-hidden"
+        className="bg-[#0a0a15]/95 backdrop-blur-sm border border-[var(--game-border-accent)] p-0 max-w-6xl h-[90vh] flex flex-col gap-0 overflow-hidden"
         showCloseButton={false}
       >
         {/* 头部 */}
-        <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[#2a3a4a] p-4">
+        <DialogHeader className="flex-shrink-0 bg-gradient-to-r from-[#0a0a15] to-[#050810] border-b border-[var(--game-border-accent)] p-4">
           <div className="flex items-center justify-between">
-            <DialogTitle className="font-display text-xl text-[#e0dcd0]">
+            <DialogTitle className="font-display text-xl text-[var(--game-text)]">
               {title}
             </DialogTitle>
-            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl transition-colors">
-              ✕
+            <button onClick={onClose} className="text-[var(--game-text-subtle)] hover:text-[var(--game-gold)] transition-colors" aria-label="关闭">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
           </div>
           <div className="h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent mt-2" />
         </DialogHeader>
 
         {/* 标签页导航 */}
-        <div className="flex-shrink-0 flex border-b border-[#2a3a4a] bg-[#050810] overflow-x-auto hide-scrollbar">
+        <div className="flex-shrink-0 flex border-b border-[var(--game-border-accent)] bg-[#050810] overflow-x-auto hide-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? "border-[#c9a227] text-[#c9a227] bg-[#0a0a15]"
-                  : "border-transparent text-[#5a6a7a] hover:text-[#e0dcd0] hover:bg-[#0a0a15]/50"
+                  ? "border-[var(--game-gold)] text-[var(--game-gold)] bg-[#0a0a15]"
+                  : "border-transparent text-[var(--game-text-subtle)] hover:text-[var(--game-text)] hover:bg-[#0a0a15]/50"
               }`}
             >
               <span>{tab.icon}</span>
@@ -72,7 +72,7 @@ export default function HubPanel({
         </div>
 
         {/* 内容区域 */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div key={activeTab} className="flex-1 min-h-0 overflow-hidden tab-content-enter">
           {currentTab?.content}
         </div>
       </DialogContent>
