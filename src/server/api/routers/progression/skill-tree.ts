@@ -36,4 +36,15 @@ export const skillTreeRouter = createTRPCRouter({
         input.skillId,
       );
     }),
+
+  respec: protectedProcedure
+    .input(z.object({ characterId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return skillTreeService.respecProfession(
+        ctx.db,
+        ctx.engine.entities,
+        ctx.session.user.id,
+        input.characterId,
+      );
+    }),
 });

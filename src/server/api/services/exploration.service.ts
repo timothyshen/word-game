@@ -234,6 +234,154 @@ function generateAreaName(): string {
   return `${areaNames[Math.floor(Math.random() * areaNames.length)]}区域`;
 }
 
+// ── Hand-crafted landmarks ──
+
+interface Landmark {
+  x: number;
+  y: number;
+  name: string;
+  flagName: string;
+  event: ExplorationEvent;
+  facilityOverride?: {
+    type: string;
+    name: string;
+    icon: string;
+    description: string;
+  };
+}
+
+const LANDMARKS: Landmark[] = [
+  {
+    x: 5, y: 0,
+    name: "废弃城堡",
+    flagName: "landmark_ruined_castle",
+    event: {
+      type: "treasure",
+      title: "废弃城堡",
+      description: "一座古老的城堡矗立在荒野之中，城墙已经破败不堪，但内部似乎隐藏着珍贵的宝藏。",
+      options: [
+        { text: "探索城堡内部 (消耗20体力)", action: "open", cost: { stamina: 20 } },
+        { text: "远远观望后离开", action: "leave" },
+      ],
+      rewards: {
+        gold: 200,
+        exp: 100,
+        cards: [{ rarity: "稀有", count: 1 }, { rarity: "精良", count: 2 }],
+      },
+    },
+  },
+  {
+    x: 0, y: 5,
+    name: "龙之巢穴",
+    flagName: "landmark_dragon_den",
+    event: {
+      type: "monster",
+      title: "龙之巢穴",
+      description: "一个散发着炙热气息的巨大洞穴，里面传来低沉的咆哮声。一只年幼的巨龙正在此处守卫巢穴！",
+      options: [
+        { text: "挑战巨龙 (消耗30体力)", action: "fight", cost: { stamina: 30 } },
+        { text: "悄悄离开", action: "leave" },
+      ],
+      monster: {
+        name: "幼龙",
+        level: 8,
+        hp: 300,
+        attack: 45,
+        defense: 25,
+        rewards: {
+          exp: 200,
+          gold: 300,
+          cards: [{ rarity: "史诗", count: 1 }],
+        },
+      },
+    },
+  },
+  {
+    x: -5, y: -5,
+    name: "遗忘图书馆",
+    flagName: "landmark_forgotten_library",
+    event: {
+      type: "treasure",
+      title: "遗忘图书馆",
+      description: "一座被藤蔓覆盖的图书馆，里面的书籍虽然古老但保存完好。你感受到了蕴含其中的知识力量。",
+      options: [
+        { text: "研读古籍 (消耗15体力)", action: "open", cost: { stamina: 15 } },
+        { text: "离开", action: "leave" },
+      ],
+      rewards: {
+        exp: 300,
+        cards: [{ rarity: "稀有", count: 1 }],
+      },
+    },
+  },
+  {
+    x: 3, y: -3,
+    name: "古代祭坛",
+    flagName: "landmark_ancient_altar",
+    event: {
+      type: "treasure",
+      title: "古代祭坛",
+      description: "一座散发着古老力量的祭坛，祭坛上的符文仍然闪烁着微光。",
+      options: [
+        { text: "祈祷 (消耗10体力)", action: "open", cost: { stamina: 10 } },
+        { text: "离开", action: "leave" },
+      ],
+      rewards: {
+        gold: 100,
+        exp: 50,
+      },
+    },
+    facilityOverride: {
+      type: "altar",
+      name: "远古祭坛",
+      icon: "🏛️",
+      description: "远古文明遗留的神秘祭坛，散发着强大的力量",
+    },
+  },
+  {
+    x: -3, y: 3,
+    name: "商人营地",
+    flagName: "landmark_merchant_camp",
+    event: {
+      type: "merchant",
+      title: "商人营地",
+      description: "一个繁忙的商人营地，各种珍稀商品琳琅满目。营地主人热情地邀请你看看他的货物。",
+      options: [
+        { text: "查看商品", action: "trade" },
+        { text: "继续赶路", action: "leave" },
+      ],
+    },
+    facilityOverride: {
+      type: "merchant",
+      name: "商人营地",
+      icon: "🏕️",
+      description: "繁忙的商人营地，货物种类齐全",
+    },
+  },
+];
+
+/** Check if coordinates match a known landmark */
+function findLandmark(x: number, y: number): Landmark | null {
+  return LANDMARKS.find(l => l.x === x && l.y === y) ?? null;
+}
+
+/** Check if a landmark has already been completed by the player */
+async function isLandmarkCompleted(db: FullDbClient, playerId: string, flagName: string): Promise<boolean> {
+  const flag = await db.unlockFlag.findUnique({
+    where: { playerId_flagName: { playerId, flagName } },
+  });
+  return !!flag;
+}
+
+// ── World-specific material drops ──
+
+const WORLD_MATERIAL_DROPS: Record<string, { name: string; description: string }> = {
+  fire_realm: { name: "火焰矿石", description: "蕴含火焰之力的矿石" },
+  ice_realm: { name: "寒冰水晶", description: "永冻的冰之结晶" },
+  shadow_realm: { name: "暗影精华", description: "凝聚暗影之力的精华" },
+  celestial_realm: { name: "天界碎片", description: "天界掉落的圣光碎片" },
+};
+
 // ── Exported service functions ──
 
 export async function getExploredAreas(
@@ -292,8 +440,9 @@ export async function exploreArea(
   // Compute area level based on distance
   const areaLevel = computeAreaLevel(input.positionX, input.positionY);
 
-  // Generate area name
-  const areaName = generateAreaName();
+  // Check for hand-crafted landmark
+  const landmark = findLandmark(input.positionX, input.positionY);
+  const areaName = landmark ? landmark.name : generateAreaName();
 
   // Create exploration record
   await exploRepo.createExploredArea(db, {
@@ -304,10 +453,24 @@ export async function exploreArea(
     name: areaName,
   });
 
-  // Randomly spawn wilderness facility
+  // Landmark facility override or random spawn
   let newFacility = null;
 
-  if (Math.random() < config.FACILITY_SPAWN_CHANCE) {
+  if (landmark?.facilityOverride) {
+    newFacility = await exploRepo.createFacility(db, {
+      playerId: player.id,
+      worldId: input.worldId,
+      type: landmark.facilityOverride.type,
+      name: landmark.facilityOverride.name,
+      icon: landmark.facilityOverride.icon,
+      description: landmark.facilityOverride.description,
+      positionX: input.positionX,
+      positionY: input.positionY,
+      data: JSON.stringify({ level: areaLevel }),
+      remainingUses: null,
+      isDiscovered: true,
+    });
+  } else if (Math.random() < config.FACILITY_SPAWN_CHANCE) {
     newFacility = await spawnFacility(db, player.id, input.worldId, input.positionX, input.positionY, areaLevel);
   }
 
@@ -369,17 +532,25 @@ export async function triggerEvent(
   // Compute area level
   const areaLevel = computeAreaLevel(input.positionX, input.positionY);
 
-  // Try to get adventure events from database
-  const dbAdventures = await exploRepo.findActiveAdventures(db, areaLevel, input.worldId);
-
   let event: ExplorationEvent;
 
-  // If database has adventures, randomly select by weight
-  if (dbAdventures.length > 0) {
-    event = buildEventFromDbAdventure(dbAdventures);
+  // Check for hand-crafted landmark event (one-time only)
+  const landmark = findLandmark(input.positionX, input.positionY);
+  if (landmark && !(await isLandmarkCompleted(db, player.id, landmark.flagName))) {
+    event = landmark.event;
+    // Mark landmark as completed
+    await upsertUnlockFlag(db, player.id, landmark.flagName);
   } else {
-    // No database adventures, use generated event
-    event = generateRandomEvent(areaLevel);
+    // Try to get adventure events from database
+    const dbAdventures = await exploRepo.findActiveAdventures(db, areaLevel, input.worldId);
+
+    // If database has adventures, randomly select by weight
+    if (dbAdventures.length > 0) {
+      event = buildEventFromDbAdventure(dbAdventures);
+    } else {
+      // No database adventures, use generated event
+      event = generateRandomEvent(areaLevel);
+    }
   }
 
   // Store event server-side so handleEventChoice can't be exploited
@@ -629,7 +800,7 @@ export async function handleEventChoice(
       result.message = "未知的选择";
   }
 
-  // Material drop from exploration events
+  // Material drop from exploration events (with world-specific drops)
   if (result.rewards ?? result.combat?.victory) {
     try {
       const materialDropConfig = await ruleService.getConfig<MaterialDropConfig>("crafting_material_drop");
@@ -647,8 +818,19 @@ export async function handleEventChoice(
           if (materialSchema) {
             const schemaId = (materialSchema as { id: string }).id;
             const templates = await entities.getTemplatesBySchema(schemaId);
-            const matchingTemplates = (templates as Array<{ id: string; name: string; rarity: string | null }>)
+            let matchingTemplates = (templates as Array<{ id: string; name: string; rarity: string | null }>)
               .filter(t => t.rarity === rarity);
+
+            // World-specific material drops: in non-main worlds, prefer world-specific materials
+            const worldMaterial = WORLD_MATERIAL_DROPS[input.worldId];
+            if (worldMaterial && Math.random() < 0.6) {
+              // 60% chance to drop world-specific material instead
+              const worldTemplates = matchingTemplates.filter(t => t.name.includes(worldMaterial.name));
+              if (worldTemplates.length > 0) {
+                matchingTemplates = worldTemplates;
+              }
+            }
+
             if (matchingTemplates.length > 0) {
               const template = matchingTemplates[Math.floor(Math.random() * matchingTemplates.length)]!;
               const dropCount = 1;

@@ -130,9 +130,39 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
   const totalPower = playerPower + charactersPower;
   const bossPower = boss.attack + boss.defense * 0.5 + boss.hp * 0.01;
 
-  const powerRatio = totalPower / bossPower;
-  const baseWinChance = Math.min(0.9, Math.max(0.1, powerRatio * 0.5));
-  const victory = Math.random() < baseWinChance;
+  // ── Phase 1: Normal combat ──
+  const phase1PowerRatio = totalPower / bossPower;
+  const phase1WinChance = Math.min(0.9, Math.max(0.1, phase1PowerRatio * 0.5));
+  const phase1Victory = Math.random() < phase1WinChance;
+
+  // ── Phase 2: Boss enrage (below 50% HP) — boss gets +30% buff ──
+  // Determine phase 2 buff type from boss skills JSON
+  let phase2BuffType = "attack";
+  try {
+    const bossSkills = JSON.parse(boss.skills) as Array<{ name: string; damage: number; effect?: string }>;
+    if (bossSkills.some(s => s.effect?.includes("defense") || s.effect?.includes("shield"))) {
+      phase2BuffType = "defense";
+    }
+  } catch { /* use default attack buff */ }
+
+  const phase2BossPower = bossPower * 1.3; // +30% buff
+  const phase2PowerRatio = totalPower / phase2BossPower;
+  const phase2WinChance = Math.min(0.85, Math.max(0.05, phase2PowerRatio * 0.45));
+  const phase2Victory = Math.random() < phase2WinChance;
+
+  // Determine overall outcome
+  type BossOutcome = "full_victory" | "partial_victory" | "defeat";
+  let outcome: BossOutcome;
+  if (!phase1Victory) {
+    outcome = "defeat";
+  } else if (!phase2Victory) {
+    outcome = "partial_victory";
+  } else {
+    outcome = "full_victory";
+  }
+
+  const isVictory = outcome === "full_victory";
+  const isPartial = outcome === "partial_victory";
 
   // 更新挑战次数
   if (bossStatus) {
@@ -141,7 +171,7 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
       data: {
         weeklyAttempts: (bossStatus.weeklyAttempts ?? 0) + 1,
         lastAttempt: new Date(),
-        lastDefeat: victory ? new Date() : bossStatus.lastDefeat,
+        lastDefeat: isVictory ? new Date() : bossStatus.lastDefeat,
       },
     });
   } else {
@@ -151,7 +181,7 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
         bossId,
         weeklyAttempts: 1,
         lastAttempt: new Date(),
-        lastDefeat: victory ? new Date() : null,
+        lastDefeat: isVictory ? new Date() : null,
         weekStartDate: weekStart,
       },
     });
@@ -172,8 +202,8 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
     });
   }
 
-  if (victory) {
-    // 发放奖励
+  if (isVictory) {
+    // 全额奖励
     await db.player.update({
       where: { id: player.id },
       data: {
@@ -210,6 +240,7 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
     return {
       victory: true,
       bossName: boss.name,
+      phases: { phase1: true, phase2: true },
       rewards: {
         gold: boss.rewardGold,
         crystals: boss.rewardCrystals,
@@ -219,10 +250,44 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
       },
       message: `击败了${boss.name}！`,
     };
+  } else if (isPartial) {
+    // 部分奖励: 50% gold and exp, no crystals/chest/equipment
+    const partialGold = Math.floor(boss.rewardGold * 0.5);
+    const partialExp = Math.floor(boss.rewardExp * 0.5);
+
+    await db.player.update({
+      where: { id: player.id },
+      data: {
+        gold: { increment: partialGold },
+        exp: { increment: partialExp },
+      },
+    });
+
+    await db.actionLog.create({
+      data: {
+        playerId: player.id,
+        day: getCurrentGameDay(),
+        type: "combat",
+        description: `挑战Boss：${boss.name}（第二阶段失败）`,
+        baseScore: 25 * boss.level,
+        bonus: 0,
+        bonusReason: null,
+      },
+    });
+
+    return {
+      victory: false,
+      bossName: boss.name,
+      phases: { phase1: true, phase2: false },
+      rewards: { gold: partialGold, exp: partialExp },
+      message: `${boss.name}进入狂暴状态（${phase2BuffType === "defense" ? "防御" : "攻击"}+30%），你未能在第二阶段击败它！获得部分奖励。`,
+      remainingAttempts: boss.weeklyAttemptLimit - ((bossStatus?.weeklyAttempts ?? 0) + 1),
+    };
   } else {
     return {
       victory: false,
       bossName: boss.name,
+      phases: { phase1: false, phase2: false },
       message: `挑战${boss.name}失败，下次再来！`,
       remainingAttempts: boss.weeklyAttemptLimit - ((bossStatus?.weeklyAttempts ?? 0) + 1),
     };
