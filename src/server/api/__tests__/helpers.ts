@@ -35,8 +35,8 @@ function createMockModel<T extends { id: string }>(modelName: string) {
             if (typeof value === "object" && value !== null) {
               // Handle Prisma operators like { lte: 5 }
               const ops = value as Record<string, unknown>;
-              if ("lte" in ops) return (item as Record<string, unknown>)[key] <= ops.lte;
-              if ("gte" in ops) return (item as Record<string, unknown>)[key] >= ops.gte;
+              if ("lte" in ops) return Number((item as Record<string, unknown>)[key]) <= Number(ops.lte);
+              if ("gte" in ops) return Number((item as Record<string, unknown>)[key]) >= Number(ops.gte);
               if ("contains" in ops) return String((item as Record<string, unknown>)[key]).includes(String(ops.contains));
             }
             return (item as Record<string, unknown>)[key] === value;
@@ -76,7 +76,7 @@ function createMockModel<T extends { id: string }>(modelName: string) {
         createdAt: new Date(),
         updatedAt: new Date(),
         ...args.data,
-      } as T;
+      } as unknown as T;
       items.push(newItem);
       return newItem;
     }),
@@ -100,7 +100,7 @@ function createMockModel<T extends { id: string }>(modelName: string) {
         }
       }
       if (index === -1) throw new Error(`${modelName} not found`);
-      items[index] = { ...items[index], ...args.data, updatedAt: new Date() } as T;
+      items[index] = { ...items[index], ...args.data, updatedAt: new Date() } as unknown as T;
       return items[index];
     }),
 
@@ -259,7 +259,7 @@ export function createMockDb() {
         if (args?.where) {
           items = items.filter((item) => {
             return Object.entries(args.where!).every(
-              ([key, value]) => (item as Record<string, unknown>)[key] === value
+              ([key, value]) => (item as unknown as Record<string, unknown>)[key] === value
             );
           });
         }

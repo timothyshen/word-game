@@ -21,4 +21,13 @@ export const settlementRouter = createTRPCRouter({
   getHistory: protectedProcedure.query(async ({ ctx }) => {
     return settlementService.getSettlementHistory(ctx.db, ctx.session.user.id);
   }),
+
+  skipDay: protectedProcedure.mutation(async ({ ctx }) => {
+    // Execute settlement and advance to next day
+    const result = await settlementService.executeSettlement(ctx.db, ctx.engine.entities, ctx.session.user.id);
+    void ctx.engine.events.emit("system:dailyReset", {
+      userId: ctx.session.user.id,
+    }, "settlement-router");
+    return result;
+  }),
 });

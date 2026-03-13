@@ -22,7 +22,7 @@ export async function getWeeklyLeaderboard(db: FullDbClient): Promise<Leaderboar
   // Fetch settlement logs from the past 7 days, grouped by player
   const recentLogs = await db.settlementLog.findMany({
     where: {
-      createdAt: { gte: sevenDaysAgo },
+      settledAt: { gte: sevenDaysAgo },
     },
     include: {
       player: {
@@ -101,7 +101,7 @@ export async function getPlayerRank(
   // Get all player scores for the week
   const recentLogs = await db.settlementLog.findMany({
     where: {
-      createdAt: { gte: sevenDaysAgo },
+      settledAt: { gte: sevenDaysAgo },
     },
     select: {
       playerId: true,

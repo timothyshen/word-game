@@ -16,17 +16,8 @@ interface BossPanelProps {
 
 export default function BossPanel({ onClose }: BossPanelProps) {
   const [selectedBossId, setSelectedBossId] = useState<string | null>(null);
-  const [battleResult, setBattleResult] = useState<{
-    victory: boolean;
-    message: string;
-    rewards?: {
-      gold: number;
-      crystals: number;
-      exp: number;
-      chest?: { name: string; rarity: string; icon: string } | null;
-      equipment?: { name: string; rarity: string; icon: string } | null;
-    };
-  } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [battleResult, setBattleResult] = useState<any>(null);
 
   const utils = api.useUtils();
 
