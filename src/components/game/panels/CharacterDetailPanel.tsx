@@ -13,6 +13,7 @@ import { RARITY_COLORS } from "~/constants";
 import { SectionTitle } from "./character/helpers";
 import EquipmentPanel from "./EquipmentPanel";
 import SkillTreePanel from "./SkillTreePanel";
+import { PanelSkeleton } from "~/components/game/PanelSkeleton";
 
 interface CharacterDetailPanelProps {
   characterId: string;
@@ -52,7 +53,7 @@ export default function CharacterDetailPanel({
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="p-8">
-          <div className="text-center text-[#888]">加载中...</div>
+          <PanelSkeleton />
         </DialogContent>
       </Dialog>
     );
@@ -107,7 +108,9 @@ export default function CharacterDetailPanel({
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
+            <button onClick={onClose} className="text-[var(--game-text-subtle)] hover:text-[var(--game-gold)] transition-colors" aria-label="关闭">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
           </div>
         </DialogHeader>
 

@@ -1,6 +1,7 @@
 // 经济发展面板组件 - 使用真实 API 数据
 
 import { memo } from "react";
+import { PanelSkeleton } from "~/components/game/PanelSkeleton";
 import {
   Dialog,
   DialogContent,
@@ -30,8 +31,8 @@ export default function EconomyPanel({ onClose }: EconomyPanelProps) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="p-8">
-          <div className="text-center font-display text-[#c9a227] text-lg mb-2">经济发展</div>
-          <div className="text-center text-[#5a6a7a] font-game-serif">加载中...</div>
+          <div className="text-center font-display text-[var(--game-gold)] text-lg mb-2">经济发展</div>
+          <PanelSkeleton />
         </DialogContent>
       </Dialog>
     );

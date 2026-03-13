@@ -5,6 +5,7 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
 import { RARITY_COLORS } from "~/constants";
 import HubPanel, { type HubTab } from "./HubPanel";
+import { PanelSkeleton } from "~/components/game/PanelSkeleton";
 
 interface InventoryHubProps {
   onClose: () => void;
@@ -153,9 +154,7 @@ function AltarTab() {
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center text-[#888]">
-        加载中...
-      </div>
+      <PanelSkeleton />
     );
   }
 
@@ -357,7 +356,7 @@ function ShopTab() {
           <ScrollArea className="flex-1">
             <div className="p-4">
               {isLoading ? (
-                <div className="text-center py-12 text-[#888]">加载中...</div>
+                <PanelSkeleton />
               ) : items.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-[#888]">暂无商品</div>

@@ -10,6 +10,7 @@ import {
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
 import { RARITY_COLORS } from "~/constants";
+import { PanelSkeleton } from "~/components/game/PanelSkeleton";
 
 interface AltarPanelProps {
   onClose: () => void;
@@ -69,7 +70,7 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="p-8">
-          <div className="text-center text-[#888]">加载中...</div>
+          <PanelSkeleton />
         </DialogContent>
       </Dialog>
     );

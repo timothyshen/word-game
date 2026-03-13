@@ -91,8 +91,14 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
     return (
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="p-8">
-          <div className="text-center font-display text-[#c9a227] text-lg mb-2">每日结算</div>
-          <div className="text-center text-[#5a6a7a] font-game-serif">加载中...</div>
+          <div className="text-center font-display text-[var(--game-gold)] text-lg mb-2">每日结算</div>
+          <div className="flex flex-col items-center gap-3 py-4">
+            <div className="space-y-3 w-full max-w-xs">
+              <div className="h-4 rounded skeleton-shimmer" style={{ width: "80%" }} />
+              <div className="h-4 rounded skeleton-shimmer" style={{ width: "60%" }} />
+              <div className="h-4 rounded skeleton-shimmer" style={{ width: "70%" }} />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     );
@@ -119,23 +125,25 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
         <DialogHeader className="sticky top-0 z-10 bg-gradient-to-r from-[#0a0a15] to-[#050810] p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs tracking-[0.2em] uppercase text-[#5a6a7a]">每日结算</div>
-              <DialogTitle className="font-display text-2xl mt-1 text-[#e0dcd0]">
+              <div className="text-xs tracking-[0.2em] uppercase text-[var(--game-text-subtle)]">每日结算</div>
+              <DialogTitle className="font-display text-2xl mt-1 text-[var(--game-text)]">
                 {preview?.pendingDays ? `待结算 ${preview.pendingDays} 天` : "今日结算"}
               </DialogTitle>
             </div>
-            <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-2xl">✕</button>
+            <button onClick={onClose} className="text-[var(--game-text-subtle)] hover:text-[var(--game-gold)] transition-colors" aria-label="关闭">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+            </button>
           </div>
-          <div className="mt-3 h-px bg-gradient-to-r from-[#c9a227]/40 to-transparent" />
+          <div className="mt-3 h-px bg-gradient-to-r from-[var(--game-gold)]/40 to-transparent" />
         </DialogHeader>
 
         {/* 可滚动内容 */}
         <ScrollArea className="flex-1 min-h-0">
-          <div className="text-[#e0dcd0]">
+          <div className="text-[var(--game-text)]">
             {/* 结算成功提示 */}
             {settlementResult?.settled && (
               <div className="p-4 bg-[#1a3a1a] border-b border-[#4a9]/30">
-                <div className="text-[#4a9] font-bold mb-2">✨ 结算完成！</div>
+                <div className="text-[#4a9] font-bold mb-2">结算完成！</div>
                 {settlementResult.grantedCards && settlementResult.grantedCards.length > 0 && (
                   <div className="text-sm">
                     获得卡牌: {settlementResult.grantedCards.map((c, i) => (
@@ -156,23 +164,23 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
             )}
 
             {/* 总分展示 */}
-            <div className="p-6 border-b border-[#2a3a4a]/30">
+            <div className="p-6 border-b border-[var(--game-border-accent)]/30">
               <div className="flex items-center justify-center gap-8">
                 {/* 评级 */}
-                <div className="text-center">
+                <div className="text-center settlement-grade">
                   <div
                     className="w-20 h-20 flex items-center justify-center text-5xl font-bold rounded-lg border"
                     style={{ borderColor: `${grade.color}50`, color: grade.color }}
                   >
                     {grade.grade}
                   </div>
-                  <div className="text-xs text-[#888] mt-2">评级</div>
+                  <div className="text-xs text-[var(--game-text-muted)] mt-2">评级</div>
                 </div>
 
                 {/* 总分 */}
-                <div className="text-center">
-                  <div className="text-5xl font-bold text-[#c9a227]">{totalScore}</div>
-                  <div className="text-sm text-[#888] mt-1">今日总分</div>
+                <div className="text-center settlement-score">
+                  <div className="text-5xl font-bold text-[var(--game-gold)]">{totalScore}</div>
+                  <div className="text-sm text-[var(--game-text-muted)] mt-1">今日总分</div>
                   <div className="text-xs text-[#4a9] mt-1">
                     {totalScore >= 500 ? "500+" : totalScore >= 400 ? "400-499" : totalScore >= 300 ? "300-399" : totalScore >= 200 ? "200-299" : totalScore >= 100 ? "100-199" : "0-99"}
                   </div>
@@ -180,21 +188,21 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
 
                 {/* 连续天数 */}
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-[#e67e22]">
+                  <div className="text-3xl font-bold text-[var(--game-orange)]">
                     {settlementResult?.newStreakDays ?? preview?.currentStreakDays ?? 0}
                   </div>
-                  <div className="text-xs text-[#888] mt-1">连续达标</div>
+                  <div className="text-xs text-[var(--game-text-muted)] mt-1">连续达标</div>
                 </div>
               </div>
             </div>
 
             {/* 分数明细 */}
-            <div className="p-4 border-b border-[#2a3a4a]/30">
+            <div className="p-4 border-b border-[var(--game-border-accent)]/30">
               <div className="flex items-center justify-between mb-3">
                 <SectionTitle>分数构成</SectionTitle>
                 <button
                   onClick={() => setShowDetails(!showDetails)}
-                  className="text-xs text-[#c9a227] hover:underline"
+                  className="text-xs text-[var(--game-gold)] hover:underline"
                 >
                   {showDetails ? "收起详情" : "查看详情"}
                 </button>
@@ -202,20 +210,20 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
 
               {/* 分类统计条 */}
               <div className="space-y-2">
-                <ScoreBar label="建造" icon="🏗️" score={scoreBreakdown.build} total={totalScore} color="#4a9" />
-                <ScoreBar label="探索" icon="🧭" score={scoreBreakdown.explore} total={totalScore} color="#59b" />
-                <ScoreBar label="战斗" icon="⚔️" score={scoreBreakdown.combat} total={totalScore} color="#e74c3c" />
-                <ScoreBar label="升级" icon="⬆️" score={scoreBreakdown.upgrade} total={totalScore} color="#c9a227" />
-                <ScoreBar label="生产" icon="📦" score={scoreBreakdown.production} total={totalScore} color="#8b6914" />
-                <ScoreBar label="招募" icon="👤" score={scoreBreakdown.recruit} total={totalScore} color="#9b59b6" />
+                <ScoreBar label="建造" icon="🏗️" score={scoreBreakdown.build} total={totalScore} color="var(--game-green)" delay={0} />
+                <ScoreBar label="探索" icon="🧭" score={scoreBreakdown.explore} total={totalScore} color="#59b" delay={100} />
+                <ScoreBar label="战斗" icon="⚔️" score={scoreBreakdown.combat} total={totalScore} color="var(--game-red)" delay={200} />
+                <ScoreBar label="升级" icon="⬆️" score={scoreBreakdown.upgrade} total={totalScore} color="var(--game-gold)" delay={300} />
+                <ScoreBar label="生产" icon="📦" score={scoreBreakdown.production} total={totalScore} color="var(--game-gold-dark)" delay={400} />
+                <ScoreBar label="招募" icon="👤" score={scoreBreakdown.recruit} total={totalScore} color="var(--game-purple)" delay={500} />
               </div>
 
               {/* 详细行动列表 */}
               {showDetails && todayResult?.actions && (
                 <div className="mt-4 space-y-2">
-                  <div className="text-xs text-[#888] mb-2">行动记录</div>
+                  <div className="text-xs text-[var(--game-text-muted)] mb-2">行动记录</div>
                   {todayResult.actions.length === 0 ? (
-                    <div className="text-center text-[#666] py-4">今日暂无行动记录</div>
+                    <div className="text-center text-[var(--game-text-dim)] py-4">今日暂无行动记录</div>
                   ) : (
                     todayResult.actions.map((action, i) => (
                       <div key={i} className="flex items-center justify-between p-2 bg-[#0d1020]/60 text-sm">
@@ -226,7 +234,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                         <div className="text-right">
                           <span className="text-[#4a9]">+{action.baseScore}</span>
                           {action.bonus > 0 && (
-                            <span className="text-[#c9a227] ml-1">+{action.bonus}</span>
+                            <span className="text-[var(--game-gold)] ml-1">+{action.bonus}</span>
                           )}
                         </div>
                       </div>
@@ -237,14 +245,14 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
             </div>
 
             {/* 预计奖励 */}
-            <div className="p-4 border-b border-[#2a3a4a]/30">
+            <div className="p-4 border-b border-[var(--game-border-accent)]/30">
               <SectionTitle>预计奖励</SectionTitle>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 {todayResult?.rewards.cards.map((card, i) => (
                   <div
                     key={i}
-                    className="relative p-3 bg-[#0d1020]/60 border text-center"
-                    style={{ borderColor: RARITY_COLORS[card.rarity] ?? "#888" }}
+                    className="relative p-3 bg-[#0d1020]/60 border text-center settlement-reward"
+                    style={{ borderColor: RARITY_COLORS[card.rarity] ?? "#888", animationDelay: `${i * 150}ms` }}
                   >
                     <div className="text-sm font-bold">×{card.count}</div>
                     <div
@@ -256,7 +264,7 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                   </div>
                 ))}
                 {(!todayResult?.rewards.cards || todayResult.rewards.cards.length === 0) && (
-                  <div className="col-span-3 text-center text-[#666] py-4">
+                  <div className="col-span-3 text-center text-[var(--game-text-dim)] py-4">
                     暂无奖励数据
                   </div>
                 )}
@@ -264,8 +272,8 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
 
               {/* 连续奖励提示 */}
               {preview && preview.currentStreakDays > 0 && (
-                <div className="mt-4 p-2 bg-[#0d1020]/60 border-l-2 border-[#e67e22]">
-                  <span className="text-sm text-[#e67e22]">
+                <div className="mt-4 p-2 bg-[#0d1020]/60 border-l-2 border-[var(--game-orange)]">
+                  <span className="text-sm text-[var(--game-orange)]">
                     连续达标 {preview.currentStreakDays} 天
                     {preview.currentStreakDays >= 3 && preview.currentStreakDays < 7 && " - 下次连续7日奖励!"}
                     {preview.currentStreakDays >= 7 && " - 史诗卡牌奖励!"}
@@ -275,11 +283,11 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
             </div>
 
             {/* 7日趋势 */}
-            <div className="p-4 border-b border-[#2a3a4a]/30">
+            <div className="p-4 border-b border-[var(--game-border-accent)]/30">
               <SectionTitle>近7日趋势</SectionTitle>
               <div className="mt-3 bg-[#0d1020]/60 p-3">
                 {last7Days.length === 0 ? (
-                  <div className="text-center text-[#666] py-4">暂无历史数据</div>
+                  <div className="text-center text-[var(--game-text-dim)] py-4">暂无历史数据</div>
                 ) : (
                   <div className="flex items-end gap-2 h-24">
                     {(() => {
@@ -291,15 +299,15 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
 
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center">
-                          <div className="text-[10px] text-[#888] mb-1">{day.totalScore}</div>
+                          <div className="text-[10px] text-[var(--game-text-muted)] mb-1">{day.totalScore}</div>
                           <div
-                            className={`w-full min-h-[8px] ${isLast ? "border border-[#c9a227]/40" : ""}`}
+                            className={`w-full min-h-[8px] ${isLast ? "border border-[var(--game-gold)]/40" : ""}`}
                             style={{
                               height: `${heightPercent}%`,
                               backgroundColor: dayGrade.color,
                             }}
                           />
-                          <div className={`text-[10px] mt-1 ${isLast ? "text-[#c9a227]" : "text-[#666]"}`}>
+                          <div className={`text-[10px] mt-1 ${isLast ? "text-[var(--game-gold)]" : "text-[var(--game-text-dim)]"}`}>
                             D{day.day}
                           </div>
                         </div>
@@ -317,24 +325,24 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
                 <button
                   onClick={() => void handleSettlement()}
                   disabled={settleMutation.isPending || collectOutputMutation.isPending}
-                  className="w-full py-4 bg-gradient-to-r from-[#c9a227] to-[#e6b82a] text-[#000] font-bold text-lg hover:from-[#ddb52f] hover:to-[#f0c940] transition-all disabled:opacity-50"
+                  className="w-full py-4 bg-gradient-to-r from-[var(--game-gold)] to-[#e6b82a] text-[#000] font-bold text-lg hover:from-[var(--game-gold-hover)] hover:to-[#f0c940] transition-all disabled:opacity-50"
                 >
                   {collectOutputMutation.isPending ? "领取产出中..." : settleMutation.isPending ? "结算中..." : "领取奖励"}
                 </button>
               ) : (
                 <button
                   onClick={onClose}
-                  className="w-full py-4 bg-[#0d1020]/60 border border-[#2a3a4a] text-[#5a6a7a] font-bold text-lg hover:border-[#c9a227]/40 hover:text-[#c9a227]"
+                  className="w-full py-4 bg-[#0d1020]/60 border border-[var(--game-border-accent)] text-[var(--game-text-subtle)] font-bold text-lg hover:border-[var(--game-gold)]/40 hover:text-[var(--game-gold)]"
                 >
                   {settlementResult?.settled ? "完成" : "今日已结算"}
                 </button>
               )}
               {errorMsg && (
-                <div className="mt-2 p-2 bg-[#3a1a1a] border border-[#e74c3c]/30 text-xs text-[#e74c3c] text-center">
+                <div className="mt-2 p-2 bg-[#3a1a1a] border border-[var(--game-red)]/30 text-xs text-[var(--game-red)] text-center">
                   {errorMsg}
                 </div>
               )}
-              <div className="text-center text-xs text-[#5a6a7a] mt-2">
+              <div className="text-center text-xs text-[var(--game-text-subtle)] mt-2">
                 奖励将添加到您的卡牌背包
               </div>
             </div>
@@ -345,12 +353,13 @@ export default function SettlementPanel({ onClose }: SettlementPanelProps) {
   );
 }
 
-const ScoreBar = memo(function ScoreBar({ label, icon, score, total, color }: {
+const ScoreBar = memo(function ScoreBar({ label, icon, score, total, color, delay = 0 }: {
   label: string;
   icon: string;
   score: number;
   total: number;
   color: string;
+  delay?: number;
 }) {
   const percent = total > 0 ? (score / total) * 100 : 0;
 
@@ -358,12 +367,12 @@ const ScoreBar = memo(function ScoreBar({ label, icon, score, total, color }: {
     <div className="flex items-center gap-3">
       <div className="w-16 flex items-center gap-1 text-sm">
         <span>{icon}</span>
-        <span className="text-[#888]">{label}</span>
+        <span className="text-[var(--game-text-muted)]">{label}</span>
       </div>
       <div className="flex-1 h-4 bg-[#050810] relative">
         <div
-          className="h-full transition-all duration-500"
-          style={{ width: `${percent}%`, backgroundColor: color }}
+          className="h-full settlement-bar"
+          style={{ width: `${percent}%`, backgroundColor: color, animationDelay: `${delay}ms` }}
         />
       </div>
       <div className="w-12 text-right text-sm" style={{ color }}>
