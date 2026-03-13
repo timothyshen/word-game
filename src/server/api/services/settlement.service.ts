@@ -6,6 +6,7 @@ import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, findActionLogs, updatePlayer } from "../repositories/player.repo";
 import { createSettlementLog, findSettlementHistory } from "../repositories/settlement.repo";
+import { findPlayerBuildings, findAllPlayerCharacters } from "../repositories/building.repo";
 import { getCurrentGameDay } from "../utils/game-time";
 import { grantRandomCards } from "../utils/card-utils";
 import { addCardEntity } from "../utils/card-entity-utils";
@@ -56,16 +57,57 @@ interface ScoreBreakdown {
   recruit: number;
 }
 
+/** Per-category diminishing returns threshold */
+const DIMINISHING_RETURNS_THRESHOLD = 3;
+const DIMINISHING_RETURNS_MULTIPLIER = 0.5;
+/** Balanced lord bonus: if scored in 3+ categories, +20% total */
+const BALANCED_CATEGORY_THRESHOLD = 3;
+const BALANCED_BONUS_MULTIPLIER = 0.2;
+
+function computeScoreForCategory(actions: ActionLog[]): number {
+  let total = 0;
+  for (let i = 0; i < actions.length; i++) {
+    const base = actions[i]!.baseScore + actions[i]!.bonus;
+    if (i >= DIMINISHING_RETURNS_THRESHOLD) {
+      // After 3rd action in same category, 50% score
+      total += Math.floor(base * DIMINISHING_RETURNS_MULTIPLIER);
+    } else {
+      total += base;
+    }
+  }
+  return total;
+}
+
 function computeBreakdown(dayActions: ActionLog[]): ScoreBreakdown {
-  const scoreFor = (type: string) => dayActions.filter((a) => a.type === type).reduce((s, a) => s + a.baseScore + a.bonus, 0);
+  const categories = ["build", "explore", "combat", "upgrade", "production", "recruit"] as const;
+  const grouped = new Map<string, ActionLog[]>();
+  for (const cat of categories) {
+    grouped.set(cat, dayActions.filter((a) => a.type === cat));
+  }
+
   return {
-    build: scoreFor("build"),
-    explore: scoreFor("explore"),
-    combat: scoreFor("combat"),
-    upgrade: scoreFor("upgrade"),
-    production: scoreFor("production"),
-    recruit: scoreFor("recruit"),
+    build: computeScoreForCategory(grouped.get("build") ?? []),
+    explore: computeScoreForCategory(grouped.get("explore") ?? []),
+    combat: computeScoreForCategory(grouped.get("combat") ?? []),
+    upgrade: computeScoreForCategory(grouped.get("upgrade") ?? []),
+    production: computeScoreForCategory(grouped.get("production") ?? []),
+    recruit: computeScoreForCategory(grouped.get("recruit") ?? []),
   };
+}
+
+/** Compute total daily score with diminishing returns and balanced lord bonus */
+function computeDailyScore(dayActions: ActionLog[]): number {
+  const breakdown = computeBreakdown(dayActions);
+  let total = breakdown.build + breakdown.explore + breakdown.combat
+    + breakdown.upgrade + breakdown.production + breakdown.recruit;
+
+  // Count categories with non-zero score
+  const activeCategories = Object.values(breakdown).filter((v) => v > 0).length;
+  if (activeCategories >= BALANCED_CATEGORY_THRESHOLD) {
+    total = Math.floor(total * (1 + BALANCED_BONUS_MULTIPLIER));
+  }
+
+  return total;
 }
 
 // ── Exported service functions ──
@@ -108,7 +150,7 @@ export async function getSettlementPreview(db: FullDbClient, userId: string) {
   );
 
   const dailyResults = await Promise.all(Object.entries(actionsByDay).map(async ([day, dayActions]) => {
-    const totalScore = dayActions.reduce((sum, a) => sum + a.baseScore + a.bonus, 0);
+    const totalScore = computeDailyScore(dayActions);
     return {
       day: parseInt(day),
       totalScore,
@@ -152,9 +194,56 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
   const streak3 = await ruleService.getConfig<{ rarity: string }>("settlement_streak_3_reward");
   const streak7 = await ruleService.getConfig<{ rarity: string }>("settlement_streak_7_reward");
 
+  // ── Resource sinks: building maintenance + character wages ──
+  const buildings = await findPlayerBuildings(db, entities, player.id);
+  const characters = await findAllPlayerCharacters(entities, player.id);
+
+  // Building maintenance costs (level 3+)
+  let buildingMaintenanceCost = 0;
+  const buildingsNeedingMaintenance: Array<{ name: string; level: number; cost: number }> = [];
+  for (const pb of buildings) {
+    let maintenanceCost = 0;
+    if (pb.level >= 5) maintenanceCost = 50;
+    else if (pb.level >= 4) maintenanceCost = 25;
+    else if (pb.level >= 3) maintenanceCost = 10;
+
+    if (maintenanceCost > 0) {
+      buildingMaintenanceCost += maintenanceCost;
+      buildingsNeedingMaintenance.push({
+        name: pb.building.name,
+        level: pb.level,
+        cost: maintenanceCost,
+      });
+    }
+  }
+
+  // Character wages: level * 2 gold per character per day
+  let characterWages = 0;
+  for (const char of characters) {
+    characterWages += (char.level ?? 1) * 2;
+  }
+
+  const totalDailyExpenses = buildingMaintenanceCost + characterWages;
+  const daysToSettle = currentDay - player.lastSettlementDay;
+  const totalExpenses = totalDailyExpenses * daysToSettle;
+
+  // Deduct expenses (player gold cannot go below 0)
+  const canPayFull = player.gold >= totalExpenses;
+  const actualDeduction = canPayFull ? totalExpenses : player.gold;
+
+  if (actualDeduction > 0) {
+    await updatePlayer(db, player.id, {
+      gold: { decrement: actualDeduction },
+    });
+  }
+
+  // If can't pay, building output is halved (tracked via settlement result)
+  // The halving effect is informational — actual output reduction would be
+  // applied in building.service.ts collectDailyOutput if needed
+
   for (let day = player.lastSettlementDay + 1; day <= currentDay; day++) {
     const dayActions = actionsByDay[day] ?? [];
-    const totalScore = dayActions.reduce((sum, a) => sum + a.baseScore + a.bonus, 0);
+    const totalScore = computeDailyScore(dayActions);
     const grade = await getGrade(totalScore);
     const rewards = calculateRewards(totalScore);
     const breakdown = computeBreakdown(dayActions);
@@ -237,6 +326,14 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
     grantedCards,
     chestReward,
     newStreakDays,
+    expenses: {
+      buildingMaintenance: buildingMaintenanceCost * daysToSettle,
+      characterWages: characterWages * daysToSettle,
+      total: totalExpenses,
+      paid: actualDeduction,
+      unpaid: totalExpenses - actualDeduction,
+      buildingsAffected: !canPayFull ? buildingsNeedingMaintenance.map(b => b.name) : [],
+    },
   };
 }
 

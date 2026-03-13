@@ -132,6 +132,136 @@ async function main() {
       ]),
     },
 
+    // ===== Base sword skills with branch points at positions 3 and 6 =====
+    // Position 1: 剑术基础
+    {
+      name: "剑术基础",
+      description: "基础剑术训练，提升10%物理伤害",
+      icon: "🗡️",
+      type: "combat",
+      category: "sword",
+      cooldown: 0,
+      effects: JSON.stringify([{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.1, type: "percent" }], duration: 3 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.1, type: "percent" }], duration: 3 }], mpCost: 5, cooldown: 0 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.15, type: "percent" }], duration: 3 }], mpCost: 6, cooldown: 0 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.2, type: "percent" }], duration: 3 }], mpCost: 7, cooldown: 0 },
+      ]),
+    },
+    // Position 2: 剑刃护体
+    {
+      name: "剑刃护体",
+      description: "以剑气护身，提升防御15%持续2回合",
+      icon: "🛡️",
+      type: "combat",
+      category: "sword",
+      cooldown: 1,
+      effects: JSON.stringify([{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.15, type: "percent" }], duration: 2 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.15, type: "percent" }], duration: 2 }], mpCost: 8, cooldown: 1 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.2, type: "percent" }], duration: 2 }], mpCost: 10, cooldown: 1 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.25, type: "percent" }], duration: 3 }], mpCost: 12, cooldown: 1 },
+      ]),
+    },
+    // Position 3 (Branch Point): 破甲斩_a (offensive) vs 铁壁守势_b (defensive)
+    {
+      name: "破甲斩_a",
+      description: "强力劈砍，造成200%物理伤害并降低敌方防御30%",
+      icon: "⚔️",
+      type: "combat",
+      category: "sword",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 2.0 },
+        { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 2.0 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.3, type: "percent" }], duration: 2 }], mpCost: 15, cooldown: 2 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 2.4 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.35, type: "percent" }], duration: 2 }], mpCost: 18, cooldown: 2 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 2.8 }, { type: "debuff", target: "enemy", modifiers: [{ stat: "defense", value: -0.4, type: "percent" }], duration: 3 }], mpCost: 20, cooldown: 2 },
+      ]),
+    },
+    {
+      name: "铁壁守势_b",
+      description: "铁壁防御姿态，提升50%防御和20%生命上限持续3回合",
+      icon: "🛡️",
+      type: "combat",
+      category: "sword",
+      cooldown: 2,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }, { stat: "maxHp", value: 0.2, type: "percent" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }, { stat: "maxHp", value: 0.2, type: "percent" }], duration: 3 }], mpCost: 15, cooldown: 2 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.6, type: "percent" }, { stat: "maxHp", value: 0.25, type: "percent" }], duration: 3 }], mpCost: 18, cooldown: 2 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.7, type: "percent" }, { stat: "maxHp", value: 0.3, type: "percent" }], duration: 3 }], mpCost: 20, cooldown: 2 },
+      ]),
+    },
+    // Position 4: 剑意
+    {
+      name: "剑意",
+      description: "领悟剑意，提升暴击率15%持续3回合",
+      icon: "💫",
+      type: "combat",
+      category: "sword",
+      cooldown: 2,
+      effects: JSON.stringify([{ type: "buff", target: "self", modifiers: [{ stat: "critRate", value: 0.15, type: "flat" }], duration: 3 }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "critRate", value: 0.15, type: "flat" }], duration: 3 }], mpCost: 12, cooldown: 2 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "critRate", value: 0.2, type: "flat" }], duration: 3 }], mpCost: 15, cooldown: 2 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "critRate", value: 0.25, type: "flat" }], duration: 3 }], mpCost: 18, cooldown: 2 },
+      ]),
+    },
+    // Position 5: 风暴剑舞
+    {
+      name: "风暴剑舞",
+      description: "挥舞长剑形成风暴，造成180%范围物理伤害",
+      icon: "🌪️",
+      type: "combat",
+      category: "sword",
+      cooldown: 3,
+      effects: JSON.stringify([{ type: "damage", damageType: "physical", multiplier: 1.8, aoe: true }]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 1.8, aoe: true }], mpCost: 20, cooldown: 3 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 2.2, aoe: true }], mpCost: 24, cooldown: 3 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 2.6, aoe: true }], mpCost: 28, cooldown: 3 },
+      ]),
+    },
+    // Position 6 (Branch Point): 万剑归宗_a (burst damage) vs 剑域护体_b (AoE defense)
+    {
+      name: "万剑归宗_a",
+      description: "召唤万千剑气攻击全体敌人，造成350%物理伤害并提升攻击30%",
+      icon: "🗡️",
+      type: "combat",
+      category: "sword",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "damage", damageType: "physical", multiplier: 3.5, aoe: true },
+        { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.3, type: "percent" }], duration: 2 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "damage", damageType: "physical", multiplier: 3.5, aoe: true }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.3, type: "percent" }], duration: 2 }], mpCost: 35, cooldown: 4 },
+        { level: 2, effects: [{ type: "damage", damageType: "physical", multiplier: 4.0, aoe: true }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.35, type: "percent" }], duration: 2 }], mpCost: 40, cooldown: 4 },
+        { level: 3, effects: [{ type: "damage", damageType: "physical", multiplier: 4.5, aoe: true }, { type: "buff", target: "self", modifiers: [{ stat: "attack", value: 0.4, type: "percent" }], duration: 3 }], mpCost: 45, cooldown: 4 },
+      ]),
+    },
+    {
+      name: "剑域护体_b",
+      description: "展开剑域，全体友方获得40%防御提升和伤害反弹效果",
+      icon: "🔰",
+      type: "combat",
+      category: "sword",
+      cooldown: 4,
+      effects: JSON.stringify([
+        { type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.4, type: "percent" }, { stat: "damageReflect", value: 0.2, type: "flat" }], duration: 3 },
+      ]),
+      levelData: JSON.stringify([
+        { level: 1, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.4, type: "percent" }, { stat: "damageReflect", value: 0.2, type: "flat" }], duration: 3 }], mpCost: 35, cooldown: 4 },
+        { level: 2, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.5, type: "percent" }, { stat: "damageReflect", value: 0.25, type: "flat" }], duration: 3 }], mpCost: 40, cooldown: 4 },
+        { level: 3, effects: [{ type: "buff", target: "self", modifiers: [{ stat: "defense", value: 0.6, type: "percent" }, { stat: "damageReflect", value: 0.3, type: "flat" }], duration: 4 }], mpCost: 45, cooldown: 4 },
+      ]),
+    },
+
     // ===== 剑客 (Swordsman) Skill Tree =====
     // Branch 1 - 破甲 (Armor Break)
     {
@@ -2078,6 +2208,11 @@ async function seedMaterialTemplates(db: PrismaClient): Promise<void> {
     { name: "秘银矿", rarity: "稀有", icon: "💠", description: "稀有的秘银矿石，锻造中级装备的必需品" },
     { name: "陨铁", rarity: "史诗", icon: "☄️", description: "天外陨石中提取的珍贵金属" },
     { name: "龙鳞", rarity: "传说", icon: "🐉", description: "远古巨龙遗落的鳞片，蕴含强大力量" },
+    // World-specific materials (for portal world differentiation)
+    { name: "火焰矿石", rarity: "稀有", icon: "🔥", description: "蕴含火焰之力的矿石，仅在火焰位面掉落" },
+    { name: "寒冰水晶", rarity: "稀有", icon: "❄️", description: "永冻的冰之结晶，仅在寒冰位面掉落" },
+    { name: "暗影精华", rarity: "史诗", icon: "🌑", description: "凝聚暗影之力的精华，仅在暗影位面掉落" },
+    { name: "天界碎片", rarity: "传说", icon: "✨", description: "天界掉落的圣光碎片，仅在天界掉落" },
   ];
 
   for (const mat of materials) {
@@ -2274,6 +2409,64 @@ async function seedCraftingRecipes(db: PrismaClient): Promise<void> {
       outputType: "equipment",
       outputId: getEquip("寒冰之刃"),
       baseRarity: "稀有",
+    },
+    // Top-tier recipes requiring world-specific materials
+    {
+      name: "火焰之剑",
+      description: "用火焰矿石和陨铁锻造的传说之剑，蕴含灼热之力",
+      category: "equipment",
+      requiredLevel: 20,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("火焰矿石"), count: 3 },
+        { materialTemplateId: getMat("陨铁"), count: 2 },
+      ]),
+      goldCost: 1000,
+      outputType: "equipment",
+      outputId: getEquip("寒冰之刃"),
+      baseRarity: "史诗",
+    },
+    {
+      name: "寒冰之盾",
+      description: "用寒冰水晶和秘银矿锻造的冰霜护盾",
+      category: "equipment",
+      requiredLevel: 20,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("寒冰水晶"), count: 3 },
+        { materialTemplateId: getMat("秘银矿"), count: 2 },
+      ]),
+      goldCost: 1000,
+      outputType: "equipment",
+      outputId: getEquip("木盾"),
+      baseRarity: "史诗",
+    },
+    {
+      name: "暗影战甲",
+      description: "用暗影精华和龙鳞打造的黑暗铠甲",
+      category: "equipment",
+      requiredLevel: 30,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("暗影精华"), count: 2 },
+        { materialTemplateId: getMat("龙鳞"), count: 1 },
+      ]),
+      goldCost: 2000,
+      outputType: "equipment",
+      outputId: getEquip("锁子甲"),
+      baseRarity: "传说",
+    },
+    {
+      name: "天界之冠",
+      description: "用天界碎片和龙鳞打造的神圣头冠",
+      category: "equipment",
+      requiredLevel: 40,
+      materials: JSON.stringify([
+        { materialTemplateId: getMat("天界碎片"), count: 2 },
+        { materialTemplateId: getMat("龙鳞"), count: 2 },
+        { materialTemplateId: getMat("暗影精华"), count: 1 },
+      ]),
+      goldCost: 5000,
+      outputType: "equipment",
+      outputId: getEquip("皮帽"),
+      baseRarity: "传说",
     },
   ];
 
