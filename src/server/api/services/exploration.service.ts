@@ -617,9 +617,9 @@ export async function handleEventChoice(
       await exploRepo.updateExploredAreaEvent(db, area.id, null);
     }
   }
-  // Legacy fallback: parse client-sent eventData if no server-side event found
-  if (!eventData && input.eventData) {
-    eventData = JSON.parse(input.eventData) as ExplorationEvent;
+  // No legacy fallback — client-supplied eventData is not trusted
+  if (!eventData) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "事件数据不存在，请重新探索" });
   }
 
   const playerId = player.id;

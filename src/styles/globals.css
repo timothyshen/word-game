@@ -448,7 +448,6 @@
     radial-gradient(ellipse at 50% 0%, rgba(201, 162, 39, 0.03) 0%, transparent 40%);
 }
 
-<<<<<<< HEAD
 /* ══════════════════════════════════════════
    Combat Animations
    ══════════════════════════════════════════ */
@@ -518,12 +517,12 @@
 /* Settlement reward reveal */
 @keyframes grade-scale { 0% { transform:scale(0.3); opacity:0; } 60% { transform:scale(1.2); } 100% { transform:scale(1); opacity:1; } }
 @keyframes score-fade { from { opacity:0; } to { opacity:1; } }
-@keyframes bar-grow { from { width:0; } }
+@keyframes bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes slide-up-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 
 .settlement-grade { animation: grade-scale 400ms cubic-bezier(0.34,1.56,0.64,1) both; }
 .settlement-score { animation: score-fade 300ms ease-out 200ms both; }
-.settlement-bar { animation: bar-grow 500ms ease-out both; }
+.settlement-bar { transform-origin: left center; animation: bar-grow 500ms ease-out both; }
 .settlement-reward { animation: slide-up-in 300ms ease-out both; }
 
 /* Level-up burst */

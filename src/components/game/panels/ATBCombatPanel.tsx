@@ -49,8 +49,6 @@ interface FloatingNumber {
   key: number;
 }
 
-let floatingKeyCounter = 0;
-
 export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType = "normal" }: ATBCombatPanelProps) {
   const [combatId, setCombatId] = useState<string | null>(null);
   const [isActing, setIsActing] = useState(false);
@@ -60,6 +58,8 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
   const [showDamageVignette, setShowDamageVignette] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const floatingKeyRef = useRef(0);
 
   // Track previous HP for all characters to detect changes
   const prevHpRef = useRef<Map<string, number>>(new Map());
@@ -139,7 +139,7 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
             id: unit.id,
             amount: Math.abs(diff),
             type: isCritical ? "critical" : "damage",
-            key: ++floatingKeyCounter,
+            key: ++floatingKeyRef.current,
           };
           const existing = newFloats.get(unit.id) ?? [];
           existing.push(floatEntry);
@@ -155,7 +155,7 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
             id: unit.id,
             amount: diff,
             type: "heal",
-            key: ++floatingKeyCounter,
+            key: ++floatingKeyRef.current,
           };
           const existing = newFloats.get(unit.id) ?? [];
           existing.push(floatEntry);
@@ -164,6 +164,8 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
       }
       prevHpRef.current.set(unit.id, unit.hp);
     }
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     if (newFloats.size > 0) {
       setFloatingNumbers(prev => {
@@ -176,8 +178,7 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
       });
 
       // Clean up floating numbers after animation
-      const maxDuration = 700;
-      setTimeout(() => {
+      timers.push(setTimeout(() => {
         setFloatingNumbers(prev => {
           const cleaned = new Map(prev);
           for (const [id, entries] of newFloats) {
@@ -187,14 +188,16 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
           }
           return cleaned;
         });
-      }, maxDuration);
+      }, 700));
     }
 
     // Damage vignette for party damage
     if (partyTookDamage) {
       setShowDamageVignette(true);
-      setTimeout(() => setShowDamageVignette(false), 400);
+      timers.push(setTimeout(() => setShowDamageVignette(false), 400));
     }
+
+    return () => timers.forEach(clearTimeout);
   }, [state?.party, state?.enemies, state?.logs]);
 
   // ── Track buff counts for buff-pop ──
@@ -240,8 +243,16 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
   // ── Animated close handler ──
   const handleClose = useCallback(() => {
     setIsExiting(true);
-    setTimeout(() => onClose(), 250);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => onClose(), 250);
   }, [onClose]);
+
+  // Cleanup close timer on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   // Loading state
   if (!combatId || startMutation.isPending) {
@@ -419,7 +430,8 @@ function EnemyCard({ enemy, isTargetable, onSelect, floatingNumbers, prevBuffCou
       setShakeClass(isCrit ? "card-shake-heavy" : "card-shake");
       setFlashClass("hit-flash");
       const duration = isCrit ? 300 : 150;
-      setTimeout(() => { setShakeClass(""); setFlashClass(""); }, duration);
+      const id = setTimeout(() => { setShakeClass(""); setFlashClass(""); }, duration);
+      return () => clearTimeout(id);
     }
   }, [floatingNumbers]);
 
@@ -507,7 +519,8 @@ function PartyCard({ member, isActive, isTargetable, onSelect, floatingNumbers, 
       setShakeClass(isCrit ? "card-shake-heavy" : "card-shake");
       setFlashClass("hit-flash");
       const duration = isCrit ? 300 : 150;
-      setTimeout(() => { setShakeClass(""); setFlashClass(""); }, duration);
+      const id = setTimeout(() => { setShakeClass(""); setFlashClass(""); }, duration);
+      return () => clearTimeout(id);
     }
   }, [floatingNumbers]);
 

@@ -184,6 +184,12 @@ export async function getCharacterStatus(db: FullDbClient, entities: IEntityMana
   const meetsLevel = character.level >= requirement.level;
   const meetsGold = player.gold >= requirement.gold;
   const meetsCrystals = player.crystals >= requirement.crystals;
+  let meetsItem = true;
+  if (requirement.specialItem) {
+    const playerCards = await findPlayerCards(db, entities, player.id);
+    const itemCard = playerCards.find(pc => pc.card.name === requirement.specialItem && pc.quantity > 0);
+    meetsItem = !!itemCard;
+  }
   const nextTierSlots = await calcSkillSlots(currentTier + 1);
 
   return {
@@ -199,8 +205,8 @@ export async function getCharacterStatus(db: FullDbClient, entities: IEntityMana
       gold: player.gold,
       crystals: player.crystals,
     },
-    canBreakthrough: meetsLevel && meetsGold && meetsCrystals,
-    checks: { meetsLevel, meetsGold, meetsCrystals },
+    canBreakthrough: meetsLevel && meetsGold && meetsCrystals && meetsItem,
+    checks: { meetsLevel, meetsGold, meetsCrystals, meetsItem },
   };
 }
 
@@ -238,6 +244,16 @@ export async function breakthroughCharacter(db: FullDbClient, entities: IEntityM
   }
   if (player.crystals < requirement.crystals) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "水晶不足" });
+  }
+
+  // 验证并消耗特殊物品（tier 3+ 需要突破石）
+  if (requirement.specialItem) {
+    const playerCards = await findPlayerCards(db, entities, player.id);
+    const itemCard = playerCards.find(pc => pc.card.name === requirement.specialItem && pc.quantity > 0);
+    if (!itemCard) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `需要物品：${requirement.specialItem}` });
+    }
+    await consumeCard(entities, itemCard.id, itemCard.quantity);
   }
 
   // 扣除资源

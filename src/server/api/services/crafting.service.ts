@@ -317,41 +317,34 @@ export async function craft(
     }
   }
 
-  // 3. Validate materials
+  // 3–6. Validate and deduct materials + gold atomically
   const materials = JSON.parse(recipe.materials) as RecipeMaterial[];
-  for (const mat of materials) {
-    const count = await getMaterialCount(
-      db,
-      entities,
-      player.id,
-      mat.materialTemplateId,
-    );
-    if (count < mat.count) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "材料不足" });
+  await db.$transaction(async (tx) => {
+    // Re-read player inside transaction for consistent gold check
+    const freshPlayer = await tx.player.findUniqueOrThrow({ where: { id: player.id } });
+    if (freshPlayer.gold < recipe.goldCost) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "金币不足" });
     }
-  }
 
-  // 4. Validate gold
-  if (player.gold < recipe.goldCost) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "金币不足" });
-  }
-
-  // 5. Deduct materials
-  for (const mat of materials) {
-    const removed = await removeMaterial(
-      db,
-      entities,
-      player.id,
-      mat.materialTemplateId,
-      mat.count,
-    );
-    if (!removed) {
-      throw new TRPCError({ code: "BAD_REQUEST", message: "材料扣除失败" });
+    // Validate materials
+    for (const mat of materials) {
+      const count = await getMaterialCount(tx, entities, player.id, mat.materialTemplateId);
+      if (count < mat.count) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "材料不足" });
+      }
     }
-  }
 
-  // 6. Deduct gold
-  await updatePlayer(db, player.id, { gold: { decrement: recipe.goldCost } });
+    // Deduct materials
+    for (const mat of materials) {
+      const removed = await removeMaterial(tx, entities, player.id, mat.materialTemplateId, mat.count);
+      if (!removed) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "材料扣除失败" });
+      }
+    }
+
+    // Deduct gold
+    await updatePlayer(tx, player.id, { gold: { decrement: recipe.goldCost } });
+  });
 
   // 7. Quality roll (boosted by blacksmith building level)
   const allBuildings = await findPlayerBuildings(db, entities, player.id);
@@ -473,14 +466,21 @@ export async function salvageMaterials(
   }
   const targetTemplate = targetTemplates[Math.floor(Math.random() * targetTemplates.length)]!;
 
-  // Deduct source materials
-  const removed = await removeMaterial(db, entities, player.id, materialTemplateId, SALVAGE_COST);
-  if (!removed) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "材料扣除失败" });
-  }
+  // Deduct source materials and grant output atomically
+  await db.$transaction(async (tx) => {
+    // Re-validate count inside transaction
+    const freshCount = await getMaterialCount(tx, entities, player.id, materialTemplateId);
+    if (freshCount < SALVAGE_COST) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `需要至少${SALVAGE_COST}个材料才能分解提炼` });
+    }
 
-  // Grant 1 higher-rarity material
-  await addMaterial(db, entities, player.id, targetTemplate.id, 1);
+    const removed = await removeMaterial(tx, entities, player.id, materialTemplateId, SALVAGE_COST);
+    if (!removed) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "材料扣除失败" });
+    }
+
+    await addMaterial(tx, entities, player.id, targetTemplate.id, 1);
+  });
 
   return {
     success: true,

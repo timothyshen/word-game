@@ -14,79 +14,72 @@ interface LeaderboardEntry {
 
 /**
  * Get the top 10 players for the current week based on SettlementLog scores.
+ * Uses groupBy aggregate to avoid loading all logs into memory.
  */
 export async function getWeeklyLeaderboard(db: FullDbClient): Promise<LeaderboardEntry[]> {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  // Fetch settlement logs from the past 7 days, grouped by player
-  const recentLogs = await db.settlementLog.findMany({
-    where: {
-      settledAt: { gte: sevenDaysAgo },
-    },
-    include: {
-      player: {
-        include: {
-          user: true,
-        },
-      },
-    },
-    orderBy: { totalScore: "desc" },
+  // Aggregate scores per player in the database
+  const grouped = await db.settlementLog.groupBy({
+    by: ["playerId"],
+    where: { settledAt: { gte: sevenDaysAgo } },
+    _sum: { totalScore: true },
+    _count: { _all: true },
+    orderBy: { _sum: { totalScore: "desc" } },
+    take: 10,
   });
 
-  // Aggregate scores per player
-  const playerScores = new Map<
-    string,
-    {
-      username: string;
-      totalScore: number;
-      grades: string[];
-      streakDays: number;
-    }
-  >();
+  if (grouped.length === 0) return [];
 
-  for (const log of recentLogs) {
-    const playerId = log.playerId;
-    const existing = playerScores.get(playerId);
-    if (existing) {
-      existing.totalScore += log.totalScore;
-      existing.grades.push(log.grade);
-    } else {
-      playerScores.set(playerId, {
-        username: log.player.user.name ?? "未知玩家",
-        totalScore: log.totalScore,
-        grades: [log.grade],
-        streakDays: log.player.streakDays,
-      });
-    }
-  }
+  // Fetch player details for top 10 only
+  const playerIds = grouped.map(g => g.playerId);
+  const players = await db.player.findMany({
+    where: { id: { in: playerIds } },
+    include: { user: true },
+  });
+  const playerMap = new Map(players.map(p => [p.id, p]));
 
-  // Compute average grade per player and sort
+  // Fetch grades for these players to compute average
+  const gradeLogs = await db.settlementLog.findMany({
+    where: {
+      settledAt: { gte: sevenDaysAgo },
+      playerId: { in: playerIds },
+    },
+    select: { playerId: true, grade: true },
+  });
+
   const GRADE_VALUES: Record<string, number> = { S: 5, A: 4, B: 3, C: 2, D: 1 };
   const VALUE_GRADES = ["D", "D", "C", "B", "A", "S"];
 
-  const entries: LeaderboardEntry[] = Array.from(playerScores.values()).map((p) => {
+  const gradesByPlayer = new Map<string, string[]>();
+  for (const log of gradeLogs) {
+    const existing = gradesByPlayer.get(log.playerId) ?? [];
+    existing.push(log.grade);
+    gradesByPlayer.set(log.playerId, existing);
+  }
+
+  return grouped.map((g) => {
+    const player = playerMap.get(g.playerId);
+    const grades = gradesByPlayer.get(g.playerId) ?? [];
     const avgValue =
-      p.grades.length > 0
-        ? p.grades.reduce((sum, g) => sum + (GRADE_VALUES[g] ?? 1), 0) / p.grades.length
+      grades.length > 0
+        ? grades.reduce((sum, grade) => sum + (GRADE_VALUES[grade] ?? 1), 0) / grades.length
         : 1;
     const avgGrade = VALUE_GRADES[Math.round(avgValue)] ?? "D";
 
     return {
-      username: p.username,
-      totalScore: p.totalScore,
+      username: player?.user?.name ?? "未知玩家",
+      totalScore: g._sum.totalScore ?? 0,
       averageGrade: avgGrade,
-      streakDays: p.streakDays,
+      streakDays: player?.streakDays ?? 0,
     };
   });
-
-  // Sort by total score descending and return top 10
-  entries.sort((a, b) => b.totalScore - a.totalScore);
-  return entries.slice(0, 10);
 }
 
 /**
  * Get the current player's rank in the weekly leaderboard.
+ * Uses groupBy to aggregate in the database.
  */
 export async function getPlayerRank(
   db: FullDbClient,
@@ -98,34 +91,24 @@ export async function getPlayerRank(
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  // Get all player scores for the week
-  const recentLogs = await db.settlementLog.findMany({
-    where: {
-      settledAt: { gte: sevenDaysAgo },
-    },
-    select: {
-      playerId: true,
-      totalScore: true,
-    },
+  // Aggregate scores per player in the database
+  const grouped = await db.settlementLog.groupBy({
+    by: ["playerId"],
+    where: { settledAt: { gte: sevenDaysAgo } },
+    _sum: { totalScore: true },
   });
 
-  // Aggregate per player
-  const playerTotals = new Map<string, number>();
-  for (const log of recentLogs) {
-    playerTotals.set(log.playerId, (playerTotals.get(log.playerId) ?? 0) + log.totalScore);
-  }
-
-  const myScore = playerTotals.get(player.id) ?? 0;
+  const myScore = grouped.find(g => g.playerId === player.id)?._sum.totalScore ?? 0;
 
   // Count how many players have a higher score
   let rank = 1;
-  for (const score of playerTotals.values()) {
-    if (score > myScore) rank++;
+  for (const g of grouped) {
+    if ((g._sum.totalScore ?? 0) > myScore) rank++;
   }
 
   return {
     rank,
     totalScore: myScore,
-    totalPlayers: playerTotals.size,
+    totalPlayers: grouped.length,
   };
 }

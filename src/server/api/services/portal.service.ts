@@ -292,8 +292,9 @@ export async function usePortal(db: FullDbClient, userId: string, portalId: stri
     throw new TRPCError({ code: "NOT_FOUND", message: "目标世界不存在" });
   }
 
-  // 传送消耗体力（比普通传送少）
-  const staminaCost = 10;
+  // 传送消耗体力（config-driven）
+  const portalTravelConfig = await ruleService.getConfig<{ value: number }>("portal_travel_stamina_cost");
+  const staminaCost = portalTravelConfig.value;
   if (player.stamina < staminaCost) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
   }
