@@ -8,6 +8,7 @@ import { findPlayerByUserId } from "../repositories/player.repo";
 import { getCurrentGameDay, getWeekStartDate } from "../utils/game-time";
 import { grantRandomEquipment } from "../utils/equipment-utils";
 import { addCardEntity } from "../utils/card-entity-utils";
+import { ruleService } from "~/server/api/engine";
 
 async function getPlayerOrThrow(db: FullDbClient, userId: string) {
   const player = await findPlayerByUserId(db, userId);
@@ -106,8 +107,9 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
     }
   }
 
-  // 消耗体力
-  const staminaCost = 30;
+  // 消耗体力（从规则引擎获取）
+  const staminaConfig = await ruleService.getConfig<{ value: number }>("boss_stamina_cost");
+  const staminaCost = staminaConfig.value;
   if (player.stamina < staminaCost) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
   }
@@ -207,6 +209,22 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
     // 装备掉落 (100% on victory)
     const droppedEquipment = await grantRandomEquipment(db, entities, player.id, boss.rewardEquipRarity);
 
+    // 突破石掉落（boss level 20+: 10% 突破石, boss level 30+: 5% 高级突破石）
+    let breakthroughStoneDrop: { name: string; rarity: string; icon: string } | null = null;
+    if (boss.level >= 30 && Math.random() < 0.05) {
+      const stoneCard = await db.card.findFirst({ where: { name: "高级突破石" } });
+      if (stoneCard) {
+        await addCardEntity(db, entities, player.id, stoneCard.id, 1);
+        breakthroughStoneDrop = { name: stoneCard.name, rarity: stoneCard.rarity, icon: stoneCard.icon };
+      }
+    } else if (boss.level >= 20 && Math.random() < 0.1) {
+      const stoneCard = await db.card.findFirst({ where: { name: "突破石" } });
+      if (stoneCard) {
+        await addCardEntity(db, entities, player.id, stoneCard.id, 1);
+        breakthroughStoneDrop = { name: stoneCard.name, rarity: stoneCard.rarity, icon: stoneCard.icon };
+      }
+    }
+
     return {
       victory: true,
       bossName: boss.name,
@@ -216,6 +234,7 @@ export async function challengeBoss(db: FullDbClient, entities: IEntityManager, 
         exp: boss.rewardExp,
         chest: droppedChest,
         equipment: droppedEquipment,
+        breakthroughStone: breakthroughStoneDrop,
       },
       message: `击败了${boss.name}！`,
     };

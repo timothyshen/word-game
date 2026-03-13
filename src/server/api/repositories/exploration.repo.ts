@@ -55,6 +55,16 @@ export function updateExploredAreaEvent(
   });
 }
 
+export function resetExploredAreaTimestamp(
+  db: DbClient,
+  id: string,
+) {
+  return db.exploredArea.update({
+    where: { id },
+    data: { discoveredAt: new Date(), pendingEvent: null },
+  });
+}
+
 export function setExploredAreaPendingEvent(
   db: DbClient,
   playerId: string,

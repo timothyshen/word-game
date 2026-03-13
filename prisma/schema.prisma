@@ -94,7 +94,7 @@ model Player {
     // 体力系统（替代AP）
     stamina           Int      @default(100)
     maxStamina        Int      @default(100)
-    staminaPerMin     Float    @default(0.2) // 每分钟回复量（可升级）
+    staminaPerMin     Float    @default(0.5) // 每分钟回复量（可升级）
     lastStaminaUpdate DateTime @default(now()) // 上次体力更新时间
 
     // 资源

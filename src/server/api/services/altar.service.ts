@@ -35,7 +35,33 @@ const ALTAR_TYPES: AltarType[] = [
   },
 ];
 
-function rollRarity(weights: Record<string, number>): string {
+const PITY_THRESHOLD = 10;
+const PITY_GUARANTEED_RARITY = "稀有";
+const RARE_OR_ABOVE = ["稀有", "史诗", "传说"];
+
+function rollRarity(weights: Record<string, number>, pityCount = 0): string {
+  // Pity system: after 10 consecutive non-rare rolls, guarantee at least 稀有
+  if (pityCount >= PITY_THRESHOLD) {
+    // Roll only among 稀有+ rarities
+    const rareWeights: Record<string, number> = {};
+    for (const [rarity, weight] of Object.entries(weights)) {
+      if (RARE_OR_ABOVE.includes(rarity)) {
+        rareWeights[rarity] = weight;
+      }
+    }
+    // If no rare+ weights defined, force 稀有
+    if (Object.keys(rareWeights).length === 0) {
+      return PITY_GUARANTEED_RARITY;
+    }
+    const total = Object.values(rareWeights).reduce((sum, w) => sum + w, 0);
+    let roll = Math.random() * total;
+    for (const [rarity, weight] of Object.entries(rareWeights)) {
+      if (roll < weight) return rarity;
+      roll -= weight;
+    }
+    return PITY_GUARANTEED_RARITY;
+  }
+
   const total = Object.values(weights).reduce((sum, w) => sum + w, 0);
   let roll = Math.random() * total;
   for (const [rarity, weight] of Object.entries(weights)) {
@@ -154,7 +180,7 @@ export async function collectDailyCard(db: FullDbClient, entities: IEntityManage
   });
   if (!altar) throw new TRPCError({ code: "NOT_FOUND", message: "祭坛不存在" });
 
-  const data = JSON.parse(altar.data) as { altarType: string; lastCollectedDate?: string; isDefeated?: boolean };
+  const data = JSON.parse(altar.data) as { altarType: string; lastCollectedDate?: string; isDefeated?: boolean; pityCount?: number };
   if (!data.isDefeated) throw new TRPCError({ code: "BAD_REQUEST", message: "请先击败祭坛守卫" });
 
   const today = getTodayString();
@@ -163,11 +189,14 @@ export async function collectDailyCard(db: FullDbClient, entities: IEntityManage
   const altarType = ALTAR_TYPES.find((t) => t.id === data.altarType);
   if (!altarType) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "祭坛类型无效" });
 
+  const pityCount = data.pityCount ?? 0;
   const weights = await getAltarWeights(data.altarType);
-  const rarity = rollRarity(weights);
+  const rarity = rollRarity(weights, pityCount);
   const cardResult = await grantRandomCard(db, entities, player.id, rarity);
   if (!cardResult) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "没有可用卡牌" });
 
+  // Update pity counter: reset if 稀有+, otherwise increment
+  data.pityCount = RARE_OR_ABOVE.includes(rarity) ? 0 : pityCount + 1;
   data.lastCollectedDate = today;
   await db.wildernessFacility.update({ where: { id: altar.id }, data: { data: JSON.stringify(data) } });
 
@@ -193,17 +222,19 @@ export async function collectAllDailyCards(db: FullDbClient, entities: IEntityMa
   const collectedCards: Array<{ altarName: string; card: { name: string; rarity: string; icon: string } }> = [];
 
   for (const altar of altars) {
-    const data = JSON.parse(altar.data) as { altarType: string; lastCollectedDate?: string; isDefeated?: boolean };
+    const data = JSON.parse(altar.data) as { altarType: string; lastCollectedDate?: string; isDefeated?: boolean; pityCount?: number };
     if (!data.isDefeated || data.lastCollectedDate === today) continue;
 
     const altarType = ALTAR_TYPES.find((t) => t.id === data.altarType);
     if (!altarType) continue;
 
+    const pityCount = data.pityCount ?? 0;
     const weights = await getAltarWeights(data.altarType);
-    const rarity = rollRarity(weights);
+    const rarity = rollRarity(weights, pityCount);
     const cardResult = await grantRandomCard(db, entities, player.id, rarity);
     if (!cardResult) continue;
 
+    data.pityCount = RARE_OR_ABOVE.includes(rarity) ? 0 : pityCount + 1;
     data.lastCollectedDate = today;
     await db.wildernessFacility.update({ where: { id: altar.id }, data: { data: JSON.stringify(data) } });
 

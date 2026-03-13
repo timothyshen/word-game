@@ -4,11 +4,11 @@ import * as breakthroughService from "../../services/breakthrough.service";
 
 export const breakthroughRouter = createTRPCRouter({
   getPlayerStatus: protectedProcedure.query(async ({ ctx }) => {
-    return breakthroughService.getPlayerStatus(ctx.db, ctx.session.user.id);
+    return breakthroughService.getPlayerStatus(ctx.db, ctx.engine.entities, ctx.session.user.id);
   }),
 
   breakthroughPlayer: protectedProcedure.mutation(async ({ ctx }) => {
-    const result = await breakthroughService.breakthroughPlayer(ctx.db, ctx.session.user.id);
+    const result = await breakthroughService.breakthroughPlayer(ctx.db, ctx.engine.entities, ctx.session.user.id);
     void ctx.engine.events.emit("breakthrough:complete", {
       userId: ctx.session.user.id,
       target: "player",

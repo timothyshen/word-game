@@ -60,6 +60,7 @@ interface ExplorationEvent {
 
 // ── Private constants ──
 
+const TILE_REFRESH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
 const FACILITY_STAMINA_COST = 5;
 const EXPLORE_BONUS_SCORE = 30;
 const VALID_FACILITY_RESOURCES = ["gold", "wood", "stone", "food"] as const;
@@ -276,11 +277,17 @@ export async function exploreArea(
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
   }
 
-  // Check if already explored
+  // Check if already explored (with 3-day cooldown for re-exploration)
   const existing = await exploRepo.findExploredArea(db, player.id, input.worldId, input.positionX, input.positionY);
+  let isReexploration = false;
 
   if (existing) {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "该区域已探索过" });
+    const timeSinceExplored = Date.now() - existing.discoveredAt.getTime();
+    if (timeSinceExplored < TILE_REFRESH_COOLDOWN_MS) {
+      const hoursRemaining = Math.ceil((TILE_REFRESH_COOLDOWN_MS - timeSinceExplored) / (1000 * 60 * 60));
+      throw new TRPCError({ code: "BAD_REQUEST", message: `该区域已探索过，${hoursRemaining}小时后可重新探索` });
+    }
+    isReexploration = true;
   }
 
   // Deduct stamina
@@ -293,16 +300,21 @@ export async function exploreArea(
   const areaLevel = computeAreaLevel(input.positionX, input.positionY);
 
   // Generate area name
-  const areaName = generateAreaName();
+  const areaName = isReexploration ? existing!.name : generateAreaName();
 
-  // Create exploration record
-  await exploRepo.createExploredArea(db, {
-    playerId: player.id,
-    worldId: input.worldId,
-    positionX: input.positionX,
-    positionY: input.positionY,
-    name: areaName,
-  });
+  if (isReexploration) {
+    // Reset the timestamp for re-exploration cooldown
+    await exploRepo.resetExploredAreaTimestamp(db, existing!.id);
+  } else {
+    // Create exploration record
+    await exploRepo.createExploredArea(db, {
+      playerId: player.id,
+      worldId: input.worldId,
+      positionX: input.positionX,
+      positionY: input.positionY,
+      name: areaName,
+    });
+  }
 
   // Randomly spawn wilderness facility
   let newFacility = null;
