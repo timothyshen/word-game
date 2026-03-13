@@ -434,3 +434,61 @@
     radial-gradient(ellipse at 80% 50%, rgba(201, 162, 39, 0.02) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 0%, rgba(201, 162, 39, 0.03) 0%, transparent 40%);
 }
+
+/* ══════════════════════════════════════════
+   Combat Animations
+   ══════════════════════════════════════════ */
+
+/* Combat enter/exit */
+@keyframes combat-enter { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
+@keyframes combat-exit { from { opacity:1; transform:scale(1); } to { opacity:0; transform:scale(0.94); } }
+@keyframes backdrop-enter { from { opacity:0; } to { opacity:1; } }
+
+/* Damage/heal floating numbers */
+@keyframes damage-float { 0% { opacity:1; transform:translateY(0) scale(1); } 20% { opacity:1; transform:translateY(-8px) scale(1.15); } 100% { opacity:0; transform:translateY(-28px) scale(0.9); } }
+@keyframes critical-float { 0% { opacity:1; transform:translateY(0) scale(1); } 15% { opacity:1; transform:translateY(-6px) scale(1.4); } 30% { opacity:1; transform:translateY(-14px) scale(1.25); } 100% { opacity:0; transform:translateY(-36px) scale(0.85); } }
+@keyframes heal-float { 0% { opacity:1; transform:translate(0,0) scale(1); } 50% { opacity:1; transform:translate(4px,-16px) scale(1.1); } 100% { opacity:0; transform:translate(6px,-32px) scale(0.9); } }
+
+/* Hit feedback */
+@keyframes hit-flash { 0% { background-color: rgba(255,255,255,0.25); } 100% { background-color: transparent; } }
+@keyframes card-shake { 0%,100% { transform:translateX(0); } 25% { transform:translateX(-3px); } 75% { transform:translateX(3px); } }
+@keyframes card-shake-heavy { 0%,100% { transform:translateX(0); } 20% { transform:translateX(-5px); } 40% { transform:translateX(5px); } 60% { transform:translateX(-3px); } 80% { transform:translateX(3px); } }
+
+/* ATB gauge */
+@keyframes atb-ready-pulse { 0%,100% { box-shadow: 0 0 4px #c9a227, 0 0 8px #c9a22766; } 50% { box-shadow: 0 0 8px #c9a227, 0 0 16px #c9a22799; } }
+@keyframes atb-shimmer { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
+
+/* Character defeated */
+@keyframes char-defeated { 0% { opacity:1; transform:translateY(0); filter:brightness(1); } 15% { opacity:1; transform:translateY(0); filter:brightness(1.5) saturate(0); } 100% { opacity:0.3; transform:translateY(4px); filter:brightness(0.6) saturate(0); } }
+
+/* Victory/defeat */
+@keyframes grade-reveal { 0% { transform:scale(0.3); opacity:0; } 60% { transform:scale(1.2); opacity:1; } 100% { transform:scale(1.0); opacity:1; } }
+@keyframes defeat-pulse { 0% { box-shadow: inset 0 0 0 rgba(231,76,60,0); } 50% { box-shadow: inset 0 0 60px rgba(231,76,60,0.25); } 100% { box-shadow: inset 0 0 30px rgba(231,76,60,0.1); } }
+@keyframes damage-vignette { 0% { box-shadow: inset 0 0 0 rgba(231,76,60,0); } 50% { box-shadow: inset 0 0 40px rgba(231,76,60,0.3); } 100% { box-shadow: inset 0 0 0 rgba(231,76,60,0); } }
+
+/* Buff entrance */
+@keyframes buff-pop { 0% { opacity:0; transform:scale(0.5) translateY(-4px); } 100% { opacity:1; transform:scale(1) translateY(0); } }
+
+/* Skill ripple */
+@keyframes skill-ripple { from { transform:scale(0); opacity:0.5; } to { transform:scale(2.5); opacity:0; } }
+
+/* Combat overlay entrance */
+@keyframes overlay-enter { from { opacity:0; backdrop-filter:blur(0); } to { opacity:1; backdrop-filter:blur(8px); } }
+
+/* ── Combat utility classes ── */
+.combat-panel-enter { animation: combat-enter 350ms cubic-bezier(0.16,1,0.3,1) both; }
+.combat-panel-exit { animation: combat-exit 250ms ease-in forwards; }
+.combat-backdrop-enter { animation: backdrop-enter 300ms ease-out both; }
+.damage-number { position:absolute; top:0; left:50%; transform:translateX(-50%); font-weight:700; font-size:1rem; color:#e74c3c; pointer-events:none; animation: damage-float 600ms cubic-bezier(0.25,0.46,0.45,0.94) forwards; z-index:10; }
+.damage-number-critical { position:absolute; top:0; left:50%; transform:translateX(-50%); font-weight:700; font-size:1.5rem; color:#f1c40f; text-shadow:0 0 8px #f1c40f88; pointer-events:none; animation: critical-float 700ms cubic-bezier(0.22,1,0.36,1) forwards; z-index:10; }
+.heal-number { position:absolute; top:0; left:50%; transform:translateX(-50%); font-weight:700; font-size:0.9rem; color:#44aa99; pointer-events:none; animation: heal-float 700ms ease-out forwards; z-index:10; }
+.hit-flash { animation: hit-flash 280ms ease-out forwards; }
+.card-shake { animation: card-shake 150ms ease-in-out; }
+.card-shake-heavy { animation: card-shake-heavy 300ms ease-in-out; }
+.char-defeated { animation: char-defeated 600ms ease-in forwards; }
+.atb-bar-ready { animation: atb-ready-pulse 1s ease-in-out infinite; }
+.grade-reveal { animation: grade-reveal 500ms cubic-bezier(0.34,1.56,0.64,1) 400ms both; }
+.defeat-panel { animation: defeat-pulse 1s ease-out forwards; }
+.damage-vignette { animation: damage-vignette 400ms ease-out forwards; }
+.buff-pop { animation: buff-pop 300ms ease-out both; }
+.combat-overlay-enter { animation: overlay-enter 300ms ease-out both; }

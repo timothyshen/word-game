@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { api } from "~/trpc/react";
-import type { ATBCombatState, PartyMember, EnemyUnit, CombatActionV2 } from "~/shared/effects/types";
+import type { ATBCombatState, PartyMember, EnemyUnit, CombatActionV2, CombatLog } from "~/shared/effects/types";
 
 interface ATBCombatPanelProps {
   onClose: () => void;
@@ -41,12 +41,32 @@ const LOG_COLORS: Record<string, string> = {
   combo: "#9b59b6",
 };
 
+// ── Floating number types ──
+interface FloatingNumber {
+  id: string;
+  amount: number;
+  type: "damage" | "critical" | "heal";
+  key: number;
+}
+
+let floatingKeyCounter = 0;
+
 export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType = "normal" }: ATBCombatPanelProps) {
   const [combatId, setCombatId] = useState<string | null>(null);
   const [isActing, setIsActing] = useState(false);
   const [selectedAction, setSelectedAction] = useState<CombatActionV2 | null>(null);
   const [selectingTarget, setSelectingTarget] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [showDamageVignette, setShowDamageVignette] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Track previous HP for all characters to detect changes
+  const prevHpRef = useRef<Map<string, number>>(new Map());
+  // Track previous buff counts for buff-pop animation
+  const prevBuffCountRef = useRef<Map<string, number>>(new Map());
+  // Floating numbers per character id
+  const [floatingNumbers, setFloatingNumbers] = useState<Map<string, FloatingNumber[]>>(new Map());
 
   // Start combat
   const startMutation = api.combat.startATBCombat.useMutation({
@@ -99,6 +119,93 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
     }
   }, [state?.logs]);
 
+  // ── Detect HP changes and spawn floating numbers ──
+  useEffect(() => {
+    if (!state) return;
+
+    const allUnits = [...state.party, ...state.enemies];
+    const newFloats = new Map<string, FloatingNumber[]>();
+    const latestLog = state.logs[state.logs.length - 1] as CombatLog | undefined;
+    let partyTookDamage = false;
+
+    for (const unit of allUnits) {
+      const prevHp = prevHpRef.current.get(unit.id);
+      if (prevHp !== undefined && prevHp !== unit.hp) {
+        const diff = unit.hp - prevHp;
+        if (diff < 0) {
+          // Damage taken
+          const isCritical = latestLog?.type === "critical";
+          const floatEntry: FloatingNumber = {
+            id: unit.id,
+            amount: Math.abs(diff),
+            type: isCritical ? "critical" : "damage",
+            key: ++floatingKeyCounter,
+          };
+          const existing = newFloats.get(unit.id) ?? [];
+          existing.push(floatEntry);
+          newFloats.set(unit.id, existing);
+
+          // Check if a party member took damage for vignette
+          if (state.party.some(p => p.id === unit.id)) {
+            partyTookDamage = true;
+          }
+        } else if (diff > 0) {
+          // Heal
+          const floatEntry: FloatingNumber = {
+            id: unit.id,
+            amount: diff,
+            type: "heal",
+            key: ++floatingKeyCounter,
+          };
+          const existing = newFloats.get(unit.id) ?? [];
+          existing.push(floatEntry);
+          newFloats.set(unit.id, existing);
+        }
+      }
+      prevHpRef.current.set(unit.id, unit.hp);
+    }
+
+    if (newFloats.size > 0) {
+      setFloatingNumbers(prev => {
+        const merged = new Map(prev);
+        for (const [id, entries] of newFloats) {
+          const existing = merged.get(id) ?? [];
+          merged.set(id, [...existing, ...entries]);
+        }
+        return merged;
+      });
+
+      // Clean up floating numbers after animation
+      const maxDuration = 700;
+      setTimeout(() => {
+        setFloatingNumbers(prev => {
+          const cleaned = new Map(prev);
+          for (const [id, entries] of newFloats) {
+            const current = cleaned.get(id) ?? [];
+            const keys = new Set(entries.map(e => e.key));
+            cleaned.set(id, current.filter(e => !keys.has(e.key)));
+          }
+          return cleaned;
+        });
+      }, maxDuration);
+    }
+
+    // Damage vignette for party damage
+    if (partyTookDamage) {
+      setShowDamageVignette(true);
+      setTimeout(() => setShowDamageVignette(false), 400);
+    }
+  }, [state?.party, state?.enemies, state?.logs]);
+
+  // ── Track buff counts for buff-pop ──
+  useEffect(() => {
+    if (!state) return;
+    const allUnits = [...state.party, ...state.enemies];
+    for (const unit of allUnits) {
+      prevBuffCountRef.current.set(unit.id, unit.buffs.length);
+    }
+  }, [state?.party, state?.enemies]);
+
   const handleActionClick = useCallback((action: CombatActionV2) => {
     if (!combatId || isActing) return;
 
@@ -130,11 +237,17 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
     setSelectingTarget(false);
   }, []);
 
+  // ── Animated close handler ──
+  const handleClose = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => onClose(), 250);
+  }, [onClose]);
+
   // Loading state
   if (!combatId || startMutation.isPending) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 combat-backdrop-enter">
+        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center combat-panel-enter">
           <h2 className="font-display text-2xl text-[var(--game-gold)] mb-4">准备战斗</h2>
           <p className="text-[var(--game-text-muted)]">编排队伍中...</p>
         </div>
@@ -145,8 +258,8 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
   // Error state
   if (startMutation.isError) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 combat-backdrop-enter">
+        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center combat-panel-enter">
           <h2 className="font-display text-2xl text-[var(--game-red)] mb-4">战斗准备失败</h2>
           <p className="text-[var(--game-text-muted)] mb-4">{startMutation.error.message}</p>
           <div className="flex gap-3 justify-center">
@@ -164,8 +277,8 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
 
   if (!state) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 combat-backdrop-enter">
+        <div className="w-full max-w-2xl mx-4 p-8 game-panel text-center combat-panel-enter">
           <p className="text-[var(--game-text-muted)]">加载战斗状态...</p>
         </div>
       </div>
@@ -176,8 +289,11 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
   const isFinished = state.status !== "active";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-      <div className="w-full max-w-2xl mx-4 flex flex-col game-panel max-h-[90vh]">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/80 combat-backdrop-enter ${showDamageVignette ? "damage-vignette" : ""}`}>
+      <div
+        ref={panelRef}
+        className={`w-full max-w-2xl mx-4 flex flex-col game-panel max-h-[90vh] ${isExiting ? "combat-panel-exit" : "combat-panel-enter"}`}
+      >
 
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#2a3a4a] flex items-center justify-between"
@@ -202,6 +318,8 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
                 enemy={enemy}
                 isTargetable={selectingTarget && selectedAction?.targetType === "single_enemy"}
                 onSelect={() => handleTargetSelect(enemy.id)}
+                floatingNumbers={floatingNumbers.get(enemy.id) ?? []}
+                prevBuffCount={prevBuffCountRef.current.get(enemy.id) ?? 0}
               />
             ))}
           </div>
@@ -231,6 +349,8 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
                 isActive={member.id === state.currentActorId}
                 isTargetable={selectingTarget && selectedAction?.targetType === "single_ally"}
                 onSelect={() => handleTargetSelect(member.id)}
+                floatingNumbers={floatingNumbers.get(member.id) ?? []}
+                prevBuffCount={prevBuffCountRef.current.get(member.id) ?? 0}
               />
             ))}
           </div>
@@ -239,7 +359,7 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
         {/* Action Area */}
         <div className="px-4 py-3">
           {isFinished ? (
-            <CombatEndView state={state} onClose={onClose} />
+            <CombatEndView state={state} onClose={handleClose} />
           ) : selectingTarget ? (
             <div className="text-center">
               <p className="text-sm text-[var(--game-text-muted)] mb-2">
@@ -250,13 +370,13 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
               </button>
             </div>
           ) : actionsData?.actions && currentActor ? (
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className={`flex flex-wrap gap-2 justify-center ${isActing ? "animate-pulse opacity-60" : ""}`}>
               {actionsData.actions.map((action: CombatActionV2) => (
                 <button
                   key={action.id}
                   onClick={() => handleActionClick(action)}
                   disabled={isActing || action.currentCooldown > 0}
-                  className="px-3 py-2 border border-[var(--game-border-warm)] text-sm text-[var(--game-text-muted)] hover:border-[var(--game-gold)] hover:text-[var(--game-gold)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-2 border border-[var(--game-border-warm)] text-sm text-[var(--game-text-muted)] hover:border-[var(--game-gold)] hover:text-[var(--game-gold)] disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
                   title={`${action.description}${action.mpCost > 0 ? ` (${action.mpCost} MP)` : ""}`}
                 >
                   <span className="block">{action.name}</span>
@@ -277,26 +397,59 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
 
 // ── Sub-components ──
 
-function EnemyCard({ enemy, isTargetable, onSelect }: {
+function EnemyCard({ enemy, isTargetable, onSelect, floatingNumbers, prevBuffCount }: {
   enemy: EnemyUnit;
   isTargetable: boolean;
   onSelect: () => void;
+  floatingNumbers: FloatingNumber[];
+  prevBuffCount: number;
 }) {
   const hpPercent = Math.max(0, (enemy.hp / enemy.maxHp) * 100);
   const hpColor = hpPercent > 50 ? "var(--game-red)" : hpPercent > 25 ? "#e67e22" : "#c0392b";
+  const [shakeClass, setShakeClass] = useState("");
+  const [flashClass, setFlashClass] = useState("");
+
+  // Trigger shake + flash when taking damage
+  useEffect(() => {
+    if (floatingNumbers.some(f => f.type === "damage" || f.type === "critical")) {
+      const isCrit = floatingNumbers.some(f => f.type === "critical");
+      setShakeClass(isCrit ? "card-shake-heavy" : "card-shake");
+      setFlashClass("hit-flash");
+      const duration = isCrit ? 300 : 150;
+      setTimeout(() => { setShakeClass(""); setFlashClass(""); }, duration);
+    }
+  }, [floatingNumbers]);
+
+  const isDefeated = !enemy.isAlive;
+  const hasNewBuffs = enemy.buffs.length > prevBuffCount;
 
   return (
     <button
       onClick={isTargetable && enemy.isAlive ? onSelect : undefined}
       disabled={!isTargetable || !enemy.isAlive}
       className={`
-        w-36 p-2 border text-left transition-all
-        ${!enemy.isAlive ? "opacity-30 border-[#2a2a30]" : ""}
+        w-36 p-2 border text-left transition-all relative
+        ${isDefeated ? "char-defeated border-[#2a2a30]" : ""}
         ${isTargetable && enemy.isAlive ? "border-[var(--game-red)] cursor-pointer hover:bg-[var(--game-red)]/10" : "border-[#2a3a4a]"}
         ${enemy.tier === "elite" ? "border-l-2 border-l-[#e67e22]" : ""}
         ${enemy.tier === "boss" ? "border-l-2 border-l-[var(--game-red)]" : ""}
+        ${shakeClass} ${flashClass}
       `}
     >
+      {/* Floating numbers */}
+      {floatingNumbers.map((fn) => (
+        <span
+          key={fn.key}
+          className={
+            fn.type === "critical" ? "damage-number-critical" :
+            fn.type === "heal" ? "heal-number" :
+            "damage-number"
+          }
+        >
+          {fn.type === "heal" ? "+" : "-"}{fn.amount}
+        </span>
+      ))}
+
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs font-bold text-[var(--game-text)]">{enemy.name}</span>
         {enemy.element && (
@@ -316,7 +469,11 @@ function EnemyCard({ enemy, isTargetable, onSelect }: {
       {enemy.buffs.length > 0 && (
         <div className="flex gap-0.5 mt-1">
           {enemy.buffs.map((b, i) => (
-            <span key={i} className="text-[10px] px-1 bg-[#2a3a4a] text-[var(--game-blue)]" title={b.name}>
+            <span
+              key={i}
+              className={`text-[10px] px-1 bg-[#2a3a4a] text-[var(--game-blue)] ${hasNewBuffs && i >= prevBuffCount ? "buff-pop" : ""}`}
+              title={b.name}
+            >
               {b.turnsRemaining}
             </span>
           ))}
@@ -326,27 +483,61 @@ function EnemyCard({ enemy, isTargetable, onSelect }: {
   );
 }
 
-function PartyCard({ member, isActive, isTargetable, onSelect }: {
+function PartyCard({ member, isActive, isTargetable, onSelect, floatingNumbers, prevBuffCount }: {
   member: PartyMember;
   isActive: boolean;
   isTargetable: boolean;
   onSelect: () => void;
+  floatingNumbers: FloatingNumber[];
+  prevBuffCount: number;
 }) {
   const hpPercent = Math.max(0, (member.hp / member.maxHp) * 100);
   const mpPercent = Math.max(0, (member.mp / member.maxMp) * 100);
   const atbPercent = Math.min(100, member.atb);
+  const [shakeClass, setShakeClass] = useState("");
+  const [flashClass, setFlashClass] = useState("");
+
+  // Trigger shake + flash when taking damage
+  useEffect(() => {
+    if (floatingNumbers.some(f => f.type === "damage" || f.type === "critical")) {
+      const isCrit = floatingNumbers.some(f => f.type === "critical");
+      setShakeClass(isCrit ? "card-shake-heavy" : "card-shake");
+      setFlashClass("hit-flash");
+      const duration = isCrit ? 300 : 150;
+      setTimeout(() => { setShakeClass(""); setFlashClass(""); }, duration);
+    }
+  }, [floatingNumbers]);
+
+  const isDefeated = !member.isAlive;
+  const hasNewBuffs = member.buffs.length > prevBuffCount;
+  const atbReady = atbPercent >= 100;
 
   return (
     <button
       onClick={isTargetable && member.isAlive ? onSelect : undefined}
       disabled={!isTargetable || !member.isAlive}
       className={`
-        w-40 p-2 border text-left transition-all
-        ${!member.isAlive ? "opacity-30 border-[#2a2a30]" : ""}
-        ${isActive ? "border-[var(--game-gold)] bg-[var(--game-gold)]/5" : "border-[#2a3a4a]"}
+        w-40 p-2 border text-left transition-all relative
+        ${isDefeated ? "char-defeated border-[#2a2a30]" : ""}
+        ${isActive && !isDefeated ? "border-[var(--game-gold)] bg-[var(--game-gold)]/5" : !isDefeated ? "border-[#2a3a4a]" : ""}
         ${isTargetable && member.isAlive ? "cursor-pointer hover:bg-[var(--game-green)]/10 border-[var(--game-green)]" : ""}
+        ${shakeClass} ${flashClass}
       `}
     >
+      {/* Floating numbers */}
+      {floatingNumbers.map((fn) => (
+        <span
+          key={fn.key}
+          className={
+            fn.type === "critical" ? "damage-number-critical" :
+            fn.type === "heal" ? "heal-number" :
+            "damage-number"
+          }
+        >
+          {fn.type === "heal" ? "+" : "-"}{fn.amount}
+        </span>
+      ))}
+
       <div className="flex items-center gap-2 mb-1.5">
         <span className="text-lg">{member.portrait}</span>
         <div className="flex-1 min-w-0">
@@ -378,8 +569,16 @@ function PartyCard({ member, isActive, isTargetable, onSelect }: {
         <span className="text-[10px] text-[var(--game-gold)] w-5">AT</span>
         <div className="flex-1 h-1 bg-[var(--game-gold)]/10">
           <div
-            className={`h-full transition-all duration-300 ${atbPercent >= 100 ? "bg-[var(--game-gold)]" : "bg-[var(--game-gold)]/50"}`}
-            style={{ width: `${atbPercent}%` }}
+            className={`h-full transition-all duration-300 ${atbReady ? "atb-bar-ready" : ""}`}
+            style={{
+              width: `${atbPercent}%`,
+              backgroundColor: atbReady ? "var(--game-gold)" : undefined,
+              background: atbReady
+                ? "linear-gradient(90deg, var(--game-gold), #f1c40f, var(--game-gold))"
+                : "rgba(201,162,39,0.5)",
+              backgroundSize: atbReady ? "200% 100%" : undefined,
+              animation: atbReady ? "atb-ready-pulse 1s ease-in-out infinite, atb-shimmer 2s linear infinite" : undefined,
+            }}
           />
         </div>
       </div>
@@ -388,7 +587,11 @@ function PartyCard({ member, isActive, isTargetable, onSelect }: {
       {member.buffs.length > 0 && (
         <div className="flex gap-0.5 mt-1">
           {member.buffs.map((b, i) => (
-            <span key={i} className="text-[10px] px-1 bg-[#2a3a4a] text-[var(--game-green)]" title={b.name}>
+            <span
+              key={i}
+              className={`text-[10px] px-1 bg-[#2a3a4a] text-[var(--game-green)] ${hasNewBuffs && i >= prevBuffCount ? "buff-pop" : ""}`}
+              title={b.name}
+            >
               {b.turnsRemaining}
             </span>
           ))}
@@ -401,30 +604,35 @@ function PartyCard({ member, isActive, isTargetable, onSelect }: {
 function CombatEndView({ state, onClose }: { state: ATBCombatState; onClose: () => void }) {
   const isVictory = state.status === "victory";
   const isFled = state.status === "fled";
+  const isDefeat = state.status === "defeat";
 
   return (
-    <div className="text-center space-y-3">
+    <div className={`text-center space-y-3 ${isDefeat ? "defeat-panel" : ""}`}>
       <h3 className={`font-display text-2xl ${isVictory ? "text-[var(--game-gold)]" : isFled ? "text-[var(--game-text-muted)]" : "text-[var(--game-red)]"}`}>
         {isVictory ? "战斗胜利" : isFled ? "成功撤退" : "战斗失败"}
       </h3>
 
       {state.rating && (
         <div className="space-y-1">
-          <div className="text-3xl font-display" style={{ color: state.rating.grade === "S" ? "var(--game-gold)" : state.rating.grade === "A" ? "#44aa99" : state.rating.grade === "B" ? "var(--game-text)" : "var(--game-text-dim)" }}>
+          <div
+            className="text-3xl font-display grade-reveal"
+            style={{ color: state.rating.grade === "S" ? "var(--game-gold)" : state.rating.grade === "A" ? "#44aa99" : state.rating.grade === "B" ? "var(--game-text)" : "var(--game-text-dim)" }}
+          >
             {state.rating.grade}
           </div>
           <div className="flex gap-4 justify-center text-xs text-[var(--game-text-dim)]">
-            <span>回合: {state.rating.turnsUsed}</span>
-            <span>存活: {state.rating.survivorCount}/{state.party.length}</span>
-            <span>弱点: {state.rating.weaknessHits}</span>
-            <span>倍率: {state.rating.multiplier}x</span>
+            <span style={{ animation: "combat-enter 300ms ease-out 500ms both" }}>回合: {state.rating.turnsUsed}</span>
+            <span style={{ animation: "combat-enter 300ms ease-out 600ms both" }}>存活: {state.rating.survivorCount}/{state.party.length}</span>
+            <span style={{ animation: "combat-enter 300ms ease-out 700ms both" }}>弱点: {state.rating.weaknessHits}</span>
+            <span style={{ animation: "combat-enter 300ms ease-out 800ms both" }}>倍率: {state.rating.multiplier}x</span>
           </div>
         </div>
       )}
 
       <button
         onClick={onClose}
-        className="px-6 py-2 bg-[var(--game-gold)] text-[var(--game-bg)] font-bold hover:bg-[var(--game-gold-hover)] transition-colors"
+        className="px-6 py-2 bg-[var(--game-gold)] text-[var(--game-bg)] font-bold hover:bg-[var(--game-gold-hover)] transition-all active:scale-95"
+        style={{ animation: "combat-enter 300ms ease-out 900ms both" }}
       >
         确认
       </button>

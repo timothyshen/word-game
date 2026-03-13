@@ -19,8 +19,8 @@ export default function CombatOverlay({
   isActionPending,
 }: CombatOverlayProps) {
   return (
-    <div className="absolute inset-0 bg-[#0a0a0c]/95 backdrop-blur flex items-center justify-center z-40">
-      <div className="w-full max-w-md p-6">
+    <div className="absolute inset-0 bg-[#0a0a0c]/95 backdrop-blur flex items-center justify-center z-40 combat-overlay-enter">
+      <div className="w-full max-w-md p-6 combat-panel-enter">
         <div className="text-lg text-[#c9a227] font-bold mb-4 text-center">战斗中</div>
 
         <div className="flex justify-between gap-4 mb-4">
