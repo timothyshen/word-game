@@ -20,6 +20,7 @@ import {
   SkillTreePanel,
   ArmyPanel,
   ArmyCombatPanel,
+  LeaderboardPanel,
 } from "~/components/game/panels";
 import { InnerCityPanel } from "~/components/game/panels/InnerCityPanel";
 import { useUnlocks } from "~/hooks/use-unlocks";
@@ -121,7 +122,7 @@ export default function GamePage() {
                     <button
                       onClick={() => levelUpMutation.mutate()}
                       disabled={levelUpMutation.isPending}
-                      className="px-2 py-0.5 bg-[#c9a227] text-[#08080a] text-[10px] font-bold rounded animate-attention hover:bg-[#ddb52f] disabled:opacity-50"
+                      className="px-2 py-0.5 bg-[#c9a227] text-[#08080a] text-[11px] font-bold rounded animate-attention hover:bg-[#ddb52f] disabled:opacity-50"
                     >
                       升级!
                     </button>
@@ -149,7 +150,7 @@ export default function GamePage() {
                         style={{ width: `${levelUpInfo.progress}%` }}
                       />
                     </div>
-                    <span className="text-[9px] text-[#5a6a7a]">
+                    <span className="text-[11px] text-[#5a6a7a]">
                       {levelUpInfo.currentExp}/{levelUpInfo.expNeeded}
                     </span>
                   </div>
@@ -226,9 +227,9 @@ export default function GamePage() {
         </div>
 
         {/* Bottom-right: Quick actions */}
-        <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-6 pointer-events-auto">
+        <div className="absolute bottom-3 left-3 right-3 sm:left-auto sm:bottom-4 sm:right-6 pointer-events-auto">
           <div className={`transition-all duration-500 delay-300 ${panels.showHUD ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-4 gap-2 sm:flex sm:gap-2 justify-end">
               {[
                 { icon: "👥", label: "角色", system: "character_list", onClick: () => panels.openCharacterHub() },
                 { icon: "🎒", label: "背包", system: "backpack", onClick: () => panels.openInventoryHub() },
@@ -261,6 +262,7 @@ export default function GamePage() {
                 { icon: "⬆️", label: "进阶", system: "progression", onClick: () => panels.openProgressHub() },
                 { icon: "🎴", label: "结算", system: "log", onClick: () => panels.openLogHub("settlement"), highlight: true },
                 { icon: "📋", label: "记录", system: "log", onClick: () => panels.openLogHub("action") },
+                { icon: "🏆", label: "排行", system: "log", onClick: () => panels.setShowLeaderboard(true) },
               ].filter(a => unlocks.has(a.system)).map((action, i) => (
                 <button
                   key={i}
@@ -286,7 +288,7 @@ export default function GamePage() {
             onClick={() => panels.setShowHUD(!panels.showHUD)}
             className="px-4 py-1.5 bg-[#0a0a15]/60 border border-[#2a3a4a] hover:border-[#c9a227] rounded-full text-xs text-[#5a6a7a] hover:text-[#c9a227] transition-all"
           >
-            {panels.showHUD ? "隐藏界面 (H)" : "显示界面 (H)"}
+            {panels.showHUD ? <>隐藏界面<span className="hidden sm:inline"> (H)</span></> : <>显示界面<span className="hidden sm:inline"> (H)</span></>}
           </button>
         </div>
 
@@ -462,6 +464,13 @@ export default function GamePage() {
             onClose={() => panels.setShowGuidancePanel(false)}
             onHintClick={(action) => panels.handleHintAction(action, () => levelUpMutation.mutate())}
           />
+        </GameErrorBoundary>
+      )}
+
+      {/* 排行榜面板 */}
+      {panels.showLeaderboard && (
+        <GameErrorBoundary>
+          <LeaderboardPanel onClose={() => panels.setShowLeaderboard(false)} />
         </GameErrorBoundary>
       )}
 

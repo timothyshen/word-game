@@ -434,3 +434,9 @@
     radial-gradient(ellipse at 80% 50%, rgba(201, 162, 39, 0.02) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 0%, rgba(201, 162, 39, 0.03) 0%, transparent 40%);
 }
+
+/* ── Focus visibility for dark game panels ── */
+.game-panel *:focus-visible {
+  outline: 2px solid var(--game-gold);
+  outline-offset: 2px;
+}

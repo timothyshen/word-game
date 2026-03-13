@@ -64,6 +64,7 @@ export function useGamePanels() {
   const [showArmyPanel, setShowArmyPanel] = useState(false);
   const [showArmyCombat, setShowArmyCombat] = useState(false);
   const [armyCombatLevel, setArmyCombatLevel] = useState(1);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // UI 状态
   const [showHUD, setShowHUD] = useState(true);
@@ -74,7 +75,7 @@ export function useGamePanels() {
     showCharacterHub || showInventoryHub || showAdventureHub ||
     showProgressHub || showLogHub || showEconomyPanel ||
     showCombatPanel || showInnerCityPanel || showPartyPanel || showSkillTree || showGuidancePanel ||
-    showArmyPanel || showArmyCombat;
+    showArmyPanel || showArmyCombat || showLeaderboard;
 
   // ESC 键打开/关闭菜单
   useEffect(() => {
@@ -181,6 +182,7 @@ export function useGamePanels() {
     openArmy, openArmyCombat,
     showArmyPanel, setShowArmyPanel,
     showArmyCombat, setShowArmyCombat, armyCombatLevel,
+    showLeaderboard, setShowLeaderboard,
     handleHintAction,
   };
 }

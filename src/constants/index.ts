@@ -12,6 +12,8 @@ export {
   ACTION_ICONS,
   EQUIPMENT_SLOT_ICONS,
   getRarityColor,
+  getRarityStars,
+  RARITY_STARS,
   getGradeColor,
   getBiomeColor,
 } from "./game-colors";

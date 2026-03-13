@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { api } from "~/trpc/react";
@@ -22,6 +22,44 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
   const [showHeroSidebar, setShowHeroSidebar] = useState(true);
   const [currentEvent, setCurrentEvent] = useState<ExplorationEvent | null>(null);
   const [showWorldMap, setShowWorldMap] = useState(false);
+
+  // Touch disambiguation: distinguish tap from drag on mobile
+  const touchStartRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const isTapRef = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0]!;
+      touchStartRef.current = { time: Date.now(), x: touch.clientX, y: touch.clientY };
+      isTapRef.current = true;
+    } else {
+      isTapRef.current = false;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current || e.touches.length !== 1) {
+      isTapRef.current = false;
+      return;
+    }
+    const touch = e.touches[0]!;
+    const dx = Math.abs(touch.clientX - touchStartRef.current.x);
+    const dy = Math.abs(touch.clientY - touchStartRef.current.y);
+    if (dx > 10 || dy > 10) {
+      isTapRef.current = false;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStartRef.current) return;
+    const elapsed = Date.now() - touchStartRef.current.time;
+    // If it was a quick tap with little movement, allow the click through
+    // Otherwise, prevent the synthetic click from firing
+    if (!isTapRef.current || elapsed > 200) {
+      isTapRef.current = false;
+    }
+    touchStartRef.current = null;
+  }, []);
 
   const utils = api.useUtils();
 
@@ -223,9 +261,15 @@ export default function OuterCityFullMap({ onOpenInnerCity }: { onOpenInnerCity?
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full" role="application" aria-label="游戏世界地图">
       {/* 3D Map Canvas */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#4a6a8e] to-[#2a3a4e]" onContextMenu={(e) => e.preventDefault()}>
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-[#4a6a8e] to-[#2a3a4e]"
+        onContextMenu={(e) => e.preventDefault()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <Canvas camera={{ position: [8, 8, 8], fov: 45 }} shadows>
           <Suspense fallback={null}>
             <fog attach="fog" args={["#3a5a6e", 8, 22]} />

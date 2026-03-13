@@ -9,7 +9,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
-import { RARITY_COLORS } from "~/constants";
+import { RARITY_COLORS, getRarityStars } from "~/constants";
 
 interface EquipmentPanelProps {
   characterId: string;
@@ -142,7 +142,7 @@ export default function EquipmentPanel({
                         )}
                       </div>
                       <div className="text-xs" style={{ color: RARITY_COLORS[eq.equipment.rarity] }}>
-                        {eq.equipment.rarity}
+                        {eq.equipment.rarity} {getRarityStars(eq.equipment.rarity)}
                       </div>
                       <div className="text-xs text-[#666] mt-1">
                         {eq.equipment.attackBonus > 0 && `攻击+${eq.equipment.attackBonus} `}
@@ -191,7 +191,7 @@ export default function EquipmentPanel({
                 {eq.name} +{eq.enhanceLevel}
               </div>
               <div className="text-sm" style={{ color: RARITY_COLORS[eq.rarity] }}>
-                {eq.rarity}
+                {eq.rarity} {getRarityStars(eq.rarity)}
               </div>
             </div>
 
@@ -443,7 +443,7 @@ function SlotCard({
         )}
       </div>
       <div className="text-xs" style={{ color: RARITY_COLORS[eq.rarity] }}>
-        {eq.rarity}
+        {eq.rarity} {getRarityStars(eq.rarity)}
       </div>
       <div className="flex gap-1 mt-1">
         <button

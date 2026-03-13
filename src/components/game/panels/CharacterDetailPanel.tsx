@@ -9,7 +9,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
-import { RARITY_COLORS } from "~/constants";
+import { RARITY_COLORS, getRarityStars } from "~/constants";
 import { SectionTitle } from "./character/helpers";
 import EquipmentPanel from "./EquipmentPanel";
 import SkillTreePanel from "./SkillTreePanel";
@@ -91,7 +91,7 @@ export default function CharacterDetailPanel({
                     className="text-xs px-2 py-0.5"
                     style={{ backgroundColor: RARITY_COLORS[character.rarity] ?? "#888", color: "#000" }}
                   >
-                    {character.rarity}
+                    {character.rarity} {getRarityStars(character.rarity)}
                   </span>
                 </div>
                 <div className="text-sm text-[#888]">{character.baseClass} · Lv.{character.level}/{character.maxLevel}</div>

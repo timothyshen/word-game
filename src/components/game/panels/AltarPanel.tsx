@@ -9,7 +9,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
-import { RARITY_COLORS } from "~/constants";
+import { RARITY_COLORS, getRarityStars } from "~/constants";
 
 interface AltarPanelProps {
   onClose: () => void;
@@ -135,7 +135,7 @@ export default function AltarPanel({ onClose }: AltarPanelProps) {
                 className="text-sm mt-1"
                 style={{ color: RARITY_COLORS[collectResult.card.rarity] }}
               >
-                {collectResult.card.rarity}
+                {collectResult.card.rarity} {getRarityStars(collectResult.card.rarity)}
               </div>
             </div>
 

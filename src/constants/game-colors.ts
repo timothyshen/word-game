@@ -132,6 +132,22 @@ export const EQUIPMENT_SLOT_ICONS: Record<string, string> = {
   ring2: "💎",
 };
 
+/** 稀有度星标 - 辅助色盲玩家区分稀有度 */
+export const RARITY_STARS: Record<string, string> = {
+  普通: "",
+  精良: "★",
+  稀有: "★★",
+  史诗: "★★★",
+  传说: "★★★★",
+};
+
+/**
+ * 获取稀有度星标
+ */
+export function getRarityStars(rarity: string): string {
+  return RARITY_STARS[rarity] ?? "";
+}
+
 /**
  * 获取稀有度颜色，带默认值
  */

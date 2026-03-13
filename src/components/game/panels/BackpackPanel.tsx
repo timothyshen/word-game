@@ -9,7 +9,7 @@ import {
 } from "~/components/ui/dialog";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
-import { RARITY_COLORS } from "~/constants";
+import { RARITY_COLORS, getRarityStars } from "~/constants";
 
 interface BackpackPanelProps {
   onClose: () => void;
@@ -192,10 +192,10 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
                     <div className="text-2xl mb-1">{pc.card.icon}</div>
                     <div className="text-xs truncate">{pc.card.name}</div>
                     <div
-                      className="text-[10px] mt-0.5"
+                      className="text-[11px] mt-0.5"
                       style={{ color: RARITY_COLORS[pc.card.rarity] }}
                     >
-                      {pc.card.rarity}
+                      {pc.card.rarity} {getRarityStars(pc.card.rarity)}
                     </div>
                   </button>
                 ))}
@@ -225,7 +225,7 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
                         className="text-sm"
                         style={{ color: RARITY_COLORS[selectedCard.rarity] }}
                       >
-                        {selectedCard.rarity}
+                        {selectedCard.rarity} {getRarityStars(selectedCard.rarity)}
                       </span>
                       <span className="text-xs text-[#666]">
                         {TYPE_LABELS[selectedCard.type] ?? selectedCard.type}
@@ -292,7 +292,7 @@ export default function BackpackPanel({ onClose }: BackpackPanelProps) {
                       <span className="text-xl">{card.icon}</span>
                       <span className="flex-1 text-sm text-[#e0dcd0]">{card.name}</span>
                       <span className="text-xs" style={{ color: RARITY_COLORS[card.rarity] }}>
-                        {card.rarity}
+                        {card.rarity} {getRarityStars(card.rarity)}
                       </span>
                     </div>
                   ))}
