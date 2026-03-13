@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
+import { ruleService } from "~/server/api/engine";
 
 // 世界定义
 interface World {
@@ -192,8 +193,9 @@ export async function challengePortalGuardian(db: FullDbClient, entities: IEntit
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "守护者信息无效" });
   }
 
-  // 检查体力
-  const staminaCost = 40;
+  // 检查体力（从规则引擎获取）
+  const guardianStaminaConfig = await ruleService.getConfig<{ value: number }>("portal_guardian_stamina_cost");
+  const staminaCost = guardianStaminaConfig.value;
   if (player.stamina < staminaCost) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
   }
@@ -343,9 +345,10 @@ export async function travel(db: FullDbClient, userId: string, worldId: string) 
     });
   }
 
-  // 传送消耗体力
-  const staminaCost = 20;
-  if (player.stamina < staminaCost) {
+  // 传送消耗体力（从规则引擎获取）
+  const travelStaminaConfig = await ruleService.getConfig<{ value: number }>("portal_travel_stamina_cost");
+  const travelStaminaCost = travelStaminaConfig.value;
+  if (player.stamina < travelStaminaCost) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "体力不足" });
   }
 
@@ -354,7 +357,7 @@ export async function travel(db: FullDbClient, userId: string, worldId: string) 
     where: { id: player.id },
     data: {
       currentWorld: worldId,
-      stamina: { decrement: staminaCost },
+      stamina: { decrement: travelStaminaCost },
       lastStaminaUpdate: new Date(),
     },
   });
@@ -363,7 +366,7 @@ export async function travel(db: FullDbClient, userId: string, worldId: string) 
     success: true,
     world: world.name,
     message: `成功传送到${world.name}！`,
-    staminaCost,
+    staminaCost: travelStaminaCost,
   };
 }
 

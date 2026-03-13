@@ -443,6 +443,29 @@ export const SEED_RULES: SeedRule[] = [
   { name: "innercity_demolish_refund", category: "territory", ruleType: "config", definition: JSON.stringify({ goldBase: 50, woodBase: 25, stoneBase: 15, refundRate: 0.5 }), description: "Demolish refund formula" },
   { name: "innercity_build_score", category: "territory", ruleType: "config", definition: JSON.stringify({ value: 50 }), description: "Action score for building placement" },
 
+  // ===== stamina costs =====
+  {
+    name: "boss_stamina_cost",
+    category: "combat",
+    ruleType: "config",
+    definition: JSON.stringify({ value: 30 }),
+    description: "Stamina cost to challenge a boss",
+  },
+  {
+    name: "portal_guardian_stamina_cost",
+    category: "combat",
+    ruleType: "config",
+    definition: JSON.stringify({ value: 40 }),
+    description: "Stamina cost to challenge a portal guardian",
+  },
+  {
+    name: "portal_travel_stamina_cost",
+    category: "portal",
+    ruleType: "config",
+    definition: JSON.stringify({ value: 20 }),
+    description: "Stamina cost to travel through a portal to another world",
+  },
+
   // ===== crafting =====
   {
     name: "crafting_material_drop",

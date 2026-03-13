@@ -510,7 +510,16 @@ export async function executeAction(
   // Resolve each effect in the action
   const monsterUnit = monsterToCombatUnit(monster);
 
-  for (const effect of action.effects) {
+  for (let effect of action.effects) {
+    // Wire combat_flee_chance formula: min(0.9, 0.5 + speed * 0.01)
+    if (effect.type === "flee") {
+      try {
+        const fleeChance = await calcFormula("combat_flee_chance", { speed: playerUnit.speed });
+        effect = { ...effect, successRate: fleeChance };
+      } catch {
+        // Fall back to hardcoded rate if formula unavailable
+      }
+    }
     const result = resolveSkillEffect(effect, playerUnit, monsterUnit);
     newLogs.push(...result.logs);
 
@@ -686,6 +695,15 @@ export async function executeAction(
   if (playerUnit.hp <= 0) {
     newLogs.push("💀 你被击败了...");
 
+    // Defeat penalty: lose 10% of the session's potential gold reward (min 5 gold)
+    const goldPenalty = Math.max(5, Math.floor(rewards.gold * 0.1));
+    const currentPlayer = await findPlayerByUserId(db, userId);
+    const actualPenalty = currentPlayer ? Math.min(goldPenalty, currentPlayer.gold) : 0;
+    if (actualPenalty > 0) {
+      await updatePlayer(db, player.id, { gold: { decrement: actualPenalty } });
+      newLogs.push(`💰 战败惩罚：失去 ${actualPenalty} 金币`);
+    }
+
     await combatRepo.updateCombatSession(db, combat.id, {
       status: "defeat",
       logs: JSON.stringify([...logs, ...newLogs]),
@@ -696,6 +714,7 @@ export async function executeAction(
     return {
       success: true, status: "defeat", message: "战斗失败",
       log: newLogs, playerHp: 0, playerMp: playerUnit.mp, monsterHp: monster.hp,
+      defeatPenalty: { goldLost: actualPenalty },
     };
   }
 

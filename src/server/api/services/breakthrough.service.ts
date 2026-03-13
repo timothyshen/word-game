@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
+import { findPlayerCards, consumeCard } from "../repositories/card.repo";
 import { parseCharacterState, type CharacterEntity } from "../utils/character-utils";
 import { engine, ruleService } from "~/server/api/engine";
 
@@ -43,7 +44,7 @@ async function calcSkillSlots(tier: number): Promise<number> {
 
 // ── Get Player Breakthrough Status ──
 
-export async function getPlayerStatus(db: FullDbClient, userId: string) {
+export async function getPlayerStatus(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await findPlayerByUserId(db, userId);
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
@@ -68,6 +69,12 @@ export async function getPlayerStatus(db: FullDbClient, userId: string) {
   const meetsLevel = player.level >= nextRequirement.level;
   const meetsGold = player.gold >= nextRequirement.gold;
   const meetsCrystals = player.crystals >= nextRequirement.crystals;
+  let meetsItem = true;
+  if (nextRequirement.specialItem) {
+    const playerCards = await findPlayerCards(db, entities, player.id);
+    const itemCard = playerCards.find(pc => pc.card.name === nextRequirement.specialItem && pc.quantity > 0);
+    meetsItem = !!itemCard;
+  }
   const nextTierSlots = await calcSkillSlots(currentTier + 1);
 
   return {
@@ -81,14 +88,14 @@ export async function getPlayerStatus(db: FullDbClient, userId: string) {
       gold: player.gold,
       crystals: player.crystals,
     },
-    canBreakthrough: meetsLevel && meetsGold && meetsCrystals,
-    checks: { meetsLevel, meetsGold, meetsCrystals },
+    canBreakthrough: meetsLevel && meetsGold && meetsCrystals && meetsItem,
+    checks: { meetsLevel, meetsGold, meetsCrystals, meetsItem },
   };
 }
 
 // ── Execute Player Breakthrough ──
 
-export async function breakthroughPlayer(db: FullDbClient, userId: string) {
+export async function breakthroughPlayer(db: FullDbClient, entities: IEntityManager, userId: string) {
   const player = await findPlayerByUserId(db, userId);
   if (!player) {
     throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
@@ -108,6 +115,16 @@ export async function breakthroughPlayer(db: FullDbClient, userId: string) {
   }
   if (player.crystals < requirement.crystals) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "水晶不足" });
+  }
+
+  // 验证并消耗特殊物品（tier 3+ 需要突破石）
+  if (requirement.specialItem) {
+    const playerCards = await findPlayerCards(db, entities, player.id);
+    const itemCard = playerCards.find(pc => pc.card.name === requirement.specialItem && pc.quantity > 0);
+    if (!itemCard) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: `需要物品：${requirement.specialItem}` });
+    }
+    await consumeCard(entities, itemCard.id, itemCard.quantity);
   }
 
   // 扣除资源并提升职阶

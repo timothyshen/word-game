@@ -15,6 +15,7 @@ import {
   findPlayerMaterials,
   getMaterialCount,
   removeMaterial,
+  addMaterial,
   type MaterialInfo,
   type RecipeMaterial,
 } from "../repositories/crafting.repo";
@@ -122,14 +123,17 @@ async function getEquipmentEntityTemplateId(
 /**
  * Roll for crafting quality upgrade.
  * Returns the quality tier and rarity boost.
+ * @param blacksmithLevel - player's blacksmith building level (0 if none)
  */
-async function rollCraftingQuality(): Promise<{
+async function rollCraftingQuality(blacksmithLevel = 0): Promise<{
   tier: "normal" | "fine" | "master";
   rarityBoost: number;
 }> {
   const config =
     await ruleService.getConfig<QualityConfig>("crafting_quality_upgrade");
-  const upgradeChance = config.baseUpgradeChance;
+  const upgradeChance =
+    config.baseUpgradeChance *
+    (1 + config.craftingQualityMultiplier * blacksmithLevel);
 
   const roll = Math.random();
   if (roll < upgradeChance) {
@@ -349,8 +353,13 @@ export async function craft(
   // 6. Deduct gold
   await updatePlayer(db, player.id, { gold: { decrement: recipe.goldCost } });
 
-  // 7. Quality roll
-  const qualityResult = await rollCraftingQuality();
+  // 7. Quality roll (boosted by blacksmith building level)
+  const allBuildings = await findPlayerBuildings(db, entities, player.id);
+  const blacksmith = allBuildings.find(
+    (b) => b.building.name === "铁匠铺" || b.building.name === "锻造坊",
+  );
+  const blacksmithLevel = blacksmith?.level ?? 0;
+  const qualityResult = await rollCraftingQuality(blacksmithLevel);
 
   // 8. Determine final rarity
   let finalRarityIndex =
@@ -412,5 +421,70 @@ export async function craft(
     },
     qualityTier: qualityResult.tier,
     rarityUpgraded: finalRarity !== recipe.baseRarity,
+  };
+}
+
+// ── Material Salvage ──
+
+/**
+ * Salvage 5 lower-rarity materials into 1 next-rarity material.
+ * Rarity tiers: 普通 → 精良 → 稀有 → 史诗 → 传说
+ */
+export async function salvageMaterials(
+  db: FullDbClient,
+  entities: IEntityManager,
+  userId: string,
+  materialTemplateId: string,
+): Promise<{ success: true; consumed: { templateId: string; count: number }; produced: { templateId: string; name: string; rarity: string; count: number } }> {
+  const player = await getPlayerOrThrow(db, userId);
+  const SALVAGE_COST = 5;
+
+  // Get the source material info
+  const count = await getMaterialCount(db, entities, player.id, materialTemplateId);
+  if (count < SALVAGE_COST) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: `需要至少${SALVAGE_COST}个材料才能分解提炼` });
+  }
+
+  // Find source template to determine rarity
+  const game = await db.game.findFirst({ where: { name: "诸天领域" } });
+  if (!game) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "游戏未初始化" });
+
+  const materialSchema = await entities.getSchema(game.id, "material");
+  if (!materialSchema) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "材料架构不存在" });
+
+  const schemaId = (materialSchema as { id: string }).id;
+  const allTemplates = (await entities.getTemplatesBySchema(schemaId)) as Array<{ id: string; name: string; rarity: string | null }>;
+  const sourceTemplate = allTemplates.find(t => t.id === materialTemplateId);
+  if (!sourceTemplate || !sourceTemplate.rarity) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "无效的材料" });
+  }
+
+  const sourceRarityIndex = RARITY_ORDER.indexOf(sourceTemplate.rarity);
+  if (sourceRarityIndex < 0 || sourceRarityIndex >= RARITY_ORDER.length - 1) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "该稀有度的材料无法继续提炼" });
+  }
+
+  const targetRarity = RARITY_ORDER[sourceRarityIndex + 1]!;
+
+  // Find a matching higher-rarity template
+  const targetTemplates = allTemplates.filter(t => t.rarity === targetRarity);
+  if (targetTemplates.length === 0) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: `没有${targetRarity}品质的材料模板` });
+  }
+  const targetTemplate = targetTemplates[Math.floor(Math.random() * targetTemplates.length)]!;
+
+  // Deduct source materials
+  const removed = await removeMaterial(db, entities, player.id, materialTemplateId, SALVAGE_COST);
+  if (!removed) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "材料扣除失败" });
+  }
+
+  // Grant 1 higher-rarity material
+  await addMaterial(db, entities, player.id, targetTemplate.id, 1);
+
+  return {
+    success: true,
+    consumed: { templateId: materialTemplateId, count: SALVAGE_COST },
+    produced: { templateId: targetTemplate.id, name: targetTemplate.name, rarity: targetRarity, count: 1 },
   };
 }

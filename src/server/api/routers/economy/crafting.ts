@@ -22,4 +22,10 @@ export const craftingRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       return craftingService.craft(ctx.db, ctx.engine.entities, ctx.session.user.id, input.recipeId);
     }),
+
+  salvageMaterials: protectedProcedure
+    .input(z.object({ materialTemplateId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return craftingService.salvageMaterials(ctx.db, ctx.engine.entities, ctx.session.user.id, input.materialTemplateId);
+    }),
 });
