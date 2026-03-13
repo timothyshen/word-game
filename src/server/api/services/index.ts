@@ -22,3 +22,4 @@ export * as worldHeroesService from "./worldHeroes.service";
 export * as worldCombatService from "./worldCombat.service";
 export * as worldEventsService from "./worldEvents.service";
 export * as worldPoiService from "./worldPoi.service";
+export * as leaderboardService from "./leaderboard.service";

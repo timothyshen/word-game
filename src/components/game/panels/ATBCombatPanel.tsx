@@ -328,6 +328,9 @@ export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType =
         {/* Combat Log */}
         <div
           ref={logRef}
+          role="log"
+          aria-live="polite"
+          aria-label="战斗记录"
           className="flex-1 min-h-[120px] max-h-[200px] overflow-y-auto px-4 py-2 space-y-0.5 text-sm border-b border-[#2a3a4a]/50"
           style={{ scrollbarWidth: "none" }}
         >

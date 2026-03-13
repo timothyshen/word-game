@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { api } from "~/trpc/react";
-import { RARITY_COLORS } from "~/constants";
+import { RARITY_COLORS, getRarityStars } from "~/constants";
 import HubPanel, { type HubTab } from "./HubPanel";
 import { PanelSkeleton } from "~/components/game/PanelSkeleton";
 
@@ -110,7 +110,7 @@ function BackpackTab() {
                         className="text-xs"
                         style={{ color: RARITY_COLORS[pc.card.rarity] ?? "#888" }}
                       >
-                        {pc.card.rarity}
+                        {pc.card.rarity} {getRarityStars(pc.card.rarity)}
                       </div>
                     </div>
                   </div>

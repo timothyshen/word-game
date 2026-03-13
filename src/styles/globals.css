@@ -448,6 +448,7 @@
     radial-gradient(ellipse at 50% 0%, rgba(201, 162, 39, 0.03) 0%, transparent 40%);
 }
 
+<<<<<<< HEAD
 /* ══════════════════════════════════════════
    Combat Animations
    ══════════════════════════════════════════ */
@@ -535,4 +536,10 @@
   background: linear-gradient(90deg, #1a1a2500 0%, #2a2a3a 50%, #1a1a2500 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Focus visibility for dark game panels ── */
+.game-panel *:focus-visible {
+  outline: 2px solid var(--game-gold);
+  outline-offset: 2px;
 }
