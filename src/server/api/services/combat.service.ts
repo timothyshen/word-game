@@ -15,6 +15,7 @@ import { calculateCurrentStamina } from "../utils/player-utils";
 import { addMaterial } from "../repositories/crafting.repo";
 import { pickRarityPool, rollFromPool, type MaterialDropConfig } from "../utils/crafting-utils";
 import { parseCharacterState, type CharacterEntity } from "../utils/character-utils";
+import { getEquipmentBonuses } from "./equipment.service";
 import {
   calculateDamage,
   resolveSkillEffect,
@@ -254,7 +255,7 @@ export async function startCombat(
   const { stamina: currentStamina } = calculateCurrentStamina(
     player.stamina,
     player.maxStamina,
-    player.staminaPerMin ?? 0.5,
+    player.staminaPerMin ?? 0.2,
     player.lastStaminaUpdate,
   );
 
@@ -269,16 +270,29 @@ export async function startCombat(
     lastStaminaUpdate: new Date(),
   });
 
-  // Build player combat unit
+  // Build player combat unit with equipment bonuses
+  let equipBonus = { attack: 0, defense: 0, speed: 0, luck: 0, hp: 0, mp: 0 };
+  const combatCharId = options.characterId ?? null;
+
+  if (combatCharId) {
+    try {
+      equipBonus = await getEquipmentBonuses(db, entities, userId, combatCharId);
+    } catch { /* no equipment — use zero bonuses */ }
+  }
+
+  // Player HP scales with level and strength: base 100 + level*5 + strength*3
+  const playerBaseHp = 100 + player.level * 5 + player.strength * 3;
+  const playerBaseMp = 50 + player.level * 2 + player.intellect * 2;
+
   let playerUnit: CombatUnit = {
     id: player.id,
     name: player.name,
-    hp: 100, maxHp: 100,
-    mp: 50, maxMp: 50,
-    attack: player.strength * 2,
-    defense: player.agility,
-    speed: player.agility,
-    luck: 5, intellect: player.intellect,
+    hp: playerBaseHp + equipBonus.hp, maxHp: playerBaseHp + equipBonus.hp,
+    mp: playerBaseMp + equipBonus.mp, maxMp: playerBaseMp + equipBonus.mp,
+    attack: player.strength * 2 + equipBonus.attack,
+    defense: player.agility + equipBonus.defense,
+    speed: player.agility + equipBonus.speed,
+    luck: 5 + equipBonus.luck, intellect: player.intellect,
     buffs: [],
   };
 
@@ -287,10 +301,10 @@ export async function startCombat(
     playerUnit = {
       id: char.id,
       name: char.character.name,
-      hp: char.hp, maxHp: char.maxHp,
-      mp: char.mp, maxMp: char.maxMp,
-      attack: char.attack, defense: char.defense,
-      speed: char.speed, luck: 5, intellect: 10,
+      hp: char.hp + equipBonus.hp, maxHp: char.maxHp + equipBonus.hp,
+      mp: char.mp + equipBonus.mp, maxMp: char.maxMp + equipBonus.mp,
+      attack: char.attack + equipBonus.attack, defense: char.defense + equipBonus.defense,
+      speed: char.speed + equipBonus.speed, luck: 5 + equipBonus.luck, intellect: 10,
       buffs: [],
     };
   }

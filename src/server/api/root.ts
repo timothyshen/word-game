@@ -1,4 +1,4 @@
-import { playerRouter, authRouter, settlementRouter, leaderboardRouter } from "~/server/api/routers/core";
+import { playerRouter, authRouter, settlementRouter, leaderboardRouter, dungeonRouter } from "~/server/api/routers/core";
 import { combatRouter, bossRouter } from "~/server/api/routers/combat";
 import { buildingRouter, shopRouter, equipmentRouter, altarRouter, craftingRouter } from "~/server/api/routers/economy";
 import { cardRouter, breakthroughRouter, professionRouter, achievementRouter, skillTreeRouter } from "~/server/api/routers/progression";
@@ -43,6 +43,7 @@ export const appRouter = createTRPCRouter({
   army: armyRouter,
   skillTree: skillTreeRouter,
   leaderboard: leaderboardRouter,
+  dungeon: dungeonRouter,
 });
 
 // export type definition of API

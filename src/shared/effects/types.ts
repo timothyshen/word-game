@@ -232,6 +232,9 @@ export interface PartyMember extends ATBUnit {
 export interface EnemyUnit extends ATBUnit {
   tier: "normal" | "elite" | "boss";
   phase?: number;
+  /** Base stats before phase multipliers (set at creation for bosses) */
+  baseAttack?: number;
+  baseSpeed?: number;
   specialMechanics?: EnemyMechanic[];
   loot: LootTable;
 }

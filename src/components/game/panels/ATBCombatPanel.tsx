@@ -8,6 +8,7 @@ interface ATBCombatPanelProps {
   onClose: () => void;
   monsterLevel?: number;
   combatType?: "normal" | "elite" | "boss";
+  initialCombatId?: string | null;
 }
 
 // Element display config
@@ -49,8 +50,8 @@ interface FloatingNumber {
   key: number;
 }
 
-export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType = "normal" }: ATBCombatPanelProps) {
-  const [combatId, setCombatId] = useState<string | null>(null);
+export default function ATBCombatPanel({ onClose, monsterLevel = 1, combatType = "normal", initialCombatId }: ATBCombatPanelProps) {
+  const [combatId, setCombatId] = useState<string | null>(initialCombatId ?? null);
   const [isActing, setIsActing] = useState(false);
   const [selectedAction, setSelectedAction] = useState<CombatActionV2 | null>(null);
   const [selectingTarget, setSelectingTarget] = useState(false);

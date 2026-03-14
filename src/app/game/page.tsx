@@ -402,6 +402,7 @@ export default function GamePage() {
           <AdventureHub
             onClose={() => panels.setShowAdventureHub(false)}
             initialTab={panels.adventureHubTab}
+            onOpenCombat={panels.openCombat}
           />
         </GameErrorBoundary>
       )}
@@ -443,6 +444,7 @@ export default function GamePage() {
           <ATBCombatPanel
             monsterLevel={panels.combatLevel}
             combatType={panels.combatType}
+            initialCombatId={panels.initialCombatId}
             onClose={() => panels.setShowCombatPanel(false)}
           />
         </GameErrorBoundary>

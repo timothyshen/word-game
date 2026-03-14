@@ -9,18 +9,20 @@ import { PanelSkeleton } from "~/components/game/PanelSkeleton";
 interface AdventureHubProps {
   onClose: () => void;
   initialTab?: string;
+  onOpenCombat?: (level: number, type: "normal" | "elite" | "boss", combatId: string) => void;
 }
 
 export default function AdventureHub({
   onClose,
   initialTab = "boss",
+  onOpenCombat,
 }: AdventureHubProps) {
   const tabs: HubTab[] = [
     {
       id: "boss",
       label: "首领挑战",
       icon: "🐉",
-      content: <BossTab />,
+      content: <BossTab onClose={onClose} onOpenCombat={onOpenCombat} />,
     },
     {
       id: "portal",
@@ -48,14 +50,17 @@ export default function AdventureHub({
 }
 
 // Boss标签页
-function BossTab() {
+function BossTab({ onClose, onOpenCombat }: { onClose: () => void; onOpenCombat?: (level: number, type: "normal" | "elite" | "boss", combatId: string) => void }) {
   const { data: bosses, isLoading } = api.boss.getAll.useQuery();
   const utils = api.useUtils();
 
   const challengeMutation = api.boss.challenge.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       void utils.boss.getAll.invalidate();
       void utils.player.getStatus.invalidate();
+      // 关闭冒险Hub，打开ATB战斗面板
+      onClose();
+      onOpenCombat?.(1, "boss", data.combatId);
     },
   });
 
@@ -127,16 +132,10 @@ function BossTab() {
           </div>
         ))}
 
-        {/* 操作反馈 */}
+        {/* 战斗已启动提示 */}
         {challengeMutation.isSuccess && challengeMutation.data && (
-          <div
-            className={`p-3 border text-sm ${
-              challengeMutation.data.victory
-                ? "bg-[#1a3a1a] border-[#4a9]/30 text-[#4a9]"
-                : "bg-[#3a1a1a] border-[#e74c3c]/30 text-[#e74c3c]"
-            }`}
-          >
-            {challengeMutation.data.message}
+          <div className="p-3 border text-sm bg-[#1a2a3a] border-[#4a9eff]/30 text-[#4a9eff]">
+            已发起对{challengeMutation.data.bossName}的挑战，战斗进行中...
           </div>
         )}
       </div>

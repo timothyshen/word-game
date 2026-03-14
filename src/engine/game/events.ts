@@ -63,7 +63,7 @@ export interface GameEventMap extends Record<string, Record<string, unknown>> {
   "economy:output": { userId: string; output: Record<string, number> };
 
   // Progression
-  "boss:challenge": { userId: string; bossId: string; victory: boolean };
+  "boss:challenge": { userId: string; bossId: string; combatId: string };
   "card:used": { userId: string; cardId: string; action: string };
   "card:acquired": { userId: string; cardId: string; cardName: string };
   "character:levelUp": {

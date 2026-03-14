@@ -56,6 +56,7 @@ export function useGamePanels() {
   const [showCombatPanel, setShowCombatPanel] = useState(false);
   const [combatLevel, setCombatLevel] = useState(1);
   const [combatType, setCombatType] = useState<"normal" | "elite" | "boss">("normal");
+  const [initialCombatId, setInitialCombatId] = useState<string | null>(null);
   const [showInnerCityPanel, setShowInnerCityPanel] = useState(false);
   const [showPartyPanel, setShowPartyPanel] = useState(false);
   const [showSkillTree, setShowSkillTree] = useState(false);
@@ -116,9 +117,10 @@ export function useGamePanels() {
     setShowLogHub(true);
   }, []);
 
-  const openCombat = useCallback((level = 1, type: "normal" | "elite" | "boss" = "normal") => {
+  const openCombat = useCallback((level = 1, type: "normal" | "elite" | "boss" = "normal", combatId?: string) => {
     setCombatLevel(level);
     setCombatType(type);
+    setInitialCombatId(combatId ?? null);
     setShowCombatPanel(true);
   }, []);
 
@@ -168,7 +170,7 @@ export function useGamePanels() {
     showLogHub, setShowLogHub, logHubTab,
     // 独立面板
     showEconomyPanel, setShowEconomyPanel,
-    showCombatPanel, setShowCombatPanel, combatLevel, setCombatLevel, combatType, setCombatType,
+    showCombatPanel, setShowCombatPanel, combatLevel, setCombatLevel, combatType, setCombatType, initialCombatId,
     showInnerCityPanel, setShowInnerCityPanel,
     showPartyPanel, setShowPartyPanel,
     showSkillTree, setShowSkillTree, skillTreeCharacterId, skillTreeCharacterName,

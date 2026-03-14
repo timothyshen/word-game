@@ -160,7 +160,7 @@ describe("Module integration", () => {
     ]);
   });
 
-  it("boss:challenge victory triggers progression:check", async () => {
+  it("boss:challenge triggers progression:check", async () => {
     const engine = createEngine();
     registerAllModules(engine);
     await engine.start();
@@ -172,7 +172,7 @@ describe("Module integration", () => {
 
     await engine.events.emit(
       "boss:challenge",
-      { userId: "user-1", bossId: "b-1", victory: true },
+      { userId: "user-1", bossId: "b-1", combatId: "combat-1" },
       "test",
     );
 

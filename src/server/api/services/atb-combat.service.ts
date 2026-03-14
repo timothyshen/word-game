@@ -18,6 +18,7 @@ import * as partyRepo from "../repositories/party.repo";
 import { getCurrentGameDay } from "../utils/game-time";
 import { calculateCurrentStamina } from "../utils/player-utils";
 import { parseCharacterState } from "../utils/character-utils";
+import { getEquipmentBonuses } from "./equipment.service";
 import {
   resolveSkillEffect,
   tickBuffs,
@@ -434,6 +435,8 @@ export async function generateEnemyGroup(
       teamIndex: i,
       tier: combatType,
       phase: combatType === "boss" ? 1 : undefined,
+      baseAttack: combatType === "boss" ? Math.floor(scaledAtk * tierMult) : undefined,
+      baseSpeed: combatType === "boss" ? scaledSpd : undefined,
       loot: {
         exp: Math.floor((rewardExp * tierMult) / count),
         gold: Math.floor((rewardGold * tierMult) / count),
@@ -650,21 +653,27 @@ export async function buildPartyMembers(
       /* use default */
     }
 
+    // Apply equipment bonuses to combat stats
+    let eqBonus = { attack: 0, defense: 0, speed: 0, luck: 0, hp: 0, mp: 0 };
+    try {
+      eqBonus = await getEquipmentBonuses(db, entities, userId, entityId);
+    } catch { /* no equipment — use zero bonuses */ }
+
     members.push({
       id: entityId,
       characterId: entityId,
       name: entity.template.name,
       portrait: entity.template.icon,
       baseClass,
-      hp: charState.hp ?? charState.maxHp ?? 100,
-      maxHp: charState.maxHp ?? 100,
-      mp: charState.mp ?? charState.maxMp ?? 50,
-      maxMp: charState.maxMp ?? 50,
-      attack: charState.attack ?? 10,
-      defense: charState.defense ?? 5,
-      speed: charState.speed ?? 5,
-      luck: charState.luck ?? 5,
-      intellect: 5, // CharacterEntityState does not have intellect; use default
+      hp: (charState.hp ?? charState.maxHp ?? 100) + eqBonus.hp,
+      maxHp: (charState.maxHp ?? 100) + eqBonus.hp,
+      mp: (charState.mp ?? charState.maxMp ?? 50) + eqBonus.mp,
+      maxMp: (charState.maxMp ?? 50) + eqBonus.mp,
+      attack: (charState.attack ?? 10) + eqBonus.attack,
+      defense: (charState.defense ?? 5) + eqBonus.defense,
+      speed: (charState.speed ?? 5) + eqBonus.speed,
+      luck: (charState.luck ?? 5) + eqBonus.luck,
+      intellect: 5 + Math.floor(eqBonus.attack * 0.1),
       buffs: [],
       atb: 0,
       isAlive: true,
@@ -692,6 +701,7 @@ export async function startATBCombat(
   options: {
     monsterLevel: number;
     combatType: "normal" | "elite" | "boss";
+    skipStamina?: boolean;
   },
 ): Promise<{ combatId: string; state: ATBCombatState }> {
   // Check no active combat
@@ -700,39 +710,41 @@ export async function startATBCombat(
     throw new TRPCError({ code: "CONFLICT", message: "已有进行中的战斗" });
   }
 
-  // Check stamina
-  const player = await findPlayerByUserId(db, userId);
-  if (!player)
-    throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
+  // Check stamina (skip if caller already handled it, e.g. boss challenge)
+  if (!options.skipStamina) {
+    const player = await findPlayerByUserId(db, userId);
+    if (!player)
+      throw new TRPCError({ code: "NOT_FOUND", message: "玩家不存在" });
 
-  let staminaCost = 5;
-  try {
-    const config = await ruleService.getConfig<{ cost?: number }>(
-      "combat_stamina_cost",
+    let staminaCost = 5;
+    try {
+      const config = await ruleService.getConfig<{ cost?: number }>(
+        "combat_stamina_cost",
+      );
+      staminaCost = config.cost ?? 5;
+    } catch {
+      /* use default */
+    }
+
+    const { stamina: currentStamina } = calculateCurrentStamina(
+      player.stamina,
+      player.maxStamina,
+      player.staminaPerMin ?? 0.2,
+      player.lastStaminaUpdate,
     );
-    staminaCost = config.cost ?? 5;
-  } catch {
-    /* use default */
-  }
+    if (currentStamina < staminaCost) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `体力不足（需要${staminaCost}，当前${Math.floor(currentStamina)}）`,
+      });
+    }
 
-  const { stamina: currentStamina } = calculateCurrentStamina(
-    player.stamina,
-    player.maxStamina,
-    player.staminaPerMin ?? 0.5,
-    player.lastStaminaUpdate,
-  );
-  if (currentStamina < staminaCost) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `体力不足（需要${staminaCost}，当前${Math.floor(currentStamina)}）`,
+    // Deduct stamina
+    await updatePlayer(db, userId, {
+      stamina: currentStamina - staminaCost,
+      lastStaminaUpdate: new Date(),
     });
   }
-
-  // Deduct stamina
-  await updatePlayer(db, userId, {
-    stamina: currentStamina - staminaCost,
-    lastStaminaUpdate: new Date(),
-  });
 
   // Build party and enemies
   const partyMembers = await buildPartyMembers(db, entities, userId);
@@ -830,12 +842,12 @@ function executeEnemyAI(state: ATBCombatState, enemy: EnemyUnit): void {
       const phase = BOSS_PHASES[phaseIdx]!;
       if (hpPercent <= phase.hpThreshold && enemy.phase < phaseIdx + 1) {
         enemy.phase = phaseIdx + 1;
-        // Apply stat multipliers relative to base (phase 1)
+        // Apply stat multipliers relative to base stats (not current, to prevent stacking)
         enemy.speed = Math.max(
           1,
-          Math.floor(enemy.speed * phase.speedMult),
+          Math.floor((enemy.baseSpeed ?? enemy.speed) * phase.speedMult),
         );
-        enemy.attack = Math.floor(enemy.attack * phase.atkMult);
+        enemy.attack = Math.floor((enemy.baseAttack ?? enemy.attack) * phase.atkMult);
         state.logs.push({
           turn: state.turnCount,
           actorName: "系统",

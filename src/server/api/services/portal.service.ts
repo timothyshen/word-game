@@ -7,6 +7,14 @@ import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId } from "../repositories/player.repo";
 import { ruleService } from "~/server/api/engine";
 
+// 世界效果定义
+export interface WorldEffect {
+  statModifier?: { stat: string; multiplier: number };
+  elementalDamageBonus?: string;
+  staminaCostMultiplier?: number;
+  materialDropBonus?: number;
+}
+
 // 世界定义
 interface World {
   id: string;
@@ -20,6 +28,7 @@ interface World {
     quest?: string;
   };
   features: string[];
+  effects: WorldEffect;
 }
 
 const WORLDS: World[] = [
@@ -31,6 +40,7 @@ const WORLDS: World[] = [
     level: 1,
     unlockCondition: {},
     features: ["建筑发展", "资源采集", "基础战斗"],
+    effects: {},
   },
   {
     id: "fire_realm",
@@ -40,6 +50,11 @@ const WORLDS: World[] = [
     level: 15,
     unlockCondition: { tier: 2, level: 10 },
     features: ["火属性材料", "火焰怪物", "熔岩地形"],
+    effects: {
+      statModifier: { stat: "attack", multiplier: 1.2 },
+      staminaCostMultiplier: 1.2,
+      elementalDamageBonus: "fire",
+    },
   },
   {
     id: "ice_realm",
@@ -49,6 +64,11 @@ const WORLDS: World[] = [
     level: 20,
     unlockCondition: { tier: 2, level: 15 },
     features: ["冰属性材料", "冰霜怪物", "极寒环境"],
+    effects: {
+      statModifier: { stat: "defense", multiplier: 1.3 },
+      staminaCostMultiplier: 1.3,
+      elementalDamageBonus: "ice",
+    },
   },
   {
     id: "shadow_realm",
@@ -58,6 +78,11 @@ const WORLDS: World[] = [
     level: 30,
     unlockCondition: { tier: 3, level: 25 },
     features: ["暗属性材料", "暗影Boss", "神秘遗迹"],
+    effects: {
+      statModifier: { stat: "speed", multiplier: 1.25 },
+      staminaCostMultiplier: 1.5,
+      materialDropBonus: 0.3,
+    },
   },
   {
     id: "celestial_realm",
@@ -67,6 +92,11 @@ const WORLDS: World[] = [
     level: 50,
     unlockCondition: { tier: 5, level: 40 },
     features: ["神圣材料", "天使守卫", "传说宝藏"],
+    effects: {
+      statModifier: { stat: "luck", multiplier: 1.5 },
+      staminaCostMultiplier: 2.0,
+      materialDropBonus: 0.5,
+    },
   },
 ];
 
@@ -100,6 +130,13 @@ const PORTAL_GUARDIANS: Record<string, PortalGuardian> = {
     baseHp: 180,
     baseAttack: 45,
     baseDefense: 15,
+  },
+  celestial_realm: {
+    name: "天使守卫",
+    icon: "👼",
+    baseHp: 500,
+    baseAttack: 60,
+    baseDefense: 40,
   },
 };
 
@@ -323,6 +360,12 @@ export async function getCurrentWorld(db: FullDbClient, userId: string) {
   return world ?? WORLDS[0]!;
 }
 
+export async function getWorldEffects(db: FullDbClient, userId: string): Promise<WorldEffect> {
+  const player = await getPlayerOrThrow(db, userId);
+  const world = WORLDS.find(w => w.id === player.currentWorld);
+  return world?.effects ?? {};
+}
+
 export async function travel(db: FullDbClient, userId: string, worldId: string) {
   const player = await getPlayerOrThrow(db, userId);
 
@@ -344,6 +387,20 @@ export async function travel(db: FullDbClient, userId: string, worldId: string) 
       code: "BAD_REQUEST",
       message: `需要达到${world.unlockCondition.level}级才能进入${world.name}`,
     });
+  }
+
+  // 检查是否击败了传送门守护者（主位面不需要）
+  if (worldId !== "main" && PORTAL_GUARDIANS[worldId]) {
+    const portal = await db.wildernessFacility.findFirst({
+      where: { playerId: player.id, type: "portal" },
+    });
+    // If a portal exists for this world, must be defeated first
+    if (portal) {
+      const portalData = JSON.parse(portal.data) as PortalData;
+      if (portalData.targetWorld === worldId && !portalData.isDefeated) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "请先击败传送门守护者" });
+      }
+    }
   }
 
   // 传送消耗体力（从规则引擎获取）

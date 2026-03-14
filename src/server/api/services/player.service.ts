@@ -74,7 +74,7 @@ export async function getOrCreatePlayer(db: FullDbClient, entities: IEntityManag
       food: 300,
       stamina: 100,
       maxStamina: 100,
-      staminaPerMin: 0.5,
+      staminaPerMin: 0.2,
       strength: 10,
       agility: 10,
       intellect: 10,

@@ -24,6 +24,16 @@ async function getGrade(score: number): Promise<string> {
   return "D";
 }
 
+function getCrystalReward(grade: string): number {
+  switch (grade) {
+    case "S": return 15;
+    case "A": return 10;
+    case "B": return 5;
+    case "C": return 2;
+    default: return 0;
+  }
+}
+
 function calculateRewards(score: number): { cards: Array<{ rarity: string; count: number }>; bonus: string[] } {
   const cards: Array<{ rarity: string; count: number }> = [];
   const bonus: string[] = [];
@@ -188,6 +198,7 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
   const settlementResults = [];
   let newStreakDays = player.streakDays;
   const totalRewardCards: Array<{ rarity: string; count: number }> = [];
+  let totalCrystals = 0;
 
   // Fetch config values once before the loop
   const streakThreshold = await ruleService.getConfig<{ value: number }>("settlement_streak_threshold");
@@ -248,6 +259,10 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
     const rewards = calculateRewards(totalScore);
     const breakdown = computeBreakdown(dayActions);
 
+    // Crystal rewards based on grade
+    const crystalReward = getCrystalReward(grade);
+    totalCrystals += crystalReward;
+
     // Streak tracking
     if (totalScore >= streakThreshold.value) {
       newStreakDays++;
@@ -281,14 +296,15 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
       breakdown: JSON.stringify(breakdown),
     });
 
-    settlementResults.push({ day, totalScore, grade, rewards });
+    settlementResults.push({ day, totalScore, grade, rewards, crystals: crystalReward });
   }
 
-  // Update player state
+  // Update player state and grant crystal rewards
   await updatePlayer(db, player.id, {
     lastSettlementDay: currentDay,
     currentDayScore: 0,
     streakDays: newStreakDays,
+    ...(totalCrystals > 0 ? { crystals: { increment: totalCrystals } } : {}),
   });
 
   // Grant card rewards
@@ -326,6 +342,7 @@ export async function executeSettlement(db: FullDbClient, entities: IEntityManag
     grantedCards,
     chestReward,
     newStreakDays,
+    totalCrystals,
     expenses: {
       buildingMaintenance: buildingMaintenanceCost * daysToSettle,
       characterWages: characterWages * daysToSettle,

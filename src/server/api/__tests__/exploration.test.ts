@@ -296,10 +296,18 @@ describe("Exploration Router", () => {
   });
 
   describe("handleEventChoice", () => {
-    it("should handle collect action", async () => {
-      const caller = createCaller();
+    // Helper to seed an explored area with a pending event
+    function seedAreaWithEvent(playerId: string, event: Record<string, unknown>, pos = { x: 1, y: 0 }) {
+      return seedTestExploredArea(mockDb, playerId, {
+        positionX: pos.x,
+        positionY: pos.y,
+        pendingEvent: JSON.stringify(event),
+      });
+    }
 
-      const eventData = JSON.stringify({
+    it("should handle collect action", async () => {
+      const player = seedTestPlayer(mockDb, "collect_user", { stamina: 100 });
+      seedAreaWithEvent(player.id, {
         type: "resource",
         title: "Gold Mine",
         description: "Found gold",
@@ -307,10 +315,14 @@ describe("Exploration Router", () => {
         rewards: { gold: 100 },
       });
 
+      const ctx = createTestContextForPlayer(mockDb, "collect_user");
+      const caller = explorationRouter.createCaller(ctx as never);
+
       const result = await caller.handleEventChoice({
         eventType: "resource",
         action: "collect",
-        eventData,
+        positionX: 1,
+        positionY: 0,
       });
 
       expect(result.success).toBe(true);
@@ -319,18 +331,14 @@ describe("Exploration Router", () => {
     });
 
     it("should handle fight action victory", async () => {
-      // Player with high stats
       resetMockDataStore();
       mockDb = createMockDb();
-      seedTestPlayer(mockDb, testUserId, {
+      const player = seedTestPlayer(mockDb, "fight_user", {
         stamina: 100,
-        strength: 50, // High strength for victory
+        strength: 50,
         agility: 30,
       });
-
-      const caller = createCaller();
-
-      const eventData = JSON.stringify({
+      seedAreaWithEvent(player.id, {
         type: "monster",
         title: "Wolf",
         description: "A wolf attacks",
@@ -345,10 +353,14 @@ describe("Exploration Router", () => {
         },
       });
 
+      const ctx = createTestContextForPlayer(mockDb, "fight_user");
+      const caller = explorationRouter.createCaller(ctx as never);
+
       const result = await caller.handleEventChoice({
         eventType: "monster",
         action: "fight",
-        eventData,
+        positionX: 1,
+        positionY: 0,
       });
 
       expect(result.success).toBe(true);
@@ -358,22 +370,32 @@ describe("Exploration Router", () => {
     });
 
     it("should handle flee action", async () => {
-      const caller = createCaller();
+      const player = seedTestPlayer(mockDb, "flee_user", { stamina: 100 });
+      seedAreaWithEvent(player.id, {
+        type: "monster",
+        title: "Wolf",
+        description: "A wolf attacks",
+        options: [{ text: "Flee", action: "flee" }],
+        monster: { name: "野狼", level: 1, hp: 30, attack: 8, defense: 3, rewards: { exp: 0, gold: 0 } },
+      });
+
+      const ctx = createTestContextForPlayer(mockDb, "flee_user");
+      const caller = explorationRouter.createCaller(ctx as never);
 
       const result = await caller.handleEventChoice({
         eventType: "monster",
         action: "flee",
+        positionX: 1,
+        positionY: 0,
       });
 
       expect(result.success).toBe(true);
-      // Flee has 50% success rate
       expect(typeof result.fled).toBe("boolean");
     });
 
     it("should handle open treasure action", async () => {
-      const caller = createCaller();
-
-      const eventData = JSON.stringify({
+      const player = seedTestPlayer(mockDb, "open_user", { stamina: 100 });
+      seedAreaWithEvent(player.id, {
         type: "treasure",
         title: "Chest",
         description: "A treasure chest",
@@ -381,10 +403,14 @@ describe("Exploration Router", () => {
         rewards: { gold: 200 },
       });
 
+      const ctx = createTestContextForPlayer(mockDb, "open_user");
+      const caller = explorationRouter.createCaller(ctx as never);
+
       const result = await caller.handleEventChoice({
         eventType: "treasure",
         action: "open",
-        eventData,
+        positionX: 1,
+        positionY: 0,
       });
 
       expect(result.success).toBe(true);
@@ -392,16 +418,37 @@ describe("Exploration Router", () => {
     });
 
     it("should handle leave/continue actions", async () => {
-      const caller = createCaller();
+      const player = seedTestPlayer(mockDb, "leave_user", { stamina: 100 });
+      seedAreaWithEvent(player.id, {
+        type: "resource",
+        title: "Something",
+        description: "A thing",
+        options: [{ text: "Leave", action: "leave" }],
+      });
+
+      const ctx = createTestContextForPlayer(mockDb, "leave_user");
+      const caller = explorationRouter.createCaller(ctx as never);
 
       const leaveResult = await caller.handleEventChoice({
         eventType: "resource",
         action: "leave",
+        positionX: 1,
+        positionY: 0,
       });
+
+      // Seed another area for continue action
+      seedAreaWithEvent(player.id, {
+        type: "nothing",
+        title: "Empty",
+        description: "Nothing here",
+        options: [{ text: "Continue", action: "continue" }],
+      }, { x: 2, y: 0 });
 
       const continueResult = await caller.handleEventChoice({
         eventType: "nothing",
         action: "continue",
+        positionX: 2,
+        positionY: 0,
       });
 
       expect(leaveResult.success).toBe(true);

@@ -110,8 +110,8 @@ export const SEED_RULES: SeedRule[] = [
     name: "combat_monster_scaling",
     category: "combat",
     ruleType: "formula",
-    definition: JSON.stringify({ formula: "1 + (level - 1) * 0.25" }),
-    description: "Monster stat scaling by level",
+    definition: JSON.stringify({ formula: "1 + (level - 1) * min(0.35, 0.15 + level * 0.005)" }),
+    description: "Monster stat scaling by level (softer curve for early levels)",
   },
   {
     name: "combat_reward_exp",

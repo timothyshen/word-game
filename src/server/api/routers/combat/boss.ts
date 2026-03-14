@@ -14,7 +14,7 @@ export const bossRouter = createTRPCRouter({
       void ctx.engine.events.emit("boss:challenge", {
         userId: ctx.session.user.id,
         bossId: input.bossId,
-        victory: result.victory,
+        combatId: result.combatId,
       }, "boss-router");
       return result;
     }),

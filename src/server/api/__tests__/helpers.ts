@@ -236,6 +236,7 @@ interface MockExploredArea {
   positionY: number;
   name: string;
   discoveredAt: Date;
+  pendingEvent: string | null;
 }
 
 interface MockUser {
@@ -532,6 +533,7 @@ export function seedTestExploredArea(db: MockDb, playerId: string, data: Partial
     positionY: data.positionY ?? 0,
     name: data.name ?? "Test Area",
     discoveredAt: data.discoveredAt ?? new Date(),
+    pendingEvent: data.pendingEvent ?? null,
     ...data,
   };
   getCollection<MockExploredArea>("exploredArea").push(area);

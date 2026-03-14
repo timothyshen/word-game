@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import type { FullDbClient } from "../repositories/types";
 import type { IEntityManager } from "~/engine/types";
 import { findPlayerByUserId, updatePlayer } from "../repositories/player.repo";
+import { findPlayerBuildings } from "../repositories/building.repo";
 import { engine, ruleService } from "~/server/api/engine";
 
 async function calcFormula(ruleName: string, vars: Record<string, number>): Promise<number> {
@@ -29,6 +30,14 @@ const SLOT_NAMES: Record<EquipmentSlot, string> = {
 
 export { EQUIPMENT_SLOTS, SLOT_NAMES };
 export type { EquipmentSlot };
+
+/** Compute total equipment stat bonuses for a character (used by combat system) */
+export async function getEquipmentBonuses(
+  db: FullDbClient, entities: IEntityManager, userId: string, characterId: string,
+): Promise<{ attack: number; defense: number; speed: number; luck: number; hp: number; mp: number }> {
+  const { totalBonus } = await getCharacterEquipment(db, entities, userId, characterId);
+  return totalBonus;
+}
 
 /** State stored in each equipment Entity instance */
 interface EquipmentEntityState {
@@ -233,24 +242,36 @@ export async function enhanceEquipment(db: FullDbClient, entities: IEntityManage
   const maxEnhance = await ruleService.getConfig<{ value: number }>("equipment_max_enhance");
   if (currentLevel >= maxEnhance.value) throw new TRPCError({ code: "BAD_REQUEST", message: "装备已达最高强化等级" });
 
+  // 查询铁匠铺等级，提供强化加成（取最高等级）
+  const playerBuildings = await findPlayerBuildings(db, entities, player.id);
+  const blacksmithLevel = playerBuildings
+    .filter(pb => pb.building.name === "铁匠铺")
+    .reduce((max, pb) => Math.max(max, pb.level), 0);
+
   const rarityMultipliers = await ruleService.getConfig<Record<string, number>>("equipment_rarity_multipliers");
   const mult = (rarityMultipliers[equipTemplate.rarity] ?? 1) * (1 + currentLevel * 0.5);
-  const goldCost = Math.floor(await calcFormula("equipment_enhance_cost", { baseGold: 100, rarityMult: rarityMultipliers[equipTemplate.rarity] ?? 1, currentLevel }));
+  const baseGoldCost = Math.floor(await calcFormula("equipment_enhance_cost", { baseGold: 100, rarityMult: rarityMultipliers[equipTemplate.rarity] ?? 1, currentLevel }));
   const crystalsCost = Math.floor(5 * mult);
+
+  // 铁匠铺加成：每级减少5%金币消耗
+  const goldDiscount = 1 - blacksmithLevel * 0.05;
+  const goldCost = Math.floor(baseGoldCost * Math.max(0.5, goldDiscount));
 
   if (player.gold < goldCost) throw new TRPCError({ code: "BAD_REQUEST", message: "金币不足" });
   if (player.crystals < crystalsCost) throw new TRPCError({ code: "BAD_REQUEST", message: "水晶不足" });
 
-  const successRate = await calcFormula("equipment_enhance_success", { currentLevel });
+  // 铁匠铺加成：每级增加2%成功率
+  const baseSuccessRate = await calcFormula("equipment_enhance_success", { currentLevel });
+  const successRate = Math.min(1, baseSuccessRate + blacksmithLevel * 0.02);
   const success = Math.random() < successRate;
 
   await updatePlayer(db, player.id, { gold: { decrement: goldCost }, crystals: { decrement: crystalsCost } });
 
   if (success) {
     await entities.updateEntityState(entity.id, { enhanceLevel: currentLevel + 1 });
-    return { success: true, newLevel: currentLevel + 1, equipmentName: equipTemplate.name, cost: { gold: goldCost, crystals: crystalsCost } };
+    return { success: true, newLevel: currentLevel + 1, equipmentName: equipTemplate.name, cost: { gold: goldCost, crystals: crystalsCost }, blacksmithBonus: blacksmithLevel > 0 };
   }
-  return { success: false, currentLevel, equipmentName: equipTemplate.name, cost: { gold: goldCost, crystals: crystalsCost }, message: "强化失败，装备等级未变化" };
+  return { success: false, currentLevel, equipmentName: equipTemplate.name, cost: { gold: goldCost, crystals: crystalsCost }, message: "强化失败，装备等级未变化", blacksmithBonus: blacksmithLevel > 0 };
 }
 
 export async function getAvailableEquipment(db: FullDbClient, entities: IEntityManager, userId: string, slot?: EquipmentSlot) {

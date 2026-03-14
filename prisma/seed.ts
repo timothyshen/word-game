@@ -1932,11 +1932,74 @@ async function main() {
         { nodeId: "merchant_5", title: "离别赠礼", content: "商人即将离去时，从包裹中取出几颗闪烁的水晶：'这是诸天水晶，在各个位面都能使用。算是我的一点心意，希望日后还能在其他位面与你再会。'", speaker: "神秘商人", speakerIcon: "🧙", order: 5, rewardsJson: JSON.stringify({ crystals: 5, exp: 200 }) },
       ],
     },
+    {
+      title: "炎之试炼",
+      description: "火焰位面的入口已经开启，但要进入其中，你必须先通过炎之试炼。",
+      order: 4,
+      rewardsJson: JSON.stringify({ gold: 800, exp: 500, crystals: 10 }),
+      unlockJson: JSON.stringify({ level: 10 }),
+      nodes: [
+        { nodeId: "fire_1", title: "炽热的入口", content: "火焰位面的入口散发着炽热的气息。一位老者拦住了你的去路。", speaker: "旁白", speakerIcon: "🔥", order: 1, choicesJson: JSON.stringify([
+          { text: "询问老者", nextNodeId: "fire_2" },
+          { text: "直接进入", nextNodeId: "fire_3" },
+        ]) },
+        { nodeId: "fire_2", title: "老者的忠告", content: "老者说：'年轻的领主，火焰位面的力量不是所有人都能驾驭的。你需要证明自己的实力。'", speaker: "火焰守卫", speakerIcon: "👴", order: 2, nextNodeId: "fire_4" },
+        { nodeId: "fire_3", title: "火焰元素之战", content: "你径直冲入火焰位面的入口，一只火焰元素拦住了你的去路！战斗不可避免。", speaker: "旁白", speakerIcon: "⚔️", order: 3, nextNodeId: "fire_5", rewardsJson: JSON.stringify({ exp: 200 }) },
+        { nodeId: "fire_4", title: "老者的挑战", content: "老者提出了一个挑战：", speaker: "火焰守卫", speakerIcon: "👴", order: 4, choicesJson: JSON.stringify([
+          { text: "接受试炼", nextNodeId: "fire_3" },
+          { text: "寻找其他方法", nextNodeId: "fire_6" },
+        ]) },
+        { nodeId: "fire_5", title: "试炼通过", content: "你证明了自己的实力！火焰位面向你敞开了大门。", speaker: "旁白", speakerIcon: "🔥", order: 5, rewardsJson: JSON.stringify({ gold: 800, exp: 500, crystals: 10 }) },
+        { nodeId: "fire_6", title: "隐秘通道", content: "你在废墟中找到了一条隐秘的通道，绕过了守护者。", speaker: "旁白", speakerIcon: "🔥", order: 6, rewardsJson: JSON.stringify({ gold: 300, exp: 200 }) },
+      ],
+    },
+    {
+      title: "冰封的记忆",
+      description: "寒冰位面中封印着远古的秘密，等待你去揭开。",
+      order: 5,
+      rewardsJson: JSON.stringify({ gold: 2000, exp: 1500, crystals: 20 }),
+      unlockJson: JSON.stringify({ level: 20 }),
+      nodes: [
+        { nodeId: "ice_1", title: "刺骨寒风", content: "寒冰位面的空气刺骨，远处的冰晶中似乎封印着什么。", speaker: "旁白", speakerIcon: "❄️", order: 1, choicesJson: JSON.stringify([
+          { text: "调查冰晶", nextNodeId: "ice_2" },
+          { text: "继续前进", nextNodeId: "ice_3" },
+        ]) },
+        { nodeId: "ice_2", title: "远古的记忆", content: "冰晶中封印着一位远古战士的记忆。他向你展示了这片土地曾经的繁荣。", speaker: "远古战士", speakerIcon: "🧊", order: 2, nextNodeId: "ice_4" },
+        { nodeId: "ice_3", title: "霜巨人之战", content: "前方的冰原上，一头巨大的霜巨人挡住了去路。它的每一步都让大地震颤！", speaker: "旁白", speakerIcon: "⚔️", order: 3, nextNodeId: "ice_5", rewardsJson: JSON.stringify({ exp: 500 }) },
+        { nodeId: "ice_4", title: "封印的请求", content: "远古战士请求你帮助他解除封印：", speaker: "远古战士", speakerIcon: "🧊", order: 4, choicesJson: JSON.stringify([
+          { text: "帮助他", nextNodeId: "ice_5" },
+          { text: "拒绝", nextNodeId: "ice_6" },
+        ]) },
+        { nodeId: "ice_5", title: "远古之力", content: "远古战士的力量融入了你的体内！", speaker: "旁白", speakerIcon: "❄️", order: 5, rewardsJson: JSON.stringify({ gold: 2000, exp: 1500, crystals: 20 }) },
+        { nodeId: "ice_6", title: "深刻的记忆", content: "你选择离开，但远古的记忆已经深深印在你脑海中。", speaker: "旁白", speakerIcon: "❄️", order: 6, rewardsJson: JSON.stringify({ gold: 500, exp: 500 }) },
+      ],
+    },
+    {
+      title: "暗影之主",
+      description: "暗影位面的统治者向你发出了邀请，这是陷阱还是机遇？",
+      order: 6,
+      rewardsJson: JSON.stringify({ gold: 5000, exp: 3000, crystals: 50 }),
+      unlockJson: JSON.stringify({ level: 30 }),
+      nodes: [
+        { nodeId: "shadow_1", title: "永恒的黑暗", content: "暗影位面笼罩在永恒的黑暗中。一个声音在黑暗中回荡：'你终于来了...'", speaker: "???", speakerIcon: "🌑", order: 1, choicesJson: JSON.stringify([
+          { text: "回应", nextNodeId: "shadow_2" },
+          { text: "保持警惕", nextNodeId: "shadow_3" },
+        ]) },
+        { nodeId: "shadow_2", title: "暗影之主现身", content: "暗影之主现身：'我等你很久了，领主。这个位面需要一个新的统治者。'", speaker: "暗影之主", speakerIcon: "👤", order: 2, nextNodeId: "shadow_4" },
+        { nodeId: "shadow_3", title: "暗影领主之战", content: "黑暗中涌出无数暗影，暗影之主以战斗来考验你的实力！", speaker: "旁白", speakerIcon: "⚔️", order: 3, nextNodeId: "shadow_6", rewardsJson: JSON.stringify({ exp: 1000 }) },
+        { nodeId: "shadow_4", title: "黑暗的提议", content: "暗影之主提议与你合作：", speaker: "暗影之主", speakerIcon: "👤", order: 4, choicesJson: JSON.stringify([
+          { text: "接受黑暗力量", nextNodeId: "shadow_5" },
+          { text: "拒绝并战斗", nextNodeId: "shadow_3" },
+        ]) },
+        { nodeId: "shadow_5", title: "暗影之力", content: "你获得了暗影之力！", speaker: "旁白", speakerIcon: "🌑", order: 5, rewardsJson: JSON.stringify({ gold: 5000, exp: 3000, crystals: 50 }) },
+        { nodeId: "shadow_6", title: "暗影徽章", content: "暗影之主倒下了，但他的力量化为一枚暗影徽章落在你面前。", speaker: "旁白", speakerIcon: "🌑", order: 6, rewardsJson: JSON.stringify({ gold: 3000, exp: 2000, crystals: 30 }) },
+      ],
+    },
   ];
 
   for (const chapter of storyChapters) {
     const { nodes, ...chapterData } = chapter;
-    const existing = await prisma.storyChapter.findFirst({ where: { title: chapterData.title } });
+    const existing = await prisma.storyChapter.findFirst({ where: { title: chapterData.title, order: chapterData.order } });
     const created = existing ?? await prisma.storyChapter.create({ data: chapterData });
     for (const node of nodes) {
       await prisma.storyNode.upsert({

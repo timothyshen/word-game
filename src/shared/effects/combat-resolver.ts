@@ -184,7 +184,7 @@ export function tickBuffs(unit: CombatUnit): string[] {
   const removed: string[] = [];
   unit.buffs = unit.buffs.filter((b) => {
     b.turnsRemaining--;
-    if (b.turnsRemaining < 0) {
+    if (b.turnsRemaining <= 0) {
       removed.push(b.name);
       return false;
     }

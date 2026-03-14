@@ -732,9 +732,31 @@ export async function handleEventChoice(
 
     case "fight":
       if (eventData?.monster) {
-        const playerPower = player.strength * 2 + player.agility;
-        const monsterPower = eventData.monster.attack + eventData.monster.defense;
-        const victory = playerPower > monsterPower * 0.8;
+        // Simplified turn-based combat simulation (up to 5 rounds)
+        const playerAtk = player.strength * 1.5 + player.agility * 0.5 + player.intellect * 0.3;
+        const playerDef = player.strength * 0.5 + player.agility * 0.8;
+        let playerHp = 100 + player.level * 5 + player.strength * 3;
+
+        const monsterAtk = eventData.monster.attack;
+        const monsterDef = eventData.monster.defense;
+        let monsterHp = (eventData.monster.hp as number | undefined) ?? (monsterAtk * 3 + monsterDef * 2);
+
+        const MAX_ROUNDS = 5;
+        for (let round = 0; round < MAX_ROUNDS && playerHp > 0 && monsterHp > 0; round++) {
+          // Player attacks monster
+          const playerVariance = 0.8 + Math.random() * 0.4; // ±20%
+          const playerDmg = Math.max(1, playerAtk - monsterDef * 0.5) * playerVariance;
+          monsterHp -= playerDmg;
+
+          if (monsterHp <= 0) break;
+
+          // Monster attacks player
+          const monsterVariance = 0.8 + Math.random() * 0.4; // ±20%
+          const monsterDmg = Math.max(1, monsterAtk - playerDef * 0.5) * monsterVariance;
+          playerHp -= monsterDmg;
+        }
+
+        const victory = monsterHp <= 0;
 
         if (victory) {
           const rewards = eventData.monster.rewards;
@@ -802,6 +824,37 @@ export async function handleEventChoice(
         result.message = "打开了宝箱，获得了宝贵的奖励！";
       }
       break;
+
+    case "trade": {
+      // Merchant interaction: spend gold for random rewards
+      const tradeGoldCost = 50 + Math.floor(player.level * 10);
+      if (player.gold < tradeGoldCost) {
+        result.message = `商人要价 ${tradeGoldCost} 金币，但你的金币不足。`;
+      } else {
+        await updatePlayer(db, player.id, { gold: { decrement: tradeGoldCost } });
+        // Merchant offers: random potion (HP/stamina restore) or crystal
+        const roll = Math.random();
+        if (roll < 0.4) {
+          // Stamina potion — restore 20 stamina
+          await updatePlayer(db, player.id, { stamina: { increment: 20 } });
+          result.message = `花费 ${tradeGoldCost} 金币购买了精力药水，恢复了20点体力！`;
+          result.rewards = { gold: -tradeGoldCost };
+        } else if (roll < 0.7) {
+          // Crystals
+          const crystalAmount = 3 + Math.floor(player.level / 5);
+          await updatePlayer(db, player.id, { crystals: { increment: crystalAmount } });
+          result.message = `花费 ${tradeGoldCost} 金币购买了 ${crystalAmount} 颗水晶！`;
+          result.rewards = { gold: -tradeGoldCost, crystals: crystalAmount };
+        } else {
+          // EXP scroll
+          const expAmount = 50 + player.level * 15;
+          await updatePlayer(db, player.id, { exp: { increment: expAmount } });
+          result.message = `花费 ${tradeGoldCost} 金币购买了经验卷轴，获得 ${expAmount} 经验！`;
+          result.rewards = { gold: -tradeGoldCost, exp: expAmount };
+        }
+      }
+      break;
+    }
 
     case "leave":
     case "continue":

@@ -12,25 +12,11 @@ import { api } from "~/trpc/react";
 
 interface BossPanelProps {
   onClose: () => void;
+  onOpenCombat: (level: number, type: "normal" | "elite" | "boss", combatId: string) => void;
 }
 
-export default function BossPanel({ onClose }: BossPanelProps) {
+export default function BossPanel({ onClose, onOpenCombat }: BossPanelProps) {
   const [selectedBossId, setSelectedBossId] = useState<string | null>(null);
-  const [battleResult, setBattleResult] = useState<{
-    victory: boolean;
-    message: string;
-    bossName?: string;
-    phases?: { phase1: boolean; phase2: boolean };
-    remainingAttempts?: number;
-    rewards?: {
-      gold: number;
-      crystals?: number;
-      exp: number;
-      chest?: { name: string; rarity: string; icon: string } | null;
-      equipment?: { id: string; name: string; slot: string; rarity: string; icon: string } | null;
-      breakthroughStone?: { name: string; rarity: string } | null;
-    };
-  } | null>(null);
 
   const utils = api.useUtils();
 
@@ -43,12 +29,14 @@ export default function BossPanel({ onClose }: BossPanelProps) {
     { enabled: !!selectedBossId }
   );
 
-  // 挑战Boss
+  // 挑战Boss — 启动ATB战斗
   const challengeMutation = api.boss.challenge.useMutation({
     onSuccess: (data) => {
-      setBattleResult(data);
       void utils.boss.getAll.invalidate();
       void utils.player.getStatus.invalidate();
+      // 关闭Boss面板，打开ATB战斗面板
+      onClose();
+      onOpenCombat(1, "boss", data.combatId);
     },
   });
 
@@ -80,35 +68,6 @@ export default function BossPanel({ onClose }: BossPanelProps) {
             <button onClick={onClose} className="text-[#5a6a7a] hover:text-[#c9a227] text-xl">✕</button>
           </div>
         </DialogHeader>
-
-        {/* 战斗结果弹窗 */}
-        {battleResult && (
-          <div className={`p-4 ${battleResult.victory ? "bg-[#1a3a1a]/50" : "bg-[#3a1a1a]/50"} border-b border-[#2a3a4a]`}>
-            <div className={`text-center text-lg font-bold mb-2 ${battleResult.victory ? "text-[#4a9]" : "text-[#e74c3c]"}`}>
-              {battleResult.victory ? "胜利!" : "失败"}
-            </div>
-            <div className="text-sm text-center text-[#888]">{battleResult.message}</div>
-            {battleResult.victory && battleResult.rewards && (
-              <div className="mt-3 flex items-center justify-center gap-4 text-sm">
-                <span className="text-[#c9a227]">🪙 {battleResult.rewards.gold}</span>
-                <span className="text-[#9b59b6]">💎 {battleResult.rewards.crystals}</span>
-                <span className="text-[#4a9eff]">⭐ {battleResult.rewards.exp} EXP</span>
-                {battleResult.rewards.chest && (
-                  <span className="text-[#e67e22]">{battleResult.rewards.chest.icon} {battleResult.rewards.chest.name}</span>
-                )}
-                {battleResult.rewards.equipment && (
-                  <span className="text-[#e67e22]">⚔️ {battleResult.rewards.equipment.name}</span>
-                )}
-              </div>
-            )}
-            <button
-              onClick={() => setBattleResult(null)}
-              className="mt-3 w-full py-2 bg-[#2a2a30] text-[#888] hover:text-[#e0dcd0]"
-            >
-              确定
-            </button>
-          </div>
-        )}
 
         {/* Boss列表 */}
         <ScrollArea className="flex-1 min-h-0">

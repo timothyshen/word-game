@@ -89,14 +89,8 @@ export class ProgressionModule implements GamePlugin {
   };
 
   private handleBossChallenge = async (event: unknown): Promise<void> => {
-    const { userId, victory } = (event as { payload: GameEventMap["boss:challenge"] }).payload;
-    if (victory) {
-      await this.engine?.events.emit(
-        "combat:victory",
-        { userId, rewards: {} },
-        "progression",
-      );
-    }
+    const { userId } = (event as { payload: GameEventMap["boss:challenge"] }).payload;
+    // Victory is now determined by ATB combat system, which emits combat:victory on its own
     await this.engine?.events.emit(
       "progression:check",
       { userId, trigger: "boss_challenge" },

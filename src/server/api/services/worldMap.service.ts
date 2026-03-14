@@ -214,7 +214,7 @@ export async function moveHero(
   if (shouldTriggerEvent) {
     // 根据距离计算区域等级
     const distance = Math.sqrt(input.targetX ** 2 + input.targetY ** 2);
-    const areaLevel = Math.max(1, Math.floor(distance / 3));
+    const areaLevel = Math.max(1, Math.floor(distance / 2));
     event = generateRandomEvent(areaLevel);
   }
 
