@@ -24,7 +24,7 @@ export function getTerrainHeight(x: number, y: number, biome: string): number {
 }
 
 export function seededRandom(seed: number): () => number {
-  let s = seed;
+  let s = ((seed % 233280) + 233280) % 233280;
   return () => {
     s = (s * 9301 + 49297) % 233280;
     return s / 233280;
